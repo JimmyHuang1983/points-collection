@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>親子集點帳本</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        /* 增加動畫效果 */
+        .fade-enter-active, .fade-leave-active {
+            transition: opacity 0.5s ease;
+        }
+        .fade-enter-from, .fade-leave-to {
+            opacity: 0;
+        }
+    </style>
+</head>
+<body class="bg-gray-50 text-gray-800">
+
+    <div id="app" class="max-w-4xl mx-auto p-4">
+
+        <!-- 登入畫面 -->
+        <transition name="fade">
+            <div v-if="!isAuthenticated" class="min-h-screen flex items-center justify-center">
+                <div class="w-full max-w-sm bg-white p-8 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-bold text-center text-gray-700 mb-2">家庭帳本登入</h2>
+                    <p class="text-center text-gray-500 mb-6">請輸入家庭共用密碼</p>
+                    <div class="space-y-4">
+                        <input type="password" v-model="loginPassword" @keyup.enter="handleLogin" placeholder="家庭密碼" class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-blue-500 focus:border-blue-500">
+                        <button @click="handleLogin" :disabled="isLoggingIn" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700 disabled:bg-blue-300 transition-colors">
+                            {{ isLoggingIn ? '登入中...' : '登入' }}
+                        </button>
+                        <p v-if="loginError" class="text-red-500 text-sm text-center mt-2">{{ loginError }}</p>
+                    </div>
+
+                    <div class="relative my-6">
+                        <div class="absolute inset-0 flex items-center">
+                            <span class="w-full border-t border-gray-300"></span>
+                        </div>
+                        <div class="relative flex justify-center text-sm">
+                            <span class="bg-white px-2 text-gray-500">或</span>
+                        </div>
+                    </div>
+
+                    <button @click="startDemoMode" class="w-full bg-gray-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-gray-700 transition-colors">
+                        進入訪客模式 (Demo)
+                    </button>
+                </div>
+            </div>
+        </transition>
+
+        <!-- 主應用程式畫面 -->
+        <transition name="fade">
+            <div v-if="isAuthenticated">
+                <!-- 標題和目前點數 -->
+                <header class="bg-white p-4 rounded-xl shadow-md mb-6 flex justify-between items-center">
+                    <div>
+                        <h1 class="text-3xl font-bold text-gray-800">親子集點帳本</h1>
+                        <p class="text-gray-500">帳號: {{ maskedFamilyId }}</p>
+                    </div>
+                    <button @click="handleLogout" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">
+                        登出
+                    </button>
+                </header>
+                
+                <!-- 訪客模式提示 -->
+                <div v-if="isDemoMode" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-lg" role="alert">
+                    <div class="flex justify-between items-center">
+                      <div>
+                         <p class="font-bold">訪客模式</p>
+                         <p class="text-sm">您目前正在試用模式，所有資料都是公開共用的。</p>
+                      </div>
+                      <button @click="resetDemoData" :disabled="isSaving" class="bg-yellow-500 text-white font-semibold py-1 px-3 rounded-lg hover:bg-yellow-600 disabled:bg-yellow-300 whitespace-nowrap">重設點數</button>
+                    </div>
+                </div>
+
+                <!-- 載入指示器 -->
+                <div v-if="loading" class="text-center py-10">
+                    <p>載入中，請稍候...</p>
+                </div>
+
+                <!-- 內容區域 -->
+                <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <!-- 左側操作區 -->
+                    <div class="space-y-6">
+                        <!-- 孩子切換 -->
+                        <div class="flex bg-white p-2 rounded-lg shadow-sm">
+                            <button v-for="child in children" :key="child.name" @click="switchChild(child.name)"
+                                :class="['w-full py-2 px-4 rounded-md text-center font-semibold transition-colors', selectedChild === child.name ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-600 hover:bg-blue-100']">
+                                {{ child.name }} ({{ child.points }}點)
+                            </button>
+                        </div>
+
+                        <!-- 獎勵區 -->
+                        <div class="bg-green-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-green-700 mb-3 flex items-center">表現優良 (加分)</h4>
+                            <div class="space-y-3">
+                               <div v-for="item in rewardItems" :key="item.id" class="flex flex-wrap items-center">
+                                    <input type="checkbox" :id="'item-' + item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                    <label :for="'item-' + item.id" class="ml-3 block text-sm text-gray-700 flex-grow">
+                                        {{ item.name }} (+{{ item.points }})
+                                    </label>
+                                    <input v-if="item.variable" type="number" v-model="item.inputValue" placeholder="分鐘" class="ml-2 w-20 text-sm rounded border-gray-300 focus:ring-green-500 focus:border-green-500">
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 扣分區 -->
+                        <div class="bg-red-50 p-4 rounded-lg">
+                            <h4 class="font-bold text-lg text-red-700 mb-3 flex items-center">待改進/兌換 (扣分)</h4>
+                            <div class="space-y-3">
+                                 <div v-for="item in penaltyItems" :key="item.id" class="flex flex-wrap items-center">
+                                    <div class="flex items-center w-full">
+                                        <input type="checkbox" :id="'item-' + item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 flex-shrink-0">
+                                        <label :for="'item-' + item.id" class="ml-3 block text-sm text-gray-700 flex-grow">
+                                            {{ item.name }}
+                                            <span v-if="!item.variable && !item.isCustomRedemption">(-{{ item.points }})</span>
+                                        </label>
+                                        <input v-if="item.variable" type="number" v-model="item.inputValue" placeholder="點數" class="ml-2 w-20 text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
+                                    </div>
+                                    <div v-if="item.isCustomRedemption" class="mt-2 ml-7 flex items-center space-x-2 w-full">
+                                         <input type="text" v-model="item.itemNameInput" placeholder="物品名稱" class="w-full text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
+                                         <input type="number" v-model="item.itemPointsInput" placeholder="點數" class="w-24 text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 右側歷史紀錄 -->
+                    <div class="bg-white p-4 rounded-lg shadow-sm">
+                        <h3 class="text-xl font-bold mb-4 border-b pb-2">歷史紀錄</h3>
+                        <div v-if="summary.descriptiveItems.length > 0" class="mb-4 p-3 bg-blue-50 rounded-lg">
+                            <h4 class="font-semibold text-blue-800">本次操作總結：</h4>
+                            <ul class="list-disc list-inside text-sm">
+                                <li v-for="item in summary.descriptiveItems" :key="item.id" :class="item.type === 'reward' ? 'text-green-600' : 'text-red-600'">
+                                    {{ item.name }}
+                                </li>
+                            </ul>
+                            <p class="font-bold text-right mt-2 text-lg">
+                                總計: <span :class="summary.totalChange >= 0 ? 'text-green-600' : 'text-red-600'">{{ summary.totalChange > 0 ? '+' : '' }}{{ summary.totalChange }}</span> 點
+                            </p>
+                            <button @click="saveRecord" :disabled="summary.totalChange === 0 || isSaving" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
+                                {{ isSaving ? '儲存中...' : '儲存紀錄' }}
+                            </button>
+                        </div>
+                        <div class="h-[600px] overflow-y-auto pr-2">
+                            <div v-if="history.length === 0" class="text-center text-gray-500 py-10">
+                                <p>還沒有任何歷史紀錄</p>
+                            </div>
+                            <div v-else v-for="record in history" :key="record.id" class="mb-3 p-3 border rounded-lg" :class="record.change >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
+                                <div class="flex justify-between items-center">
+                                    <p class="font-semibold text-gray-700">{{ record.date }}</p>
+                                    <p class="font-bold text-lg" :class="record.change >= 0 ? 'text-green-600' : 'text-red-500'">
+                                        {{ record.change > 0 ? '+' : '' }}{{ record.change }}
+                                    </p>
+                                </div>
+                                <ul class="list-none text-sm text-gray-600 mt-1">
+                                    <li v-for="(item, index) in record.items" :key="index">
+                                        - {{ item.name }}
+                                    </li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </transition>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged, signInAnonymously, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, collection, onSnapshot, runTransaction, query, writeBatch } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                // --- 常數 ---
+                const FAMILY_PASSWORD = '2002313';
+                const FAMILY_ID = `family-ledger-2002313`; // 固定ID，確保所有家庭成員存取相同數據
+                const DEMO_ID = 'family-ledger-DEMO';
+
+                // --- 狀態管理 ---
+                const isAuthenticated = ref(false);
+                const isLoggingIn = ref(false);
+                const loginPassword = ref('');
+                const loginError = ref('');
+                const isDemoMode = ref(false);
+                
+                const loading = ref(false); // 初始不載入，登入後才載入
+                const selectedChild = ref('晴晴');
+                const children = reactive([
+                    { name: '晴晴', points: 0, historyUnsubscribe: null },
+                    { name: '菲菲', points: 0, historyUnsubscribe: null }
+                ]);
+                const history = ref([]);
+                const selectedItems = ref([]);
+                const isSaving = ref(false);
+
+                // Firebase 實例
+                let db, auth;
+
+                const rewardItems = reactive([
+                    { id: 1, name: '段考100', points: 100, type: 'reward' },
+                    { id: 2, name: '小考100', points: 30, type: 'reward' },
+                    { id: 3, name: '洗碗', points: 20, type: 'reward' },
+                    { id: 4, name: '倒垃圾', points: 10, type: 'reward' },
+                    { id: 5, name: '整理環境', points: 15, type: 'reward' },
+                    { id: 6, name: '洗衣服', points: 10, type: 'reward' },
+                    { id: 7, name: '主動寫功課', points: 20, type: 'reward' },
+                    { id: 8, name: '看書時間(分)', points: 1, type: 'reward', variable: true, inputValue: '' },
+                    { id: 9, name: '10點前睡覺', points: 10, type: 'reward' },
+                ]);
+
+                const penaltyItems = reactive([
+                    { id: 10, name: '太晚睡覺(超過22:30)', points: 20, type: 'penalty' },
+                    { id: 11, name: '忘記簽聯絡簿', points: 5, type: 'penalty' },
+                    { id: 12, name: '考試不及格', points: 10, type: 'penalty' },
+                    { id: 13, name: '兌換3C時間(點)', points: 1, type: 'penalty', variable: true, inputValue: '' },
+                    { id: 14, name: '兌換其他物品', points: 0, type: 'penalty', variable: false, isCustomRedemption: true, itemNameInput: '', itemPointsInput: '' },
+                ]);
+
+                // --- 計算屬性 ---
+                const dataId = computed(() => isDemoMode.value ? DEMO_ID : FAMILY_ID);
+                const maskedFamilyId = computed(() => isDemoMode.value ? '訪客帳號' : `${FAMILY_ID.substring(0, 12)}...`);
+                const currentChildData = computed(() => children.find(c => c.name === selectedChild.value));
+
+                const summary = computed(() => {
+                    let totalChange = 0;
+                    const descriptiveItems = selectedItems.value.map(item => {
+                        let points = 0;
+                        let finalName = item.name;
+
+                        if (item.isCustomRedemption) {
+                            points = Number(item.itemPointsInput) || 0;
+                            finalName = `兌換: ${item.itemNameInput || '未命名物品'}`;
+                        } else if (item.variable) {
+                            const value = Number(item.inputValue) || 0;
+                            points = value * item.points;
+                            finalName = `${item.name}: ${value}`;
+                        } else {
+                            points = item.points;
+                        }
+                        
+                        if (item.type === 'reward') {
+                            totalChange += points;
+                        } else {
+                            totalChange -= points;
+                        }
+                        return { id: item.id, name: finalName, points, type: item.type };
+                    });
+                    return { totalChange, descriptiveItems };
+                });
+
+                // --- 方法 ---
+                const handleLogin = () => {
+                    if (isLoggingIn.value) return;
+                    isLoggingIn.value = true;
+                    loginError.value = '';
+
+                    if (loginPassword.value === FAMILY_PASSWORD) {
+                        isDemoMode.value = false;
+                        isAuthenticated.value = true;
+                    } else {
+                        loginError.value = '密碼錯誤，請重新輸入。';
+                    }
+                    isLoggingIn.value = false;
+                };
+
+                const startDemoMode = () => {
+                    isDemoMode.value = true;
+                    isAuthenticated.value = true;
+                };
+                
+                const handleLogout = () => {
+                    isAuthenticated.value = false;
+                    isDemoMode.value = false;
+                    loginPassword.value = '';
+                    loginError.value = '';
+                    // 清理狀態
+                    children.forEach(c => {
+                       if(c.historyUnsubscribe) c.historyUnsubscribe();
+                       c.points = 0;
+                       c.historyUnsubscribe = null;
+                    });
+                    history.value = [];
+                };
+
+                const setupListenersForFamily = () => {
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+                    const basePath = `/artifacts/${appId}/public/data/ledgers/${dataId.value}/children`;
+
+                    children.forEach(child => {
+                        const childDocRef = doc(db, basePath, child.name);
+                        // 監聽點數變化
+                        onSnapshot(childDocRef, (docSnap) => {
+                            if (docSnap.exists()) {
+                                child.points = docSnap.data().points || 0;
+                            } else {
+                                child.points = 0; // 如果文件不存在，確保點數為0
+                            }
+                        }, error => console.error(`Error fetching ${child.name}'s points:`, error));
+                    });
+                    
+                    switchChild(selectedChild.value); // 設置第一個孩子的歷史紀錄監聽
+                    loading.value = false;
+                };
+
+                const switchChild = (name) => {
+                    selectedChild.value = name;
+                    clearSelections();
+                    
+                    const currentChild = children.find(c => c.name === name);
+                    // 切換時，取消所有舊的監聽
+                     children.forEach(c => {
+                       if(c.historyUnsubscribe) {
+                           c.historyUnsubscribe();
+                           c.historyUnsubscribe = null;
+                       }
+                     });
+                    
+                    if (!auth.currentUser) return; // 確保已登入
+
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+                    const historyCollPath = `/artifacts/${appId}/public/data/ledgers/${dataId.value}/children/${name}/history`;
+                    const q = query(collection(db, historyCollPath));
+                    
+                    currentChild.historyUnsubscribe = onSnapshot(q, (querySnapshot) => {
+                        const newHistory = [];
+                        querySnapshot.forEach((doc) => {
+                            newHistory.push({ id: doc.id, ...doc.data() });
+                        });
+                        history.value = newHistory.sort((a, b) => b.timestamp.toMillis() - a.timestamp.toMillis());
+                    }, (error) => {
+                        console.error(`讀取 ${name} 的歷史紀錄失敗:`, error);
+                    });
+                };
+                
+                const clearSelections = () => {
+                    selectedItems.value = [];
+                    rewardItems.forEach(i => { if(i.variable) i.inputValue = ''; });
+                    penaltyItems.forEach(i => {
+                        if (i.variable) i.inputValue = '';
+                        if (i.isCustomRedemption) {
+                            i.itemNameInput = '';
+                            i.itemPointsInput = '';
+                        }
+                    });
+                };
+
+                const saveRecord = async () => {
+                    if (summary.value.totalChange === 0 || isSaving.value) return;
+
+                    isSaving.value = true;
+                    const change = summary.value.totalChange;
+                    const childName = selectedChild.value;
+                    const itemsToSave = JSON.parse(JSON.stringify(summary.value.descriptiveItems));
+                    
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+                    const basePath = `/artifacts/${appId}/public/data/ledgers/${dataId.value}/children`;
+
+                    try {
+                        const childDocRef = doc(db, basePath, childName);
+                        const historyCollRef = collection(db, `${basePath}/${childName}/history`);
+
+                        await runTransaction(db, async (transaction) => {
+                            const childDoc = await transaction.get(childDocRef);
+                            
+                            let newPoints = change;
+                            if (childDoc.exists()) {
+                                newPoints = (childDoc.data().points || 0) + change;
+                            }
+                            
+                            transaction.set(childDocRef, { name: childName, points: newPoints }, { merge: true });
+
+                            const newHistoryRecord = {
+                                date: new Date().toLocaleDateString('zh-TW', { year: 'numeric', month: '2-digit', day: '2-digit' }),
+                                timestamp: new Date(),
+                                change: change,
+                                items: itemsToSave,
+                            };
+                            transaction.set(doc(historyCollRef), newHistoryRecord);
+                        });
+                        
+                        clearSelections();
+
+                    } catch (error) {
+                        console.error("儲存紀錄失敗:", error);
+                    } finally {
+                        isSaving.value = false;
+                    }
+                };
+
+                 const resetDemoData = async () => {
+                    if (!isDemoMode.value) return;
+
+                    isSaving.value = true;
+                    const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app';
+                    const basePath = `/artifacts/${appId}/public/data/ledgers/${DEMO_ID}/children`;
+
+                    try {
+                        const batch = writeBatch(db);
+                        const qingDocRef = doc(db, basePath, '晴晴');
+                        const feiDocRef = doc(db, basePath, '菲菲');
+                        
+                        batch.set(qingDocRef, { name: '晴晴', points: 0 }, { merge: true });
+                        batch.set(feiDocRef, { name: '菲菲', points: 0 }, { merge: true });
+
+                        await batch.commit();
+
+                    } catch (error) {
+                        console.error("重設訪客資料失敗:", error);
+                    } finally {
+                        isSaving.value = false;
+                    }
+                };
+                
+                const initializeFirebase = async () => {
+                    const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : null;
+                    if (!firebaseConfig) {
+                        console.error("Firebase config not found.");
+                        loginError.value = "程式設定錯誤，無法連接伺服器。";
+                        return;
+                    }
+
+                    const firebaseApp = initializeApp(firebaseConfig);
+                    db = getFirestore(firebaseApp);
+                    auth = getAuth(firebaseApp);
+
+                    try {
+                        const token = typeof __initial_auth_token !== 'undefined' ? __initial_auth_token : null;
+                        if (token) {
+                            await signInWithCustomToken(auth, token);
+                        } else {
+                            await signInAnonymously(auth);
+                        }
+                    } catch (error) {
+                        console.error("Firebase authentication failed:", error);
+                        loginError.value = "無法初始化連線，請重新整理頁面。";
+                    }
+                };
+                
+                onMounted(async () => {
+                    await initializeFirebase();
+                    if (!auth.currentUser) {
+                        loginError.value = "連線驗證失敗，請重新整理。";
+                    }
+                });
+
+                watch(isAuthenticated, (isAuth) => {
+                    if (isAuth) {
+                        if (auth.currentUser) {
+                            loading.value = true;
+                            setupListenersForFamily();
+                        } else {
+                            console.error("Not authenticated with Firebase, cannot setup listeners.");
+                            loginError.value = "連線已中斷，請重新整理。";
+                            isAuthenticated.value = false;
+                        }
+                    }
+                });
+
+                return {
+                    isAuthenticated, isLoggingIn, loginPassword, loginError, handleLogin, handleLogout, isDemoMode, startDemoMode,
+                    loading, selectedChild, children, history, rewardItems, penaltyItems, selectedItems, summary, isSaving,
+                    switchChild, saveRecord, maskedFamilyId, resetDemoData
+                };
+            }
+        });
+
+        app.mount('#app');
+    </script>
+</body>
+</html>
+

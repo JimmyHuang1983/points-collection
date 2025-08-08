@@ -69,8 +69,8 @@
                 <div v-if="isDemoMode" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-700 p-4 mb-4 rounded-lg" role="alert">
                     <div class="flex justify-between items-center">
                       <div>
-                         <p class="font-bold">訪客模式</p>
-                         <p class="text-sm">您目前正在試用模式，所有資料都是公開共用的。</p>
+                           <p class="font-bold">訪客模式</p>
+                           <p class="text-sm">您目前正在試用模式，所有資料都是公開共用的。</p>
                       </div>
                       <button @click="resetDemoData" :disabled="isSaving" class="bg-yellow-500 text-white font-semibold py-1 px-3 rounded-lg hover:bg-yellow-600 disabled:bg-yellow-300 whitespace-nowrap">重設點數</button>
                     </div>
@@ -97,13 +97,22 @@
                         <div class="bg-green-50 p-4 rounded-lg">
                             <h4 class="font-bold text-lg text-green-700 mb-3 flex items-center">表現優良 (加分)</h4>
                             <div class="space-y-3">
+                               <!-- ==================== FIX START ==================== -->
                                <div v-for="item in rewardItems" :key="item.id" class="flex flex-wrap items-center">
-                                    <input type="checkbox" :id="'item-' + item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
-                                    <label :for="'item-' + item.id" class="ml-3 block text-sm text-gray-700 flex-grow">
-                                        {{ item.name }} (+{{ item.points }})
-                                    </label>
-                                    <input v-if="item.variable" type="number" v-model="item.inputValue" placeholder="分鐘" class="ml-2 w-20 text-sm rounded border-gray-300 focus:ring-green-500 focus:border-green-500">
+                                    <div class="flex items-center w-full">
+                                        <input type="checkbox" :id="'item-' + item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500 flex-shrink-0">
+                                        <label :for="'item-' + item.id" class="ml-3 block text-sm text-gray-700 flex-grow">
+                                            {{ item.name }}
+                                            <span v-if="!item.variable && !item.isCustom" class="text-green-800 font-medium">(+{{ item.points }})</span>
+                                        </label>
+                                        <input v-if="item.variable" type="number" v-model="item.inputValue" placeholder="分鐘" class="ml-2 w-20 text-sm rounded border-gray-300 focus:ring-green-500 focus:border-green-500">
+                                    </div>
+                                    <div v-if="item.isCustom" class="mt-2 ml-7 flex items-center space-x-2 w-full">
+                                         <input type="text" v-model="item.eventInput" placeholder="事件名稱" class="w-full text-sm rounded border-gray-300 focus:ring-green-500 focus:border-green-500">
+                                         <input type="number" v-model="item.pointsInput" placeholder="點數" class="w-24 text-sm rounded border-gray-300 focus:ring-green-500 focus:border-green-500">
+                                    </div>
                                 </div>
+                               <!-- ===================== FIX END ===================== -->
                             </div>
                         </div>
 
@@ -111,12 +120,13 @@
                         <div class="bg-red-50 p-4 rounded-lg">
                             <h4 class="font-bold text-lg text-red-700 mb-3 flex items-center">待改進/兌換 (扣分)</h4>
                             <div class="space-y-3">
-                                 <div v-for="item in penaltyItems" :key="item.id" class="flex flex-wrap items-center">
+                               <!-- ==================== FIX START ==================== -->
+                               <div v-for="item in penaltyItems" :key="item.id" class="flex flex-wrap items-center">
                                     <div class="flex items-center w-full">
                                         <input type="checkbox" :id="'item-' + item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500 flex-shrink-0">
                                         <label :for="'item-' + item.id" class="ml-3 block text-sm text-gray-700 flex-grow">
                                             {{ item.name }}
-                                            <span v-if="!item.variable && !item.isCustomRedemption">(-{{ item.points }})</span>
+                                            <span v-if="!item.variable && !item.isCustomRedemption && !item.isCustom" class="text-red-800 font-medium">(-{{ item.points }})</span>
                                         </label>
                                         <input v-if="item.variable" type="number" v-model="item.inputValue" placeholder="點數" class="ml-2 w-20 text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
                                     </div>
@@ -124,7 +134,12 @@
                                          <input type="text" v-model="item.itemNameInput" placeholder="物品名稱" class="w-full text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
                                          <input type="number" v-model="item.itemPointsInput" placeholder="點數" class="w-24 text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
                                     </div>
+                                    <div v-if="item.isCustom" class="mt-2 ml-7 flex items-center space-x-2 w-full">
+                                         <input type="text" v-model="item.eventInput" placeholder="事件名稱" class="w-full text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
+                                         <input type="number" v-model="item.pointsInput" placeholder="點數" class="w-24 text-sm rounded border-gray-300 focus:ring-red-500 focus:border-red-500">
+                                    </div>
                                 </div>
+                               <!-- ===================== FIX END ===================== -->
                             </div>
                         </div>
                     </div>
@@ -205,6 +220,7 @@
                 // Firebase 實例
                 let db, auth;
 
+                // ==================== FIX START ====================
                 const rewardItems = reactive([
                     { id: 1, name: '段考100', points: 100, type: 'reward' },
                     { id: 2, name: '小考100', points: 30, type: 'reward' },
@@ -215,6 +231,7 @@
                     { id: 7, name: '主動寫功課', points: 20, type: 'reward' },
                     { id: 8, name: '看書時間(分)', points: 1, type: 'reward', variable: true, inputValue: '' },
                     { id: 9, name: '10點前睡覺', points: 10, type: 'reward' },
+                    { id: 99, name: '其他', points: 0, type: 'reward', isCustom: true, eventInput: '', pointsInput: '' },
                 ]);
 
                 const penaltyItems = reactive([
@@ -223,7 +240,9 @@
                     { id: 12, name: '考試不及格', points: 10, type: 'penalty' },
                     { id: 13, name: '兌換3C時間(點)', points: 1, type: 'penalty', variable: true, inputValue: '' },
                     { id: 14, name: '兌換其他物品', points: 0, type: 'penalty', variable: false, isCustomRedemption: true, itemNameInput: '', itemPointsInput: '' },
+                    { id: 199, name: '其他', points: 0, type: 'penalty', isCustom: true, eventInput: '', pointsInput: '' },
                 ]);
+                // ===================== FIX END =====================
 
                 // --- 計算屬性 ---
                 const dataId = computed(() => isDemoMode.value ? DEMO_ID : FAMILY_ID);
@@ -236,9 +255,13 @@
                         let points = 0;
                         let finalName = item.name;
 
+                        // ==================== FIX START ====================
                         if (item.isCustomRedemption) {
                             points = Number(item.itemPointsInput) || 0;
                             finalName = `兌換: ${item.itemNameInput || '未命名物品'}`;
+                        } else if (item.isCustom) {
+                            points = Number(item.pointsInput) || 0;
+                            finalName = `${item.eventInput || '未填寫事件'}`;
                         } else if (item.variable) {
                             const value = Number(item.inputValue) || 0;
                             points = value * item.points;
@@ -246,6 +269,7 @@
                         } else {
                             points = item.points;
                         }
+                        // ===================== FIX END =====================
                         
                         if (item.type === 'reward') {
                             totalChange += points;
@@ -343,14 +367,26 @@
                 
                 const clearSelections = () => {
                     selectedItems.value = [];
-                    rewardItems.forEach(i => { if(i.variable) i.inputValue = ''; });
+                    // ==================== FIX START ====================
+                    rewardItems.forEach(i => {
+                        if (i.variable) i.inputValue = '';
+                        if (i.isCustom) {
+                            i.eventInput = '';
+                            i.pointsInput = '';
+                        }
+                    });
                     penaltyItems.forEach(i => {
                         if (i.variable) i.inputValue = '';
                         if (i.isCustomRedemption) {
                             i.itemNameInput = '';
                             i.itemPointsInput = '';
                         }
+                        if (i.isCustom) {
+                            i.eventInput = '';
+                            i.pointsInput = '';
+                        }
                     });
+                    // ===================== FIX END =====================
                 };
 
                 const saveRecord = async () => {
@@ -396,7 +432,7 @@
                     }
                 };
 
-                 const resetDemoData = async () => {
+                const resetDemoData = async () => {
                     if (!isDemoMode.value) return;
 
                     isSaving.value = true;
@@ -422,13 +458,13 @@
                 
                 const initializeFirebase = async () => {
                     const firebaseConfig = {
-                    apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
-  		    authDomain: "points-collection-cff99.firebaseapp.com",
-  		    projectId: "points-collection-cff99",
- 		    storageBucket: "points-collection-cff99.firebasestorage.app", 
-  		    messagingSenderId: "794494861925",
-  		    appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
-		    };
+                      apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
+                      authDomain: "points-collection-cff99.firebaseapp.com",
+                      projectId: "points-collection-cff99",
+                      storageBucket: "points-collection-cff99.appspot.com",
+                      messagingSenderId: "794494861925",
+                      appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
+                    };
 
 
                     const firebaseApp = initializeApp(firebaseConfig);
@@ -480,4 +516,5 @@
     </script>
 </body>
 </html>
+
 

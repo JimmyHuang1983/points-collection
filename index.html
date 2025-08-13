@@ -283,11 +283,22 @@
                     try {
                         const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
                         const defaultData = createDefaultData();
-                        const userDocRef = doc(db, 'users', userCredential.user.uid);
+                        const userId = userCredential.user.uid;
+                        const userDocRef = doc(db, 'users', userId);
+                        
                         const batch = writeBatch(db);
+
+                        // 1. Save settings
                         batch.set(doc(userDocRef, 'settings', 'children'), { list: defaultData.children });
                         batch.set(doc(userDocRef, 'settings', 'rewards'), { list: defaultData.rewards });
                         batch.set(doc(userDocRef, 'settings', 'penalties'), { list: defaultData.penalties });
+
+                        // 2. Initialize children points data documents
+                        defaultData.children.forEach(child => {
+                            const childDocRef = doc(db, `users/${userId}/children`, child.id);
+                            batch.set(childDocRef, { name: child.name, points: 0 });
+                        });
+
                         await batch.commit();
                     } catch (error) { authError.value = '註冊失敗：' + error.message;
                     } finally { isLoggingIn.value = false; }
@@ -384,8 +395,24 @@
                 const addChild = () => { children.value.push({ id: `child-${Date.now()}`, name: '新孩子', points: 0 }); };
                 const deleteChild = (childId) => { children.value = children.value.filter(c => c.id !== childId); };
                 const saveChildren = async () => {
-                    const settingsRef = doc(db, `users/${currentUser.value.uid}/settings/children`);
-                    await setDoc(settingsRef, { list: JSON.parse(JSON.stringify(children.value)) });
+                    const userId = currentUser.value.uid;
+                    const cleanChildren = JSON.parse(JSON.stringify(children.value));
+                    
+                    const batch = writeBatch(db);
+
+                    // 1. Update the settings document with the new list of children
+                    const settingsRef = doc(db, `users/${userId}/settings/children`);
+                    batch.set(settingsRef, { list: cleanChildren });
+
+                    // 2. Ensure a points data document exists for each child
+                    for (const child of cleanChildren) {
+                        const childDocRef = doc(db, `users/${userId}/children`, child.id);
+                        // Use set with merge to create the doc if it doesn't exist, 
+                        // or just update the name if it already exists, without overwriting points.
+                        batch.set(childDocRef, { name: child.name }, { merge: true });
+                    }
+
+                    await batch.commit();
                     alert('孩子列表已更新！');
                 };
 

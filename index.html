@@ -341,8 +341,15 @@
                     
                     watch(children, (newChildren) => {
                          unsubscribes = unsubscribes.filter(unsub => !unsub.isPointsListener);
-                         newChildren.forEach(child => {
+                         newChildren.forEach(async (child) => {
                             const childDocRef = doc(userDocRef, 'children', child.id);
+                            
+                            // FIX: Automatically repair older accounts by ensuring data doc exists
+                            const docSnap = await getDoc(childDocRef);
+                            if (!docSnap.exists()) {
+                                await setDoc(childDocRef, { name: child.name, points: 0 });
+                            }
+
                             const pointUnsubscribe = onSnapshot(childDocRef, (docSnap) => {
                                 const childInArray = children.value.find(c => c.id === child.id);
                                 if(childInArray) { childInArray.points = docSnap.exists() ? docSnap.data().points : 0; }
@@ -450,7 +457,11 @@
                     const historyUnsubscribe = onSnapshot(q, (snapshot) => {
                         const newHistory = [];
                         snapshot.forEach(doc => newHistory.push({ id: doc.id, ...doc.data() }));
-                        history.value = newHistory.sort((a,b) => b.timestamp.seconds - a.timestamp.seconds);
+                        history.value = newHistory.sort((a,b) => {
+                            const timeB = b.timestamp?.seconds ?? 0;
+                            const timeA = a.timestamp?.seconds ?? 0;
+                            return timeB - timeA;
+                        });
                     });
                     historyUnsubscribe.isHistoryListener = true;
                     unsubscribes.push(historyUnsubscribe);

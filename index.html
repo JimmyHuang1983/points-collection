@@ -214,7 +214,12 @@
                             <div v-else v-for="record in history" :key="record.id" class="mb-3 p-3 border rounded-lg" :class="record.change >= 0 ? 'border-green-200 bg-green-50' : 'border-red-200 bg-red-50'">
                                  <div class="flex justify-between items-start">
                                     <div>
-                                        <p class="font-semibold text-gray-700">{{ record.date }}</p>
+                                        <p class="font-semibold text-gray-700">
+                                            {{ record.date }}
+                                            <span v-if="record.timestamp" class="text-sm text-gray-500 font-normal">
+                                                {{ new Date(record.timestamp.seconds * 1000).toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) }}
+                                            </span>
+                                        </p>
                                         <ul class="list-none text-sm text-gray-600 mt-1 pl-1"><li v-for="(item, index) in record.items" :key="index">- {{ item.name }}</li></ul>
                                     </div>
                                     <div class="text-right flex-shrink-0 ml-2">
@@ -344,7 +349,6 @@
                          newChildren.forEach(async (child) => {
                             const childDocRef = doc(userDocRef, 'children', child.id);
                             
-                            // FIX: Automatically repair older accounts by ensuring data doc exists
                             const docSnap = await getDoc(childDocRef);
                             if (!docSnap.exists()) {
                                 await setDoc(childDocRef, { name: child.name, points: 0 });
@@ -407,15 +411,11 @@
                     
                     const batch = writeBatch(db);
 
-                    // 1. Update the settings document with the new list of children
                     const settingsRef = doc(db, `users/${userId}/settings/children`);
                     batch.set(settingsRef, { list: cleanChildren });
 
-                    // 2. Ensure a points data document exists for each child
                     for (const child of cleanChildren) {
                         const childDocRef = doc(db, `users/${userId}/children`, child.id);
-                        // Use set with merge to create the doc if it doesn't exist, 
-                        // or just update the name if it already exists, without overwriting points.
                         batch.set(childDocRef, { name: child.name }, { merge: true });
                     }
 
@@ -457,9 +457,9 @@
                     const historyUnsubscribe = onSnapshot(q, (snapshot) => {
                         const newHistory = [];
                         snapshot.forEach(doc => newHistory.push({ id: doc.id, ...doc.data() }));
-                        history.value = newHistory.sort((a,b) => {
-                            const timeB = b.timestamp?.seconds ?? 0;
-                            const timeA = a.timestamp?.seconds ?? 0;
+                        history.value = newHistory.sort((a, b) => {
+                            const timeA = a.timestamp?.toDate()?.getTime() || 0;
+                            const timeB = b.timestamp?.toDate()?.getTime() || 0;
                             return timeB - timeA;
                         });
                     });
@@ -512,9 +512,13 @@
                             let newPoints = change;
                             if (childDoc.exists()) { newPoints = (childDoc.data().points || 0) + change; }
                             transaction.set(childDocRef, { name: child.name, points: newPoints }, { merge: true });
+                            
+                            const d = new Date();
+                            const dateString = `${d.getFullYear()}/${String(d.getMonth() + 1).padStart(2, '0')}/${String(d.getDate()).padStart(2, '0')}`;
+                            
                             const newHistoryRecord = {
-                                date: new Date().toLocaleDateString('zh-TW'),
-                                timestamp: new Date(),
+                                date: dateString,
+                                timestamp: d,
                                 change: change, items: itemsToSave, balanceAfter: newPoints
                             };
                             transaction.set(doc(historyCollRef), newHistoryRecord);
@@ -539,7 +543,6 @@
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
                             currentUser.value = user;
-                            // Check if the device was previously in child mode
                             if (localStorage.getItem(`childMode-${user.uid}`) === 'true') {
                                 isChildMode.value = true;
                             }

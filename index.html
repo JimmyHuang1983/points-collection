@@ -239,7 +239,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, collection, onSnapshot, runTransaction, writeBatch, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, doc, collection, onSnapshot, runTransaction, writeBatch, getDocs, getDoc, setDoc, deleteDoc, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
@@ -453,15 +453,13 @@
                     if (!child) return;
 
                     const historyCollRef = collection(db, `users/${currentUser.value.uid}/children/${child.id}/history`);
-                    const q = query(historyCollRef);
+                    const q = query(historyCollRef, orderBy("timestamp", "desc"));
                     const historyUnsubscribe = onSnapshot(q, (snapshot) => {
                         const newHistory = [];
                         snapshot.forEach(doc => newHistory.push({ id: doc.id, ...doc.data() }));
-                        history.value = newHistory.sort((a, b) => {
-                            const timeA = (a.timestamp && typeof a.timestamp.toDate === 'function') ? a.timestamp.toDate().getTime() : 0;
-                            const timeB = (b.timestamp && typeof b.timestamp.toDate === 'function') ? b.timestamp.toDate().getTime() : 0;
-                            return timeB - timeA;
-                        });
+                        history.value = newHistory;
+                    }, (error) => {
+                        console.error(`Error listening to history for ${name}: `, error);
                     });
                     historyUnsubscribe.isHistoryListener = true;
                     unsubscribes.push(historyUnsubscribe);

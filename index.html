@@ -209,8 +209,15 @@
                 // Default data for new users
                 const createDefaultData = () => ({
                     children: [{ id: 'child-1', name: '孩子一', points: 0 }, { id: 'child-2', name: '孩子二', points: 0 }],
-                    rewards: [ { id: 'reward-1', name: '洗碗', points: 20 }, { id: 'reward-2', name: '倒垃圾', points: 10 }, { id: 'reward-3', name: '主動寫功課', points: 20 } ],
-                    penalties: [ { id: 'penalty-1', name: '太晚睡覺', points: 10 }, { id: 'penalty-2', name: '忘記簽聯絡簿', points: 5 } ]
+                    rewards: [ 
+                        { id: 'reward-1', name: '洗碗', points: 15, type: 'rewards' }, 
+                        { id: 'reward-2', name: '倒垃圾', points: 10, type: 'rewards' }, 
+                        { id: 'reward-3', name: '主動寫功課', points: 20, type: 'rewards' } 
+                    ],
+                    penalties: [ 
+                        { id: 'penalty-1', name: '太晚睡覺', points: 10, type: 'penalties' }, 
+                        { id: 'penalty-2', name: '忘記簽聯絡簿', points: 5, type: 'penalties' } 
+                    ]
                 });
                 
                 // --- Auth Methods ---

@@ -13,8 +13,6 @@
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
-        .tab-button { transition: all 0.2s ease-in-out; }
-        .tab-button.active { border-color: #3b82f6; color: #3b82f6; background-color: #eff6ff; }
         .icon-button { transition: background-color 0.2s; }
         .icon-button:hover { background-color: #e5e7eb; }
         .modal-overlay {
@@ -108,11 +106,11 @@
                 <div v-else class="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <!-- 左側操作區 -->
                     <div class="space-y-6">
-                        <!-- 孩子切換 -->
+                        <!-- 孩子/PIN碼 編輯 -->
                         <div class="bg-white p-2 rounded-lg shadow-sm">
                             <div v-if="editMode" class="p-2">
                                 <h4 class="font-bold text-lg text-gray-700 mb-2">編輯孩子</h4>
-                                <div v-for="(child, index) in children" :key="child.id" class="flex items-center gap-2 mb-2">
+                                <div v-for="child in children" :key="child.id" class="flex items-center gap-2 mb-2">
                                     <input type="text" v-model="child.name" placeholder="孩子名稱" class="flex-grow px-2 py-1 border rounded-md">
                                     <button @click="deleteChild(child.id)" class="p-1 text-red-500 hover:text-red-700"><ion-icon name="trash-outline"></ion-icon></button>
                                 </div>
@@ -150,7 +148,7 @@
                                <div v-if="!editMode" class="pt-2 border-t border-green-200">
                                    <div class="flex flex-wrap items-center">
                                        <div class="flex items-center w-full">
-                                           <input type="checkbox" :id="quickAddReward.id" :value="quickAddReward" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" :disabled="isChildMode">
+                                           <input type="checkbox" :id="quickAddReward.id" :value="quickAddReward" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600" :disabled="isChildMode">
                                            <label :for="quickAddReward.id" class="ml-3 block text-sm text-gray-700 flex-grow">其他 (快速新增)</label>
                                        </div>
                                        <div v-if="selectedItems.includes(quickAddReward)" class="mt-2 ml-7 flex items-center space-x-2 w-full">
@@ -174,7 +172,7 @@
                                     </div>
                                     <div v-else class="flex flex-wrap items-center">
                                          <div class="flex items-center w-full">
-                                            <input type="checkbox" :id="item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" :disabled="isChildMode">
+                                            <input type="checkbox" :id="item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600" :disabled="isChildMode">
                                             <label :for="item.id" class="ml-3 block text-sm text-gray-700 flex-grow">{{ item.name }} (-{{ item.points }})</label>
                                         </div>
                                     </div>
@@ -186,7 +184,7 @@
                                <div v-if="!editMode" class="pt-2 border-t border-red-200">
                                    <div class="flex flex-wrap items-center">
                                        <div class="flex items-center w-full">
-                                           <input type="checkbox" :id="quickAddPenalty.id" :value="quickAddPenalty" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" :disabled="isChildMode">
+                                           <input type="checkbox" :id="quickAddPenalty.id" :value="quickAddPenalty" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600" :disabled="isChildMode">
                                            <label :for="quickAddPenalty.id" class="ml-3 block text-sm text-gray-700 flex-grow">其他 (快速新增)</label>
                                        </div>
                                        <div v-if="selectedItems.includes(quickAddPenalty)" class="mt-2 ml-7 flex items-center space-x-2 w-full">
@@ -208,12 +206,8 @@
                             <ul class="list-disc list-inside text-sm">
                                 <li v-for="item in summary.descriptiveItems" :key="item.id" :class="item.type === 'rewards' ? 'text-green-600' : 'text-red-600'">{{ item.name }}</li>
                             </ul>
-                            <p class="font-bold text-right mt-2 text-lg">
-                                總計: <span :class="summary.totalChange >= 0 ? 'text-green-600' : 'text-red-600'">{{ summary.totalChange > 0 ? '+' : '' }}{{ summary.totalChange }}</span> 點
-                            </p>
-                            <button @click="saveRecord" :disabled="summary.totalChange === 0 || isSaving || isChildMode" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
-                                {{ isSaving ? '儲存中...' : '儲存紀錄' }}
-                            </button>
+                            <p class="font-bold text-right mt-2 text-lg">總計: <span :class="summary.totalChange >= 0 ? 'text-green-600' : 'text-red-600'">{{ summary.totalChange > 0 ? '+' : '' }}{{ summary.totalChange }}</span> 點</p>
+                            <button @click="saveRecord" :disabled="summary.totalChange === 0 || isSaving || isChildMode" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400">儲存紀錄</button>
                         </div>
                         <div class="h-[600px] overflow-y-auto pr-2">
                             <div v-if="history.length === 0" class="text-center text-gray-500 py-10"><p>還沒有任何歷史紀錄</p></div>
@@ -269,7 +263,6 @@
                 const selectedItems = ref([]);
                 const isSaving = ref(false);
                 
-                // Quick Add Items
                 const quickAddReward = reactive({ id: 'quick-add-reward', name: '其他', type: 'rewards', isQuickAdd: true, eventInput: '', pointsInput: '' });
                 const quickAddPenalty = reactive({ id: 'quick-add-penalty', name: '其他', type: 'penalties', isQuickAdd: true, eventInput: '', pointsInput: '' });
 
@@ -278,15 +271,8 @@
 
                 const createDefaultData = () => ({
                     children: [{ id: 'child-1', name: '孩子一', points: 0 }, { id: 'child-2', name: '孩子二', points: 0 }],
-                    rewards: [ 
-                        { id: 'reward-1', name: '洗碗', points: 15, type: 'rewards' }, 
-                        { id: 'reward-2', name: '倒垃圾', points: 10, type: 'rewards' }, 
-                        { id: 'reward-3', name: '主動寫功課', points: 20, type: 'rewards' } 
-                    ],
-                    penalties: [ 
-                        { id: 'penalty-1', name: '太晚睡覺', points: 10, type: 'penalties' }, 
-                        { id: 'penalty-2', name: '忘記簽聯絡簿', points: 5, type: 'penalties' } 
-                    ]
+                    rewards: [ { id: 'reward-1', name: '洗碗', points: 15, type: 'rewards' }, { id: 'reward-2', name: '倒垃圾', points: 10, type: 'rewards' }, { id: 'reward-3', name: '主動寫功課', points: 20, type: 'rewards' } ],
+                    penalties: [ { id: 'penalty-1', name: '太晚睡覺', points: 10, type: 'penalties' }, { id: 'penalty-2', name: '忘記簽聯絡簿', points: 5, type: 'penalties' } ]
                 });
                 
                 // --- Auth Methods ---
@@ -342,15 +328,13 @@
                     listen('rewards', rewardItems);
                     listen('penalties', penaltyItems);
                     
-                    watch(children, (newChildren, oldChildren) => {
+                    watch(children, (newChildren) => {
                          unsubscribes = unsubscribes.filter(unsub => !unsub.isPointsListener);
                          newChildren.forEach(child => {
                             const childDocRef = doc(userDocRef, 'children', child.id);
                             const pointUnsubscribe = onSnapshot(childDocRef, (docSnap) => {
                                 const childInArray = children.value.find(c => c.id === child.id);
-                                if(childInArray) {
-                                    childInArray.points = docSnap.exists() ? docSnap.data().points : 0;
-                                }
+                                if(childInArray) { childInArray.points = docSnap.exists() ? docSnap.data().points : 0; }
                             });
                             pointUnsubscribe.isPointsListener = true;
                             unsubscribes.push(pointUnsubscribe);
@@ -374,6 +358,7 @@
                         showUnlockModal.value = true;
                     } else {
                         isChildMode.value = true;
+                        localStorage.setItem(`childMode-${currentUser.value.uid}`, 'true');
                     }
                 };
 
@@ -389,6 +374,7 @@
                         isChildMode.value = false;
                         showUnlockModal.value = false;
                         unlockPassword.value = '';
+                        localStorage.removeItem(`childMode-${currentUser.value.uid}`);
                     } catch (error) {
                         unlockError.value = '密碼錯誤，無法解鎖。';
                         console.error("Reauthentication failed", error);
@@ -515,6 +501,10 @@
                     onAuthStateChanged(auth, (user) => {
                         if (user) {
                             currentUser.value = user;
+                            // Check if the device was previously in child mode
+                            if (localStorage.getItem(`childMode-${user.uid}`) === 'true') {
+                                isChildMode.value = true;
+                            }
                             setupListeners(user.uid);
                         } else {
                             currentUser.value = null;

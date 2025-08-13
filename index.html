@@ -216,8 +216,8 @@
                                     <div>
                                         <p class="font-semibold text-gray-700">
                                             {{ record.date }}
-                                            <span v-if="record.timestamp" class="text-sm text-gray-500 font-normal">
-                                                {{ new Date(record.timestamp.seconds * 1000).toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) }}
+                                            <span v-if="record.timestamp && record.timestamp.toDate" class="text-sm text-gray-500 font-normal">
+                                                {{ record.timestamp.toDate().toLocaleTimeString('zh-TW', { hour12: false, hour: '2-digit', minute: '2-digit' }) }}
                                             </span>
                                         </p>
                                         <ul class="list-none text-sm text-gray-600 mt-1 pl-1"><li v-for="(item, index) in record.items" :key="index">- {{ item.name }}</li></ul>
@@ -458,8 +458,8 @@
                         const newHistory = [];
                         snapshot.forEach(doc => newHistory.push({ id: doc.id, ...doc.data() }));
                         history.value = newHistory.sort((a, b) => {
-                            const timeA = a.timestamp?.toDate()?.getTime() || 0;
-                            const timeB = b.timestamp?.toDate()?.getTime() || 0;
+                            const timeA = (a.timestamp && typeof a.timestamp.toDate === 'function') ? a.timestamp.toDate().getTime() : 0;
+                            const timeB = (b.timestamp && typeof b.timestamp.toDate === 'function') ? b.timestamp.toDate().getTime() : 0;
                             return timeB - timeA;
                         });
                     });

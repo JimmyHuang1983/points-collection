@@ -6,7 +6,7 @@
     <title>親子集點帳本</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Heroicons for icons -->
+    <!-- Ionicons for icons -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
@@ -17,6 +17,17 @@
         .tab-button.active { border-color: #3b82f6; color: #3b82f6; background-color: #eff6ff; }
         .icon-button { transition: background-color 0.2s; }
         .icon-button:hover { background-color: #e5e7eb; }
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background-color: rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
     </style>
 </head>
 <body class="bg-gray-50 text-gray-800">
@@ -49,23 +60,47 @@
                 </div>
             </div>
         </transition>
+        
+        <!-- 解鎖 Modal -->
+        <transition name="fade">
+            <div v-if="showUnlockModal" class="modal-overlay">
+                <div class="bg-white p-8 rounded-2xl shadow-lg w-full max-w-sm">
+                    <h3 class="text-xl font-bold text-center mb-4">解除孩子模式</h3>
+                    <p class="text-center text-gray-500 mb-4">請輸入您的帳號密碼以解鎖</p>
+                    <input type="password" v-model="unlockPassword" @keyup.enter="verifyAndUnlock" placeholder="帳號密碼" class="w-full px-4 py-2 border border-gray-300 rounded-lg mb-4">
+                    <p v-if="unlockError" class="text-red-500 text-sm text-center h-5 mb-2">{{ unlockError }}</p>
+                    <div class="flex gap-4">
+                        <button @click="showUnlockModal = false" class="w-full bg-gray-200 text-gray-800 font-bold py-2 px-4 rounded-lg hover:bg-gray-300">取消</button>
+                        <button @click="verifyAndUnlock" class="w-full bg-blue-600 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-700">確認解鎖</button>
+                    </div>
+                </div>
+            </div>
+        </transition>
+
 
         <!-- 主應用程式畫面 -->
         <transition name="fade">
             <div v-if="currentUser">
                 <header class="bg-white p-4 rounded-xl shadow-md mb-6 flex justify-between items-center">
                     <div>
-                        <div class="flex items-center gap-4">
+                        <div class="flex items-center gap-2">
                              <h1 class="text-3xl font-bold text-gray-800">親子集點帳本</h1>
-                             <!-- 編輯模式按鈕 -->
-                             <button @click="toggleEditMode" class="p-2 rounded-full icon-button" :class="{'bg-blue-100 text-blue-600': editMode}">
+                             <button @click="toggleEditMode" :disabled="isChildMode" class="p-2 rounded-full icon-button" :class="{'bg-blue-100 text-blue-600': editMode, 'text-gray-400': isChildMode}">
                                  <ion-icon :name="editMode ? 'close-circle' : 'create-outline'" class="text-2xl align-middle"></ion-icon>
+                             </button>
+                             <button @click="toggleChildMode" class="p-2 rounded-full icon-button" :class="{'bg-yellow-100 text-yellow-600': isChildMode}">
+                                 <ion-icon :name="isChildMode ? 'lock-open-outline' : 'lock-closed-outline'" class="text-2xl align-middle"></ion-icon>
                              </button>
                         </div>
                         <p class="text-gray-500 text-sm mt-1">家庭帳號: {{ currentUser.email }}</p>
                     </div>
                     <button @click="handleLogout" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">登出</button>
                 </header>
+
+                <div v-if="isChildMode" class="bg-yellow-100 border-l-4 border-yellow-500 text-yellow-800 p-4 mb-4 rounded-lg" role="alert">
+                    <p class="font-bold">目前為「孩子模式」</p>
+                    <p class="text-sm">所有編輯功能均已鎖定。點擊上方 <ion-icon name="lock-open-outline" class="align-middle"></ion-icon> 按鈕並輸入密碼可解除。</p>
+                </div>
                 
                 <div v-if="loading" class="text-center py-10"><p>載入中，請稍候...</p></div>
 
@@ -84,7 +119,7 @@
                                 <button @click="saveChildren" class="w-full mt-2 text-sm bg-green-500 text-white font-semibold py-1 rounded-md hover:bg-green-600">儲存孩子變更</button>
                             </div>
                             <div v-else class="flex">
-                                <button v-for="child in children" :key="child.id" @click="switchChild(child.name)" :class="['w-full py-2 px-4 rounded-md text-center font-semibold transition-colors', selectedChildName === child.name ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-600 hover:bg-blue-100']">
+                                <button v-for="child in children" :key="child.id" @click="switchChild(child.name)" :class="['w-full py-2 px-4 rounded-md text-center font-semibold transition-colors', selectedChildName === child.name ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-600 hover:bg-blue-100']" :disabled="isChildMode">
                                     {{ child.name }} ({{ child.points }}點)
                                 </button>
                             </div>
@@ -102,7 +137,7 @@
                                     </div>
                                     <div v-else class="flex flex-wrap items-center">
                                         <div class="flex items-center w-full">
-                                            <input type="checkbox" :id="item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500">
+                                            <input type="checkbox" :id="item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" :disabled="isChildMode">
                                             <label :for="item.id" class="ml-3 block text-sm text-gray-700 flex-grow">{{ item.name }} (+{{ item.points }})</label>
                                         </div>
                                     </div>
@@ -125,7 +160,7 @@
                                     </div>
                                     <div v-else class="flex flex-wrap items-center">
                                          <div class="flex items-center w-full">
-                                            <input type="checkbox" :id="item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500">
+                                            <input type="checkbox" :id="item.id" :value="item" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" :disabled="isChildMode">
                                             <label :for="item.id" class="ml-3 block text-sm text-gray-700 flex-grow">{{ item.name }} (-{{ item.points }})</label>
                                         </div>
                                     </div>
@@ -149,7 +184,7 @@
                             <p class="font-bold text-right mt-2 text-lg">
                                 總計: <span :class="summary.totalChange >= 0 ? 'text-green-600' : 'text-red-600'">{{ summary.totalChange > 0 ? '+' : '' }}{{ summary.totalChange }}</span> 點
                             </p>
-                            <button @click="saveRecord" :disabled="summary.totalChange === 0 || isSaving" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
+                            <button @click="saveRecord" :disabled="summary.totalChange === 0 || isSaving || isChildMode" class="mt-2 w-full bg-blue-500 text-white font-bold py-2 px-4 rounded-lg hover:bg-blue-600 disabled:bg-gray-400 transition-colors">
                                 {{ isSaving ? '儲存中...' : '儲存紀錄' }}
                             </button>
                         </div>
@@ -177,7 +212,7 @@
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getAuth, onAuthStateChanged, createUserWithEmailAndPassword, signInWithEmailAndPassword, signOut, EmailAuthProvider, reauthenticateWithCredential } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
         import { getFirestore, doc, collection, onSnapshot, runTransaction, writeBatch, getDocs, getDoc, setDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
         
         const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
@@ -195,6 +230,10 @@
                 // --- App State ---
                 const loading = ref(true);
                 const editMode = ref(false);
+                const isChildMode = ref(false);
+                const showUnlockModal = ref(false);
+                const unlockPassword = ref('');
+                const unlockError = ref('');
                 const children = ref([]);
                 const rewardItems = ref([]);
                 const penaltyItems = ref([]);
@@ -204,9 +243,8 @@
                 const isSaving = ref(false);
                 
                 let db, auth;
-                let unsubscribes = []; // To store all listeners and detach them on logout
+                let unsubscribes = [];
 
-                // Default data for new users
                 const createDefaultData = () => ({
                     children: [{ id: 'child-1', name: '孩子一', points: 0 }, { id: 'child-2', name: '孩子二', points: 0 }],
                     rewards: [ 
@@ -227,7 +265,6 @@
                     authError.value = '';
                     try {
                         const userCredential = await createUserWithEmailAndPassword(auth, email.value, password.value);
-                        // Create default settings for the new user
                         const defaultData = createDefaultData();
                         const userDocRef = doc(db, 'users', userCredential.user.uid);
                         const batch = writeBatch(db);
@@ -235,7 +272,6 @@
                         batch.set(doc(userDocRef, 'settings', 'rewards'), { list: defaultData.rewards });
                         batch.set(doc(userDocRef, 'settings', 'penalties'), { list: defaultData.penalties });
                         await batch.commit();
-
                     } catch (error) { authError.value = '註冊失敗：' + error.message;
                     } finally { isLoggingIn.value = false; }
                 };
@@ -256,14 +292,13 @@
                 
                 const setupListeners = (userId) => {
                     loading.value = true;
-                    detachListeners(); // Clear old listeners before attaching new ones
+                    detachListeners();
                     const userDocRef = doc(db, 'users', userId);
 
                     const listen = (coll, targetRef) => {
                         const unsubscribe = onSnapshot(doc(userDocRef, 'settings', coll), (docSnap) => {
                             if (docSnap.exists()) {
                                 targetRef.value = docSnap.data().list || [];
-                                // If it's the children list and we haven't selected a child yet, select the first one.
                                 if (coll === 'children' && !selectedChildName.value && targetRef.value.length > 0) {
                                     switchChild(targetRef.value[0].name);
                                 }
@@ -276,21 +311,17 @@
                     listen('rewards', rewardItems);
                     listen('penalties', penaltyItems);
                     
-                    // Listener for points, needs children to be loaded first
-                    watch(children, (newChildren) => {
-                        // Detach old point listeners
-                        unsubscribes = unsubscribes.filter(unsub => !unsub.isPointsListener);
-                        
-                        newChildren.forEach(child => {
-                            const childHistoryRef = collection(userDocRef, `children/${child.id}/history`);
+                    watch(children, (newChildren, oldChildren) => {
+                         unsubscribes = unsubscribes.filter(unsub => !unsub.isPointsListener);
+                         newChildren.forEach(child => {
                             const childDocRef = doc(userDocRef, 'children', child.id);
-                             const pointUnsubscribe = onSnapshot(childDocRef, (docSnap) => {
+                            const pointUnsubscribe = onSnapshot(childDocRef, (docSnap) => {
                                 const childInArray = children.value.find(c => c.id === child.id);
                                 if(childInArray) {
                                     childInArray.points = docSnap.exists() ? docSnap.data().points : 0;
                                 }
                             });
-                            pointUnsubscribe.isPointsListener = true; // Mark it for easier removal
+                            pointUnsubscribe.isPointsListener = true;
                             unsubscribes.push(pointUnsubscribe);
                         });
                     }, { deep: true, immediate: true });
@@ -304,9 +335,36 @@
                 };
 
                 // --- App Logic ---
-                const toggleEditMode = () => { editMode.value = !editMode.value; };
+                const toggleEditMode = () => { if(!isChildMode.value) editMode.value = !editMode.value; };
+                
+                const toggleChildMode = () => {
+                    if (editMode.value) editMode.value = false; // Always exit edit mode when toggling child mode
+                    if (isChildMode.value) {
+                        showUnlockModal.value = true;
+                    } else {
+                        isChildMode.value = true;
+                    }
+                };
 
-                // Children Management
+                const verifyAndUnlock = async () => {
+                    unlockError.value = '';
+                    if (!unlockPassword.value) {
+                        unlockError.value = '請輸入密碼。';
+                        return;
+                    }
+                    try {
+                        const credential = EmailAuthProvider.credential(currentUser.value.email, unlockPassword.value);
+                        await reauthenticateWithCredential(currentUser.value, credential);
+                        // Success
+                        isChildMode.value = false;
+                        showUnlockModal.value = false;
+                        unlockPassword.value = '';
+                    } catch (error) {
+                        unlockError.value = '密碼錯誤，無法解鎖。';
+                        console.error("Reauthentication failed", error);
+                    }
+                };
+
                 const addChild = () => { children.value.push({ id: `child-${Date.now()}`, name: '新孩子', points: 0 }); };
                 const deleteChild = (childId) => { children.value = children.value.filter(c => c.id !== childId); };
                 const saveChildren = async () => {
@@ -315,7 +373,6 @@
                     alert('孩子列表已更新！');
                 };
 
-                // Items Management
                 const addItem = (type) => { 
                     const list = type === 'rewards' ? rewardItems.value : penaltyItems.value;
                     list.push({ id: `${type.slice(0, -1)}-${Date.now()}`, name: '新項目', points: 10, type: type });
@@ -335,15 +392,12 @@
                 };
                 
                 const switchChild = (name) => {
+                    if (isChildMode.value) return;
                     selectedChildName.value = name;
                     clearSelections();
                     
-                    // Detach old history listener
                     const oldHistoryUnsub = unsubscribes.find(unsub => unsub.isHistoryListener);
-                    if(oldHistoryUnsub) {
-                        oldHistoryUnsub();
-                        unsubscribes = unsubscribes.filter(unsub => !unsub.isHistoryListener);
-                    }
+                    if(oldHistoryUnsub) { oldHistoryUnsub(); unsubscribes = unsubscribes.filter(unsub => !unsub.isHistoryListener); }
                     
                     const child = children.value.find(c => c.name === name);
                     if (!child) return;
@@ -373,7 +427,7 @@
                 });
 
                 const saveRecord = async () => {
-                    if (summary.value.totalChange === 0 || isSaving.value) return;
+                    if (summary.value.totalChange === 0 || isSaving.value || isChildMode.value) return;
                     isSaving.value = true;
                     const change = summary.value.totalChange;
                     const child = children.value.find(c => c.name === selectedChildName.value);
@@ -401,7 +455,6 @@
                     } finally { isSaving.value = false; }
                 };
 
-                // --- Lifecycle ---
                 onMounted(() => {
                     const firebaseConfig = {
                       apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
@@ -421,12 +474,13 @@
                         } else {
                             currentUser.value = null;
                             detachListeners();
-                            // Reset local state
                             children.value = [];
                             rewardItems.value = [];
                             penaltyItems.value = [];
                             history.value = [];
                             editMode.value = false;
+                            isChildMode.value = false;
+                            showUnlockModal.value = false;
                             loading.value = false;
                         }
                     });
@@ -434,7 +488,7 @@
 
                 return { 
                     currentUser, email, password, authError, isRegistering, isLoggingIn, handleRegister, handleLogin, handleLogout,
-                    loading, editMode, toggleEditMode,
+                    loading, editMode, toggleEditMode, isChildMode, toggleChildMode, showUnlockModal, unlockPassword, unlockError, verifyAndUnlock,
                     children, rewardItems, penaltyItems, history, selectedChildName,
                     switchChild, selectedItems, summary, isSaving, saveRecord,
                     addChild, deleteChild, saveChildren,
@@ -446,4 +500,5 @@
     </script>
 </body>
 </html>
+
 

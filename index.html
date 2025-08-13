@@ -27,6 +27,7 @@
             display: flex;
             align-items: center;
             justify-content: center;
+            z-index: 50;
         }
     </style>
 </head>
@@ -142,8 +143,21 @@
                                         </div>
                                     </div>
                                </div>
-                               <div v-if="editMode">
-                                    <button @click="addItem('rewards')" class="w-full mt-2 text-sm bg-blue-100 text-blue-700 font-semibold py-1 rounded-md hover:bg-blue-200">新增加分項目</button>
+                               <div v-if="editMode" class="mt-2">
+                                    <button @click="addItem('rewards')" class="w-full text-sm bg-blue-100 text-blue-700 font-semibold py-1 rounded-md hover:bg-blue-200">新增加分項目</button>
+                               </div>
+                               <!-- Quick Add -->
+                               <div v-if="!editMode" class="pt-2 border-t border-green-200">
+                                   <div class="flex flex-wrap items-center">
+                                       <div class="flex items-center w-full">
+                                           <input type="checkbox" :id="quickAddReward.id" :value="quickAddReward" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-green-600 focus:ring-green-500" :disabled="isChildMode">
+                                           <label :for="quickAddReward.id" class="ml-3 block text-sm text-gray-700 flex-grow">其他 (快速新增)</label>
+                                       </div>
+                                       <div v-if="selectedItems.includes(quickAddReward)" class="mt-2 ml-7 flex items-center space-x-2 w-full">
+                                           <input type="text" v-model="quickAddReward.eventInput" placeholder="事件名稱" class="w-full text-sm rounded border-gray-300" :disabled="isChildMode">
+                                           <input type="number" v-model="quickAddReward.pointsInput" placeholder="點數" class="w-24 text-sm rounded border-gray-300" :disabled="isChildMode">
+                                       </div>
+                                   </div>
                                </div>
                             </div>
                         </div>
@@ -165,8 +179,21 @@
                                         </div>
                                     </div>
                                </div>
-                               <div v-if="editMode">
-                                    <button @click="addItem('penalties')" class="w-full mt-2 text-sm bg-blue-100 text-blue-700 font-semibold py-1 rounded-md hover:bg-blue-200">新增扣分項目</button>
+                               <div v-if="editMode" class="mt-2">
+                                    <button @click="addItem('penalties')" class="w-full text-sm bg-blue-100 text-blue-700 font-semibold py-1 rounded-md hover:bg-blue-200">新增扣分項目</button>
+                               </div>
+                               <!-- Quick Add -->
+                               <div v-if="!editMode" class="pt-2 border-t border-red-200">
+                                   <div class="flex flex-wrap items-center">
+                                       <div class="flex items-center w-full">
+                                           <input type="checkbox" :id="quickAddPenalty.id" :value="quickAddPenalty" v-model="selectedItems" class="h-4 w-4 rounded border-gray-300 text-red-600 focus:ring-red-500" :disabled="isChildMode">
+                                           <label :for="quickAddPenalty.id" class="ml-3 block text-sm text-gray-700 flex-grow">其他 (快速新增)</label>
+                                       </div>
+                                       <div v-if="selectedItems.includes(quickAddPenalty)" class="mt-2 ml-7 flex items-center space-x-2 w-full">
+                                           <input type="text" v-model="quickAddPenalty.eventInput" placeholder="事件名稱" class="w-full text-sm rounded border-gray-300" :disabled="isChildMode">
+                                           <input type="number" v-model="quickAddPenalty.pointsInput" placeholder="點數" class="w-24 text-sm rounded border-gray-300" :disabled="isChildMode">
+                                       </div>
+                                   </div>
                                </div>
                             </div>
                         </div>
@@ -242,6 +269,10 @@
                 const selectedItems = ref([]);
                 const isSaving = ref(false);
                 
+                // Quick Add Items
+                const quickAddReward = reactive({ id: 'quick-add-reward', name: '其他', type: 'rewards', isQuickAdd: true, eventInput: '', pointsInput: '' });
+                const quickAddPenalty = reactive({ id: 'quick-add-penalty', name: '其他', type: 'penalties', isQuickAdd: true, eventInput: '', pointsInput: '' });
+
                 let db, auth;
                 let unsubscribes = [];
 
@@ -338,7 +369,7 @@
                 const toggleEditMode = () => { if(!isChildMode.value) editMode.value = !editMode.value; };
                 
                 const toggleChildMode = () => {
-                    if (editMode.value) editMode.value = false; // Always exit edit mode when toggling child mode
+                    if (editMode.value) editMode.value = false;
                     if (isChildMode.value) {
                         showUnlockModal.value = true;
                     } else {
@@ -355,7 +386,6 @@
                     try {
                         const credential = EmailAuthProvider.credential(currentUser.value.email, unlockPassword.value);
                         await reauthenticateWithCredential(currentUser.value, credential);
-                        // Success
                         isChildMode.value = false;
                         showUnlockModal.value = false;
                         unlockPassword.value = '';
@@ -413,15 +443,30 @@
                     unsubscribes.push(historyUnsubscribe);
                 };
                 
-                const clearSelections = () => { selectedItems.value = []; };
+                const clearSelections = () => { 
+                    selectedItems.value = [];
+                    quickAddReward.eventInput = '';
+                    quickAddReward.pointsInput = '';
+                    quickAddPenalty.eventInput = '';
+                    quickAddPenalty.pointsInput = '';
+                };
 
                 const summary = computed(() => {
                     let totalChange = 0;
                     const descriptiveItems = selectedItems.value.map(item => {
-                        const points = item.points || 0;
+                        let points = 0;
+                        let finalName = item.name;
+
+                        if (item.isQuickAdd) {
+                            points = Number(item.pointsInput) || 0;
+                            finalName = item.eventInput || '未填寫事件';
+                        } else {
+                            points = item.points || 0;
+                        }
+
                         if (item.type === 'rewards') { totalChange += points; }
                         else { totalChange -= points; }
-                        return { id: item.id, name: item.name, points, type: item.type };
+                        return { id: item.id, name: finalName, points, type: item.type };
                     });
                     return { totalChange, descriptiveItems };
                 });
@@ -492,7 +537,8 @@
                     children, rewardItems, penaltyItems, history, selectedChildName,
                     switchChild, selectedItems, summary, isSaving, saveRecord,
                     addChild, deleteChild, saveChildren,
-                    addItem, deleteItem, saveItems
+                    addItem, deleteItem, saveItems,
+                    quickAddReward, quickAddPenalty
                 };
             }
         });
@@ -500,5 +546,4 @@
     </script>
 </body>
 </html>
-
 

@@ -118,7 +118,7 @@
                                 <button @click="saveChildren" class="w-full mt-2 text-sm bg-green-500 text-white font-semibold py-1 rounded-md hover:bg-green-600">儲存孩子變更</button>
                             </div>
                             <div v-else class="flex">
-                                <button v-for="child in children" :key="child.id" @click="switchChild(child.name)" :class="['w-full py-2 px-4 rounded-md text-center font-semibold transition-colors', selectedChildName === child.name ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-600 hover:bg-blue-100']" :disabled="isChildMode">
+                                <button v-for="child in children" :key="child.id" @click="switchChild(child.name)" :class="['w-full py-2 px-4 rounded-md text-center font-semibold transition-colors', selectedChildName === child.name ? 'bg-blue-500 text-white' : 'bg-transparent text-gray-600 hover:bg-blue-100']">
                                     {{ child.name }} ({{ child.points }}點)
                                 </button>
                             </div>
@@ -442,7 +442,6 @@
                 };
                 
                 const switchChild = (name) => {
-                    if (isChildMode.value) return;
                     selectedChildName.value = name;
                     clearSelections();
                     

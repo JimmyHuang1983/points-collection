@@ -13,6 +13,8 @@
         body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
         .icon-button { transition: background-color 0.2s; }
         .icon-button:hover { background-color: #e5e7eb; }
         .modal-overlay {
@@ -32,6 +34,29 @@
 <body class="bg-gray-50 text-gray-800">
 
     <div id="app" class="max-w-4xl mx-auto p-4">
+
+        <!-- Side Menu Overlay -->
+        <transition name="fade">
+            <div v-if="isMenuOpen" @click="toggleMenu" class="fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+        </transition>
+
+        <!-- Side Menu -->
+        <transition name="slide">
+            <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 p-6">
+                <h2 class="text-2xl font-bold mb-6">功能選單</h2>
+                <nav>
+                    <ul>
+                        <li>
+                            <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                                投資紀錄
+                            </a>
+                        </li>
+                        <!-- 未來可在此處新增更多連結 -->
+                    </ul>
+                </nav>
+            </div>
+        </transition>
 
         <!-- 登入/註冊畫面 -->
         <transition name="fade">
@@ -83,6 +108,9 @@
                 <header class="bg-white p-4 rounded-xl shadow-md mb-6 flex justify-between items-center">
                     <div>
                         <div class="flex items-center gap-2">
+                             <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
+                                 <ion-icon name="menu-outline" class="text-2xl align-middle"></ion-icon>
+                             </button>
                              <h1 class="text-3xl font-bold text-gray-800">親子集點帳本</h1>
                              <button @click="toggleEditMode" :disabled="isChildMode" class="p-2 rounded-full icon-button" :class="{'bg-blue-100 text-blue-600': editMode, 'text-gray-400': isChildMode}">
                                  <ion-icon :name="editMode ? 'close-circle' : 'create-outline'" class="text-2xl align-middle"></ion-icon>
@@ -254,6 +282,7 @@
                 const currentUser = ref(null);
 
                 // --- App State ---
+                const isMenuOpen = ref(false);
                 const loading = ref(true);
                 const editMode = ref(false);
                 const isChildMode = ref(false);
@@ -372,6 +401,7 @@
                 };
 
                 // --- App Logic ---
+                const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
                 const toggleEditMode = () => { if(!isChildMode.value) editMode.value = !editMode.value; };
                 
                 const toggleChildMode = () => {
@@ -566,7 +596,8 @@
                     switchChild, selectedItems, summary, isSaving, saveRecord,
                     addChild, deleteChild, saveChildren,
                     addItem, deleteItem, saveItems,
-                    quickAddReward, quickAddPenalty
+                    quickAddReward, quickAddPenalty,
+                    isMenuOpen, toggleMenu
                 };
             }
         });

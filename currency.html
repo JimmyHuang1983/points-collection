@@ -5,12 +5,19 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>即時匯率換算</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Ionicons for icons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
         body {
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
         }
         .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
         .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+        .icon-button { transition: background-color 0.2s; }
+        .icon-button:hover { background-color: #374151; }
         .tab-button { transition: all 0.2s ease-in-out; }
         .tab-button.active { background-color: #3b82f6; color: #ffffff; }
     </style>
@@ -18,12 +25,55 @@
 <body class="bg-gray-800 text-gray-200">
 
     <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-4xl">
-        <header class="mb-8 flex justify-between items-center">
+
+        <!-- Side Menu Overlay -->
+        <transition name="fade">
+            <div v-if="isMenuOpen" @click="toggleMenu" class="fixed inset-0 bg-black bg-opacity-60 z-40"></div>
+        </transition>
+
+        <!-- Side Menu -->
+        <transition name="slide">
+            <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-gray-700 shadow-xl z-50 p-6">
+                <h2 class="text-2xl font-bold mb-6 text-white">功能選單</h2>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                                親子集點
+                            </a>
+                        </li>
+                        <li>
+                            <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                                投資紀錄
+                            </a>
+                        </li>
+                        <li>
+                            <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                                體重管理
+                            </a>
+                        </li>
+                        <li>
+                            <a href="currency.html" class="flex items-center gap-3 text-lg text-blue-400 font-semibold py-2">
+                                <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                                匯率換算
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </transition>
+
+        <header class="mb-8 flex items-center gap-4">
+            <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
+                 <ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon>
+            </button>
             <div>
                 <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">即時匯率換算</h1>
                 <p class="text-gray-400 mt-2">您的出國旅遊小幫手</p>
             </div>
-            <a href="index.html" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">返回集點趣</a>
         </header>
 
         <main>
@@ -126,6 +176,7 @@
                 const error = ref(null);
                 const rates = ref({});
                 const lastUpdated = ref('');
+                const isMenuOpen = ref(false);
                 
                 const amount = ref(1000);
                 const baseCurrency = ref('TWD');
@@ -170,6 +221,8 @@
                         return manualRates.value[key] ? manualRates.value[key].toFixed(4) : '(未設定)';
                     }
                 };
+                
+                const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
 
                 const swapBaseCurrency = () => {
                     [baseCurrency.value, targetCurrency.value] = [targetCurrency.value, baseCurrency.value];
@@ -245,7 +298,8 @@
                 return {
                     loading, error, amount, baseCurrency, targetCurrency, newCurrency, userCurrencies,
                     availableCurrencies, getCurrencyName, convertedAmount, singleUnitRate, swapBaseCurrency,
-                    addCurrency, removeCurrency, lastUpdated, rates, rateMode, manualRateInput, getRateForTable
+                    addCurrency, removeCurrency, lastUpdated, rates, rateMode, manualRateInput, getRateForTable,
+                    isMenuOpen, toggleMenu
                 };
             }
         }).mount('#app');

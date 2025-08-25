@@ -7,15 +7,64 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <!-- Ionicons for icons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
         body {
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
         }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+        .icon-button { transition: background-color 0.2s; }
+        .icon-button:hover { background-color: #374151; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
 
     <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        
+        <!-- Side Menu Overlay -->
+        <transition name="fade">
+            <div v-if="isMenuOpen" @click="toggleMenu" class="fixed inset-0 bg-black bg-opacity-60 z-40"></div>
+        </transition>
+
+        <!-- Side Menu -->
+        <transition name="slide">
+            <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-xl z-50 p-6">
+                <h2 class="text-2xl font-bold mb-6 text-white">功能選單</h2>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                                親子集點
+                            </a>
+                        </li>
+                        <li>
+                            <a href="investment.html" class="flex items-center gap-3 text-lg text-blue-400 font-semibold py-2">
+                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                                投資紀錄
+                            </a>
+                        </li>
+                        <li>
+                            <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                                體重管理
+                            </a>
+                        </li>
+                        <li>
+                            <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                                匯率換算
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </transition>
         
         <!-- Auth Guard -->
         <div v-if="!currentUser && !loading" class="text-center py-20">
@@ -29,12 +78,14 @@
         </div>
 
         <main v-if="currentUser && !loading">
-            <header class="mb-8 flex justify-between items-center">
+            <header class="mb-8 flex items-center gap-4">
+                <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
+                     <ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon>
+                </button>
                 <div>
                     <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">股票投資儀表板</h1>
                     <p class="text-gray-400 mt-2">屬於 {{ currentUser.email }} 的投資組合</p>
                 </div>
-                <a href="index.html" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">返回集點趣</a>
             </header>
 
             <!-- Summary Metrics -->
@@ -129,6 +180,7 @@
             setup() {
                 const loading = ref(true);
                 const currentUser = ref(null);
+                const isMenuOpen = ref(false);
                 const investmentData = ref([]);
                 const form = reactive({
                     date: dayjs().format('YYYY-MM-DD'),
@@ -270,19 +322,39 @@
                 const reversedInvestmentData = computed(() => [...investmentData.value].reverse());
 
                 function renderChart() {
-                    const ctx = document.getElementById('investmentChart');
+                     const ctx = document.getElementById('investmentChart');
                     if (!ctx) return;
+                    if (investmentChart) investmentChart.destroy();
+                    if (investmentData.value.length === 0) return;
+                    
+                    const labels = investmentData.value.map(d => d.date);
+                    const marketValueData = investmentData.value.map(d => d.marketValue);
+                    const profitLossData = investmentData.value.map(d => d.profitLoss);
+                    const minMarketValue = Math.min(...marketValueData);
+                    const padding = (Math.max(...marketValueData) - minMarketValue) * 0.1;
 
-                    if (investmentChart) {
-                        investmentChart.destroy();
-                    }
-                    // Chart rendering logic remains the same
-                    // ...
+                    investmentChart = new Chart(ctx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { type: 'line', label: '市值', data: marketValueData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'yMarketValue', tension: 0.1, fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#3b82f6' },
+                                { type: 'bar', label: '損益', data: profitLossData, backgroundColor: profitLossData.map(p => p >= 0 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'), yAxisID: 'yProfitLoss' }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                                yMarketValue: { type: 'linear', position: 'left', min: minMarketValue - padding, ticks: { color: '#60a5fa', callback: value => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value) } },
+                                yProfitLoss: { type: 'linear', position: 'right', ticks: { color: '#86efac', callback: value => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value) }, grid: { drawOnChartArea: false } }
+                            },
+                            plugins: { legend: { labels: { color: '#d1d5db' } }, tooltip: { enabled: true, backgroundColor: 'rgba(31, 41, 55, 0.9)', callbacks: { label: (c) => `${c.dataset.label}: ${formatNumber(c.parsed.y)}` } } }
+                        }
+                    });
                 }
-
-                watch(investmentData, () => {
-                    renderChart();
-                });
+                
+                watch(investmentData, renderChart);
 
                 async function handleAddRecord() {
                     if (!form.date || form.marketValue === null || form.profitLoss === null) {
@@ -324,7 +396,6 @@
                                 batch.set(docRef, record);
                             });
                             await batch.commit();
-                            // The listener will re-trigger with the new data, so we don't need to do anything else.
                             return;
                         }
 
@@ -340,12 +411,12 @@
                 
                 onMounted(() => {
                     const firebaseConfig = {
-                        apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
-                        authDomain: "points-collection-cff99.firebaseapp.com",
-                        projectId: "points-collection-cff99",
-                        storageBucket: "points-collection-cff99.appspot.com",
-                        messagingSenderId: "794494861925",
-                        appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
+                      apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
+                      authDomain: "points-collection-cff99.firebaseapp.com",
+                      projectId: "points-collection-cff99",
+                      storageBucket: "points-collection-cff99.appspot.com",
+                      messagingSenderId: "794494861925",
+                      appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
                     };
                     const firebaseApp = initializeApp(firebaseConfig);
                     db = getFirestore(firebaseApp);
@@ -363,44 +434,12 @@
                         loading.value = false;
                     });
                 });
-                
-                // --- Dummy implementations for chart and other functions to keep diff clean ---
-                const dummyRenderChart = () => {
-                     const ctx = document.getElementById('investmentChart');
-                    if (!ctx || !investmentData.value.length) return;
-                    const labels = investmentData.value.map(d => d.date);
-                    const marketValueData = investmentData.value.map(d => d.marketValue);
-                    const profitLossData = investmentData.value.map(d => d.profitLoss);
-                    const minMarketValue = Math.min(...marketValueData);
-                    const padding = (Math.max(...marketValueData) - minMarketValue) * 0.1;
-
-                    if (investmentChart) investmentChart.destroy();
-                    investmentChart = new Chart(ctx.getContext('2d'), {
-                        type: 'bar',
-                        data: {
-                            labels: labels,
-                            datasets: [
-                                { type: 'line', label: '市值', data: marketValueData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'yMarketValue', tension: 0.1, fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#3b82f6' },
-                                { type: 'bar', label: '損益', data: profitLossData, backgroundColor: profitLossData.map(p => p >= 0 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'), yAxisID: 'yProfitLoss' }
-                            ]
-                        },
-                        options: {
-                            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
-                            scales: {
-                                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
-                                yMarketValue: { type: 'linear', position: 'left', min: minMarketValue - padding, ticks: { color: '#60a5fa', callback: value => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value) }, grid: { color: '#374151' }, title: { display: false, text: '市值', color: '#60a5fa'} },
-                                yProfitLoss: { type: 'linear', position: 'right', ticks: { color: '#86efac', callback: value => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value) }, grid: { drawOnChartArea: false }, title: { display: false, text: '損益', color: '#86efac'} }
-                            },
-                            plugins: { legend: { labels: { color: '#d1d5db' } }, tooltip: { enabled: true, backgroundColor: 'rgba(31, 41, 55, 0.9)', callbacks: { label: (c) => `${c.dataset.label}: ${formatNumber(c.parsed.y)}` } } }
-                        }
-                    });
-                };
-                watch(investmentData, dummyRenderChart);
-
 
                 return {
                     loading,
                     currentUser,
+                    isMenuOpen,
+                    toggleMenu: () => { isMenuOpen.value = !isMenuOpen.value; },
                     investmentData,
                     reversedInvestmentData,
                     form,

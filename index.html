@@ -44,23 +44,33 @@
         <transition name="slide">
             <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 p-6">
                 <h2 class="text-2xl font-bold mb-6">功能選單</h2>
-                <nav class="space-y-2">
-                    <a href="index.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
-                        <ion-icon name="home-outline" class="text-2xl"></ion-icon>
-                        集點帳本
-                    </a>
-                    <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
-                        <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
-                        投資紀錄
-                    </a>
-                    <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
-                        <ion-icon name="body-outline" class="text-2xl"></ion-icon>
-                        體重管理
-                    </a>
-                    <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
-                        <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
-                        匯率換算
-                    </a>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center gap-3 text-lg text-blue-600 font-semibold py-2">
+                                <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                                親子集點
+                            </a>
+                        </li>
+                        <li>
+                            <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                                投資紀錄
+                            </a>
+                        </li>
+                        <li>
+                            <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                                <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                                體重管理
+                            </a>
+                        </li>
+                        <li>
+                            <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                                <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                                匯率換算
+                            </a>
+                        </li>
+                    </ul>
                 </nav>
             </div>
         </transition>
@@ -113,20 +123,17 @@
         <transition name="fade">
             <div v-if="currentUser">
                 <header class="bg-white p-4 rounded-xl shadow-md mb-6 flex justify-between items-center">
-                    <div>
-                        <div class="flex items-center gap-2">
-                             <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
-                                 <ion-icon name="menu-outline" class="text-2xl align-middle"></ion-icon>
-                             </button>
-                             <h1 class="text-3xl font-bold text-gray-800">親子集點帳本</h1>
-                             <button @click="toggleEditMode" :disabled="isChildMode" class="p-2 rounded-full icon-button" :class="{'bg-blue-100 text-blue-600': editMode, 'text-gray-400': isChildMode}">
-                                 <ion-icon :name="editMode ? 'close-circle' : 'create-outline'" class="text-2xl align-middle"></ion-icon>
-                             </button>
-                             <button @click="toggleChildMode" class="p-2 rounded-full icon-button" :class="{'bg-yellow-100 text-yellow-600': isChildMode}">
-                                 <ion-icon :name="isChildMode ? 'lock-open-outline' : 'lock-closed-outline'" class="text-2xl align-middle"></ion-icon>
-                             </button>
-                        </div>
-                        <p class="text-gray-500 text-sm mt-1">家庭帳號: {{ currentUser.email }}</p>
+                    <div class="flex items-center gap-2">
+                         <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
+                             <ion-icon name="menu-outline" class="text-2xl align-middle"></ion-icon>
+                         </button>
+                        <h1 class="text-3xl font-bold text-gray-800">親子集點帳本</h1>
+                        <button @click="toggleEditMode" :disabled="isChildMode" class="p-2 rounded-full icon-button" :class="{'bg-blue-100 text-blue-600': editMode, 'text-gray-400': isChildMode}">
+                            <ion-icon :name="editMode ? 'close-circle' : 'create-outline'" class="text-2xl align-middle"></ion-icon>
+                        </button>
+                        <button @click="toggleChildMode" class="p-2 rounded-full icon-button" :class="{'bg-yellow-100 text-yellow-600': isChildMode}">
+                            <ion-icon :name="isChildMode ? 'lock-open-outline' : 'lock-closed-outline'" class="text-2xl align-middle"></ion-icon>
+                        </button>
                     </div>
                     <button @click="handleLogout" class="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors">登出</button>
                 </header>
@@ -329,12 +336,10 @@
                         
                         const batch = writeBatch(db);
 
-                        // 1. Save settings
                         batch.set(doc(userDocRef, 'settings', 'children'), { list: defaultData.children });
                         batch.set(doc(userDocRef, 'settings', 'rewards'), { list: defaultData.rewards });
                         batch.set(doc(userDocRef, 'settings', 'penalties'), { list: defaultData.penalties });
 
-                        // 2. Initialize children points data documents
                         defaultData.children.forEach(child => {
                             const childDocRef = doc(db, `users/${userId}/children`, child.id);
                             batch.set(childDocRef, { name: child.name, points: 0 });
@@ -614,4 +619,5 @@
     </script>
 </body>
 </html>
+
 

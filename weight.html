@@ -47,8 +47,8 @@
              <!-- Member/Type Tabs -->
             <div class="mb-6">
                 <div class="flex border border-gray-700 rounded-lg p-1 max-w-md mx-auto">
-                    <button @click="currentTab = 'adult'" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'adult' }">大人</button>
-                    <button @click="currentTab = 'child'" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'child' }">小孩</button>
+                    <button @click="changeTab('adult')" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'adult' }">大人</button>
+                    <button @click="changeTab('child')" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'child' }">小孩</button>
                 </div>
             </div>
 
@@ -56,6 +56,7 @@
             <div class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg mb-8">
                  <div class="flex justify-center mb-4">
                     <select v-model="selectedMember" class="bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                        <option v-if="currentMembers.length === 0" value="">-- 無成員 --</option>
                         <option v-for="member in currentMembers" :key="member" :value="member">{{ member }}</option>
                     </select>
                 </div>
@@ -107,6 +108,9 @@
                                 </tr>
                             </thead>
                             <tbody class="bg-gray-800 divide-y divide-gray-700">
+                                <tr v-if="selectedMemberData.length === 0">
+                                    <td colspan="4" class="text-center py-10 text-gray-400">這位成員還沒有紀錄</td>
+                                </tr>
                                 <tr v-for="record in selectedMemberData" :key="record.id">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm">{{ record.date }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.weight }} kg</td>
@@ -153,35 +157,40 @@
                 const currentRecords = computed(() => allRecords.value.filter(r => r.type === currentTab.value));
                 const currentMembers = computed(() => [...new Set(currentRecords.value.map(r => r.name))]);
                 const selectedMemberData = computed(() => {
+                    if (!selectedMember.value) return [];
                     return currentRecords.value
                         .filter(r => r.name === selectedMember.value)
                         .sort((a, b) => new Date(b.date) - new Date(a.date));
                 });
 
                 // --- Watchers ---
-                watch(currentTab, (newTab) => {
-                    const members = currentMembers.value;
-                    selectedMember.value = members.length > 0 ? members[0] : '';
-                    form.height = newTab === 'adult' ? null : form.height; // Clear height for adults
-                });
-
-                watch(currentMembers, (newMembers) => {
-                    if (!newMembers.includes(selectedMember.value)) {
-                        selectedMember.value = newMembers.length > 0 ? newMembers[0] : '';
-                    }
-                });
-                
                 watch(selectedMemberData, () => {
                     renderChart();
                 });
 
+                watch(currentMembers, (newMemberList) => {
+                    if (!newMemberList.includes(selectedMember.value)) {
+                        selectedMember.value = newMemberList.length > 0 ? newMemberList[0] : '';
+                    }
+                });
+
+
                 // --- Methods ---
+                function changeTab(tab) {
+                    currentTab.value = tab;
+                    const membersInNewTab = [...new Set(allRecords.value.filter(r => r.type === tab).map(r => r.name))];
+                    selectedMember.value = membersInNewTab.length > 0 ? membersInNewTab[0] : '';
+                    if (tab === 'adult') {
+                        form.height = null;
+                    }
+                }
+
                 function renderChart() {
                     const ctx = document.getElementById('healthChart');
                     if (!ctx) return;
                     if (healthChart) healthChart.destroy();
                     
-                    const chartData = [...selectedMemberData.value].reverse(); // Chart needs ascending dates
+                    const chartData = [...selectedMemberData.value].reverse();
                     
                     const datasets = [
                         { type: 'line', label: '體重 (kg)', data: chartData.map(d => d.weight), borderColor: '#3b82f6', yAxisID: 'yWeight', tension: 0.1, fill: false },
@@ -212,7 +221,6 @@
                 }
 
                 async function addRecord() {
-                    // Basic validation
                     const requiredFields = ['name', 'date', 'weight', 'bodyFat'];
                     if (currentTab.value === 'child') requiredFields.push('height');
                     
@@ -237,7 +245,6 @@
                     try {
                         const collRef = collection(db, `users/${currentUser.value.uid}/healthRecords`);
                         await addDoc(collRef, newRecord);
-                        // Reset form
                         form.name = '';
                         form.weight = null;
                         form.bodyFat = null;
@@ -261,9 +268,11 @@
                         });
                         allRecords.value = data;
                         
-                        // FIX: Removed the logic that was conflicting with the watcher.
-                        // The watcher for `currentMembers` will now handle the initial selection.
-
+                        const currentVisibleMembers = [...new Set(data.filter(r => r.type === currentTab.value).map(r => r.name))];
+                        if (!selectedMember.value || !currentVisibleMembers.includes(selectedMember.value)) {
+                            selectedMember.value = currentVisibleMembers.length > 0 ? currentVisibleMembers[0] : '';
+                        }
+                        
                     }, (error) => {
                         console.error("Error listening to health data:", error);
                     });
@@ -301,6 +310,7 @@
                     currentTab,
                     form,
                     addRecord,
+                    changeTab,
                     currentMembers,
                     selectedMember,
                     selectedMemberData

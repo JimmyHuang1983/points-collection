@@ -44,16 +44,23 @@
         <transition name="slide">
             <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-white shadow-xl z-50 p-6">
                 <h2 class="text-2xl font-bold mb-6">功能選單</h2>
-                <nav>
-                    <ul>
-                        <li>
-                            <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
-                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
-                                投資紀錄
-                            </a>
-                        </li>
-                        <!-- 未來可在此處新增更多連結 -->
-                    </ul>
+                <nav class="space-y-2">
+                    <a href="index.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                        <ion-icon name="home-outline" class="text-2xl"></ion-icon>
+                        集點帳本
+                    </a>
+                    <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                        <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                        投資紀錄
+                    </a>
+                    <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                        <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                        體重管理
+                    </a>
+                    <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-700 hover:text-blue-600 py-2">
+                        <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                        匯率換算
+                    </a>
                 </nav>
             </div>
         </transition>
@@ -473,7 +480,9 @@
                 
                 const switchChild = (name) => {
                     selectedChildName.value = name;
-                    clearSelections();
+                    if (!isChildMode.value) {
+                       clearSelections();
+                    }
                     
                     const oldHistoryUnsub = unsubscribes.find(unsub => unsub.isHistoryListener);
                     if(oldHistoryUnsub) { oldHistoryUnsub(); unsubscribes = unsubscribes.filter(unsub => !unsub.isHistoryListener); }

@@ -1,0 +1,315 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>體重管理儀表板</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        .tab-button {
+            transition: all 0.2s ease-in-out;
+        }
+        .tab-button.active {
+            background-color: #3b82f6;
+            color: #ffffff;
+        }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        
+        <!-- Auth Guard -->
+        <div v-if="!currentUser && !loading" class="text-center py-20">
+            <h1 class="text-3xl font-bold text-white mb-4">請先登入</h1>
+            <p class="text-gray-400 mb-6">您需要登入才能存取您的體重管理儀表板。</p>
+            <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">返回主頁登入</a>
+        </div>
+        
+        <div v-if="loading" class="text-center py-20">
+            <p class="text-xl text-gray-400">載入中，請稍候...</p>
+        </div>
+
+        <main v-if="currentUser && !loading">
+            <header class="mb-8 flex justify-between items-center">
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">體重管理</h1>
+                    <p class="text-gray-400 mt-2">追蹤您家庭成員的健康數據</p>
+                </div>
+                <a href="index.html" class="bg-gray-700 hover:bg-gray-600 text-white font-bold py-2 px-4 rounded-lg transition duration-300">返回集點趣</a>
+            </header>
+
+             <!-- Member/Type Tabs -->
+            <div class="mb-6">
+                <div class="flex border border-gray-700 rounded-lg p-1 max-w-md mx-auto">
+                    <button @click="currentTab = 'adult'" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'adult' }">大人</button>
+                    <button @click="currentTab = 'child'" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'child' }">小孩</button>
+                </div>
+            </div>
+
+            <!-- Chart Section -->
+            <div class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg mb-8">
+                 <div class="flex justify-center mb-4">
+                    <select v-model="selectedMember" class="bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                        <option v-for="member in currentMembers" :key="member" :value="member">{{ member }}</option>
+                    </select>
+                </div>
+                <canvas id="healthChart" style="min-height: 400px;"></canvas>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- Add New Record Form Section -->
+                <div class="lg:col-span-1 bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">新增紀錄</h2>
+                    <form @submit.prevent="addRecord" class="space-y-4">
+                        <div>
+                            <label for="memberName" class="block text-sm font-medium text-gray-300">姓名</label>
+                            <input type="text" v-model="form.name" required placeholder="例如: 爸爸 或 晴晴" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                        </div>
+                        <div>
+                            <label for="date" class="block text-sm font-medium text-gray-300">日期</label>
+                            <input type="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                        </div>
+                        <div>
+                            <label for="weight" class="block text-sm font-medium text-gray-300">體重 (kg)</label>
+                            <input type="number" step="0.1" v-model.number="form.weight" required placeholder="例如: 70.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                        </div>
+                        <div>
+                            <label for="bodyFat" class="block text-sm font-medium text-gray-300">體脂率 (%)</label>
+                            <input type="number" step="0.1" v-model.number="form.bodyFat" required placeholder="例如: 22.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                        </div>
+                        <div v-if="currentTab === 'child'">
+                            <label for="height" class="block text-sm font-medium text-gray-300">身高 (cm)</label>
+                            <input type="number" step="0.1" v-model.number="form.height" required placeholder="例如: 130.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            儲存紀錄
+                        </button>
+                    </form>
+                </div>
+
+                <!-- Data Table Section -->
+                <div class="lg:col-span-2 bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">歷史紀錄 - {{ selectedMember }}</h2>
+                    <div class="overflow-auto max-h-[600px]">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase">日期</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase">體重</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase">體脂率</th>
+                                    <th v-if="currentTab === 'child'" class="px-6 py-3 text-right text-xs font-medium uppercase">身高</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                                <tr v-for="record in selectedMemberData" :key="record.id">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm">{{ record.date }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.weight }} kg</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.bodyFat }} %</td>
+                                    <td v-if="currentTab === 'child'" class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.height }} cm</td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                const loading = ref(true);
+                const currentUser = ref(null);
+                const currentTab = ref('adult'); // 'adult' or 'child'
+                const allRecords = ref([]);
+                const selectedMember = ref('');
+                
+                const form = reactive({
+                    name: '',
+                    date: dayjs().format('YYYY-MM-DD'),
+                    weight: null,
+                    bodyFat: null,
+                    height: null,
+                });
+
+                let db, auth;
+                let healthChart;
+                let unsubscribe = null;
+
+                // --- Computed Properties ---
+                const currentRecords = computed(() => allRecords.value.filter(r => r.type === currentTab.value));
+                const currentMembers = computed(() => [...new Set(currentRecords.value.map(r => r.name))]);
+                const selectedMemberData = computed(() => {
+                    return currentRecords.value
+                        .filter(r => r.name === selectedMember.value)
+                        .sort((a, b) => new Date(b.date) - new Date(a.date));
+                });
+
+                // --- Watchers ---
+                watch(currentTab, (newTab) => {
+                    const members = currentMembers.value;
+                    selectedMember.value = members.length > 0 ? members[0] : '';
+                    form.height = newTab === 'adult' ? null : form.height; // Clear height for adults
+                });
+
+                watch(currentMembers, (newMembers) => {
+                    if (!newMembers.includes(selectedMember.value)) {
+                        selectedMember.value = newMembers.length > 0 ? newMembers[0] : '';
+                    }
+                });
+                
+                watch(selectedMemberData, () => {
+                    renderChart();
+                });
+
+                // --- Methods ---
+                function renderChart() {
+                    const ctx = document.getElementById('healthChart');
+                    if (!ctx) return;
+                    if (healthChart) healthChart.destroy();
+                    
+                    const chartData = [...selectedMemberData.value].reverse(); // Chart needs ascending dates
+                    
+                    const datasets = [
+                        { type: 'line', label: '體重 (kg)', data: chartData.map(d => d.weight), borderColor: '#3b82f6', yAxisID: 'yWeight', tension: 0.1, fill: false },
+                        { type: 'line', label: '體脂率 (%)', data: chartData.map(d => d.bodyFat), borderColor: '#10b981', yAxisID: 'yBodyFat', tension: 0.1, fill: false }
+                    ];
+
+                    if (currentTab.value === 'child') {
+                        datasets.push({ type: 'line', label: '身高 (cm)', data: chartData.map(d => d.height), borderColor: '#f59e0b', yAxisID: 'yHeight', tension: 0.1, fill: false });
+                    }
+
+                    healthChart = new Chart(ctx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: chartData.map(d => d.date),
+                            datasets: datasets
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                                yWeight: { type: 'linear', position: 'left', ticks: { color: '#60a5fa' }, grid: { color: '#374151' } },
+                                yBodyFat: { type: 'linear', position: 'right', ticks: { color: '#34d399' }, grid: { drawOnChartArea: false } },
+                                yHeight: { type: 'linear', position: 'right', display: currentTab.value === 'child', ticks: { color: '#f59e0b' }, grid: { drawOnChartArea: false } }
+                            },
+                            plugins: { legend: { labels: { color: '#d1d5db' } } }
+                        }
+                    });
+                }
+
+                async function addRecord() {
+                    // Basic validation
+                    const requiredFields = ['name', 'date', 'weight', 'bodyFat'];
+                    if (currentTab.value === 'child') requiredFields.push('height');
+                    
+                    for (const field of requiredFields) {
+                        if (form[field] === null || form[field] === '') {
+                             alert(`請填寫所有欄位： ${field}`);
+                            return;
+                        }
+                    }
+
+                    const newRecord = {
+                        type: currentTab.value,
+                        name: form.name.trim(),
+                        date: form.date,
+                        weight: Number(form.weight),
+                        bodyFat: Number(form.bodyFat),
+                    };
+                    if (currentTab.value === 'child') {
+                        newRecord.height = Number(form.height);
+                    }
+
+                    try {
+                        const collRef = collection(db, `users/${currentUser.value.uid}/healthRecords`);
+                        await addDoc(collRef, newRecord);
+                        // Reset form
+                        form.name = '';
+                        form.weight = null;
+                        form.bodyFat = null;
+                        form.height = null;
+                    } catch (error) {
+                        console.error("Error adding document: ", error);
+                        alert('新增紀錄失敗，請稍後再試。');
+                    }
+                }
+
+                function setupListeners(userId) {
+                    if (unsubscribe) unsubscribe();
+
+                    const collRef = collection(db, `users/${userId}/healthRecords`);
+                    const q = query(collRef, orderBy("date", "asc"));
+
+                    unsubscribe = onSnapshot(q, (snapshot) => {
+                        const data = [];
+                        snapshot.forEach(doc => {
+                            data.push({ id: doc.id, ...doc.data() });
+                        });
+                        allRecords.value = data;
+                        
+                        // FIX: Removed the logic that was conflicting with the watcher.
+                        // The watcher for `currentMembers` will now handle the initial selection.
+
+                    }, (error) => {
+                        console.error("Error listening to health data:", error);
+                    });
+                }
+                
+                onMounted(() => {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
+                        authDomain: "points-collection-cff99.firebaseapp.com",
+                        projectId: "points-collection-cff99",
+                        storageBucket: "points-collection-cff99.appspot.com",
+                        messagingSenderId: "794494861925",
+                        appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
+                    };
+                    const firebaseApp = initializeApp(firebaseConfig);
+                    db = getFirestore(firebaseApp);
+                    auth = getAuth(firebaseApp);
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUser.value = user;
+                            setupListeners(user.uid);
+                        } else {
+                            currentUser.value = null;
+                            if (unsubscribe) unsubscribe();
+                            allRecords.value = [];
+                        }
+                        loading.value = false;
+                    });
+                });
+
+                return {
+                    loading,
+                    currentUser,
+                    currentTab,
+                    form,
+                    addRecord,
+                    currentMembers,
+                    selectedMember,
+                    selectedMemberData
+                };
+            }
+        });
+        app.mount('#app');
+    </script>
+
+</body>
+</html>
+

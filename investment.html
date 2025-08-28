@@ -89,10 +89,14 @@
             </header>
 
             <!-- Summary Metrics -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
                     <h3 class="text-sm font-medium text-gray-400">區間損益</h3>
                     <p :class="summary.totalProfitLossClass" class="text-2xl font-semibold mt-1">{{ summary.totalProfitLoss }}</p>
+                </div>
+                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-sm font-medium text-gray-400">區間報酬率</h3>
+                    <p :class="summary.returnRateClass" class="text-2xl font-semibold mt-1">{{ summary.returnRate }}</p>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
                     <h3 class="text-sm font-medium text-gray-400">區間買賣額 (萬)</h3>
@@ -241,17 +245,40 @@
                 const summary = computed(() => {
                     const data = filteredInvestmentData.value;
                     if (data.length === 0) {
-                        return { totalProfitLoss: '-', totalBuySell: '-', latestMarketValue: '-', highestMarketValue: '-', totalProfitLossClass: 'text-white', totalBuySellClass: 'text-white' };
+                        return { totalProfitLoss: '-', totalBuySell: '-', latestMarketValue: '-', highestMarketValue: '-', returnRate: '-', returnRateClass: 'text-white', totalProfitLossClass: 'text-white', totalBuySellClass: 'text-white' };
                     }
+                    
                     const totalProfitLoss = data.reduce((acc, cur) => acc + cur.profitLoss, 0);
                     const totalBuySell = data.reduce((acc, cur) => acc + (cur.buySell || 0), 0);
                     const latestRecord = data[data.length - 1];
+
+                    // --- Return Rate Calculation ---
+                    let returnRate = '-';
+                    let returnRateClass = 'text-white';
+                    const firstDateInRange = data[0].date;
+                    const startIndexInMaster = investmentData.value.findIndex(d => d.date === firstDateInRange);
+                    let startingMarketValue = 0;
+
+                    if (startIndexInMaster > 0) {
+                        startingMarketValue = investmentData.value[startIndexInMaster - 1].marketValue;
+                    } else if (startIndexInMaster === 0) {
+                        const firstRecord = investmentData.value[0];
+                        startingMarketValue = firstRecord.marketValue - firstRecord.profitLoss + (firstRecord.buySell * 10000);
+                    }
                     
+                    if (startingMarketValue > 0) {
+                        const rate = (totalProfitLoss / startingMarketValue) * 100;
+                        returnRate = rate.toFixed(2) + '%';
+                        returnRateClass = rate >= 0 ? 'text-green-400' : 'text-red-400';
+                    }
+
                     return {
                         totalProfitLoss: formatNumber(totalProfitLoss),
                         totalBuySell: totalBuySell.toFixed(1),
                         latestMarketValue: formatNumber(latestRecord.marketValue),
                         highestMarketValue: formatNumber(Math.max(...data.map(d => d.marketValue))),
+                        returnRate: returnRate,
+                        returnRateClass: returnRateClass,
                         totalProfitLossClass: totalProfitLoss >= 0 ? 'text-green-400' : 'text-red-400',
                         totalBuySellClass: totalBuySell >= 0 ? 'text-red-400' : 'text-green-400'
                     };
@@ -415,5 +442,4 @@
 
 </body>
 </html>
-
 

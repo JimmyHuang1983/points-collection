@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale-1.0">
     <title>體重管理儀表板</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -123,7 +123,10 @@
                     <form @submit.prevent="addRecord" class="space-y-4">
                         <div>
                             <label for="memberName" class="block text-sm font-medium text-gray-300">姓名</label>
-                            <input type="text" v-model="form.name" required placeholder="例如: 爸爸 或 晴晴" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <input type="text" list="memberNames" v-model="form.name" required placeholder="輸入或選擇姓名" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <datalist id="memberNames">
+                                <option v-for="name in allMemberNames" :key="name" :value="name"></option>
+                            </datalist>
                         </div>
                         <div>
                             <label for="date" class="block text-sm font-medium text-gray-300">日期</label>
@@ -210,6 +213,7 @@
                 // --- Computed Properties ---
                 const currentRecords = computed(() => allRecords.value.filter(r => r.type === currentTab.value));
                 const currentMembers = computed(() => [...new Set(currentRecords.value.map(r => r.name))]);
+                const allMemberNames = computed(() => [...new Set(allRecords.value.map(r => r.name))]);
                 const selectedMemberData = computed(() => {
                     if (!selectedMember.value) return [];
                     return currentRecords.value
@@ -365,6 +369,7 @@
                     addRecord,
                     changeTab,
                     currentMembers,
+                    allMemberNames,
                     selectedMember,
                     selectedMemberData,
                     isMenuOpen,
@@ -377,4 +382,5 @@
 
 </body>
 </html>
+
 

@@ -112,6 +112,10 @@
                         <option v-for="member in currentMembers" :key="member" :value="member">{{ member }}</option>
                     </select>
                 </div>
+                <!-- Debug Info -->
+                <div class="text-xs text-center text-gray-500 mb-2">
+                    [除錯資訊] MaxW: {{ debugInfo.maxWeight }}, MinW: {{ debugInfo.minWeight }}, MaxBF: {{ debugInfo.maxBodyFat }}, MinBF: {{ debugInfo.minBodyFat }}
+                </div>
                 <div class="relative" style="height: 400px;">
                     <canvas id="healthChart"></canvas>
                 </div>
@@ -195,9 +199,10 @@
                 const loading = ref(true);
                 const currentUser = ref(null);
                 const isMenuOpen = ref(false);
-                const currentTab = ref('adult'); // 'adult' or 'child'
+                const currentTab = ref('adult');
                 const allRecords = ref([]);
                 const selectedMember = ref('');
+                const debugInfo = ref({});
                 
                 const form = reactive({
                     name: '',
@@ -211,7 +216,6 @@
                 let healthChart;
                 let unsubscribe = null;
 
-                // --- Computed Properties ---
                 const currentRecords = computed(() => allRecords.value.filter(r => r.type === currentTab.value));
                 const currentMembers = computed(() => [...new Set(currentRecords.value.map(r => r.name))]);
                 const allMemberNames = computed(() => [...new Set(allRecords.value.map(r => r.name))]);
@@ -222,7 +226,6 @@
                         .sort((a, b) => new Date(b.date) - new Date(a.date));
                 });
 
-                // --- Watchers ---
                 watch(selectedMemberData, () => {
                     renderChart();
                 });
@@ -233,8 +236,6 @@
                     }
                 });
 
-
-                // --- Methods ---
                 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
 
                 function changeTab(tab) {
@@ -252,7 +253,7 @@
                     const chartData = [...selectedMemberData.value].reverse();
                     
                     if(chartData.length < 2) {
-                         // If less than 2 data points, just draw a simple chart without annotations
+                        debugInfo.value = {};
                          if (chartData.length > 0) {
                               healthChart = new Chart(ctx.getContext('2d'), {
                                 type: 'line',
@@ -275,6 +276,8 @@
                     const minWeightIndex = weightData.indexOf(minWeight);
                     const maxBodyFatIndex = bodyFatData.indexOf(maxBodyFat);
                     const minBodyFatIndex = bodyFatData.indexOf(minBodyFat);
+
+                    debugInfo.value = { maxWeight, minWeight, maxBodyFat, minBodyFat };
                     
                     const annotations = {
                         pointMaxWeight: {
@@ -286,11 +289,8 @@
                             radius: 5,
                             label: {
                                 content: `最高: ${maxWeight} kg`,
-                                enabled: true,
-                                font: { size: 12 },
-                                color: '#FFFFFF',
-                                position: 'start',
-                                yAdjust: -15,
+                                enabled: true, font: { size: 12 }, color: '#FFFFFF',
+                                position: 'start', yAdjust: -15,
                             }
                         },
                         pointMinWeight: {
@@ -302,11 +302,8 @@
                             radius: 5,
                              label: {
                                 content: `最低: ${minWeight} kg`,
-                                enabled: true,
-                                font: { size: 12 },
-                                color: '#FFFFFF',
-                                position: 'start',
-                                yAdjust: 15,
+                                enabled: true, font: { size: 12 }, color: '#FFFFFF',
+                                position: 'start', yAdjust: 15,
                             }
                         },
                         pointMaxBodyFat: {
@@ -318,11 +315,8 @@
                             radius: 5,
                             label: {
                                 content: `最高: ${maxBodyFat}%`,
-                                enabled: true,
-                                font: { size: 12 },
-                                color: '#FFFFFF',
-                                position: 'end',
-                                yAdjust: -15,
+                                enabled: true, font: { size: 12 }, color: '#FFFFFF',
+                                position: 'end', yAdjust: -15,
                             }
                         },
                         pointMinBodyFat: {
@@ -334,11 +328,8 @@
                              radius: 5,
                              label: {
                                  content: `最低: ${minBodyFat}%`,
-                                 enabled: true,
-                                 font: { size: 12 },
-                                 color: '#FFFFFF',
-                                 position: 'end',
-                                 yAdjust: 15,
+                                 enabled: true, font: { size: 12 }, color: '#FFFFFF',
+                                 position: 'end', yAdjust: 15,
                              }
                         }
                     };
@@ -467,7 +458,8 @@
                     selectedMember,
                     selectedMemberData,
                     isMenuOpen,
-                    toggleMenu
+                    toggleMenu,
+                    debugInfo
                 };
             }
         });

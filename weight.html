@@ -251,7 +251,17 @@
                     
                     const chartData = [...selectedMemberData.value].reverse();
                     
-                    if(chartData.length < 2) return;
+                    if(chartData.length < 2) {
+                         // If less than 2 data points, just draw a simple chart without annotations
+                         if (chartData.length > 0) {
+                              healthChart = new Chart(ctx.getContext('2d'), {
+                                type: 'line',
+                                data: { labels: chartData.map(d=>d.date), datasets: [{ label: '體重', data: chartData.map(d=>d.weight) }] },
+                                options: { responsive: true, maintainAspectRatio: false }
+                            });
+                         }
+                        return;
+                    }
 
                     const weightData = chartData.map(d => d.weight);
                     const bodyFatData = chartData.map(d => d.bodyFat);
@@ -268,28 +278,68 @@
                     
                     const annotations = {
                         pointMaxWeight: {
-                            type: 'point', xValue: chartData[maxWeightIndex].date, yValue: maxWeight,
-                            yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.7)', radius: 5,
-                            content: `最高: ${maxWeight} kg`, font: { size: 12 }, color: '#FFFFFF',
-                            xAdjust: -20, yAdjust: -20,
+                            type: 'point',
+                            xValue: chartData[maxWeightIndex].date,
+                            yValue: maxWeight,
+                            yScaleID: 'yWeight',
+                            backgroundColor: 'rgba(245, 245, 245, 0.8)',
+                            radius: 5,
+                            label: {
+                                content: `最高: ${maxWeight} kg`,
+                                enabled: true,
+                                font: { size: 12 },
+                                color: '#FFFFFF',
+                                position: 'start',
+                                yAdjust: -15,
+                            }
                         },
                         pointMinWeight: {
-                            type: 'point', xValue: chartData[minWeightIndex].date, yValue: minWeight,
-                            yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.7)', radius: 5,
-                            content: `最低: ${minWeight} kg`, font: { size: 12 }, color: '#FFFFFF',
-                            xAdjust: -20, yAdjust: 20,
+                            type: 'point',
+                            xValue: chartData[minWeightIndex].date,
+                            yValue: minWeight,
+                            yScaleID: 'yWeight',
+                            backgroundColor: 'rgba(245, 245, 245, 0.8)',
+                            radius: 5,
+                             label: {
+                                content: `最低: ${minWeight} kg`,
+                                enabled: true,
+                                font: { size: 12 },
+                                color: '#FFFFFF',
+                                position: 'start',
+                                yAdjust: 15,
+                            }
                         },
                         pointMaxBodyFat: {
-                            type: 'point', xValue: chartData[maxBodyFatIndex].date, yValue: maxBodyFat,
-                            yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.7)', radius: 5,
-                            content: `最高: ${maxBodyFat}%`, font: { size: 12 }, color: '#FFFFFF',
-                             xAdjust: 20, yAdjust: -20,
+                            type: 'point',
+                            xValue: chartData[maxBodyFatIndex].date,
+                            yValue: maxBodyFat,
+                            yScaleID: 'yBodyFat',
+                            backgroundColor: 'rgba(165, 105, 75, 0.8)',
+                            radius: 5,
+                            label: {
+                                content: `最高: ${maxBodyFat}%`,
+                                enabled: true,
+                                font: { size: 12 },
+                                color: '#FFFFFF',
+                                position: 'end',
+                                yAdjust: -15,
+                            }
                         },
                         pointMinBodyFat: {
-                             type: 'point', xValue: chartData[minBodyFatIndex].date, yValue: minBodyFat,
-                             yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.7)', radius: 5,
-                             content: `最低: ${minBodyFat}%`, font: { size: 12 }, color: '#FFFFFF',
-                             xAdjust: 20, yAdjust: 20,
+                             type: 'point',
+                             xValue: chartData[minBodyFatIndex].date,
+                             yValue: minBodyFat,
+                             yScaleID: 'yBodyFat',
+                             backgroundColor: 'rgba(165, 105, 75, 0.8)',
+                             radius: 5,
+                             label: {
+                                 content: `最低: ${minBodyFat}%`,
+                                 enabled: true,
+                                 font: { size: 12 },
+                                 color: '#FFFFFF',
+                                 position: 'end',
+                                 yAdjust: 15,
+                             }
                         }
                     };
 

@@ -2,7 +2,7 @@
 <html lang="zh-Hant">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale-1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>體重管理儀表板</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
@@ -255,14 +255,23 @@
                     if(chartData.length === 0) return;
 
                     const datasets = [
-                        { type: 'line', label: '體重 (kg)', data: chartData.map(d => d.weight), borderColor: '#3b82f6', yAxisID: 'yWeight', tension: 0.1, fill: false },
                         { 
-                            type: 'bar', 
+                            type: 'line', 
+                            label: '體重 (kg)', 
+                            data: chartData.map(d => d.weight), 
+                            borderColor: '#F5F5F5', 
+                            yAxisID: 'yWeight', 
+                            tension: 0.1, 
+                            fill: false 
+                        },
+                        { 
+                            type: 'line', 
                             label: '體脂率 (%)', 
                             data: chartData.map(d => d.bodyFat), 
-                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
-                            borderColor: 'rgba(16, 185, 129, 1)',
-                            yAxisID: 'yBodyFat'
+                            borderColor: '#A5694B',
+                            yAxisID: 'yBodyFat',
+                            tension: 0.1,
+                            fill: false
                         }
                     ];
 
@@ -280,8 +289,8 @@
                             responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
                             scales: {
                                 x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
-                                yWeight: { type: 'linear', position: 'left', ticks: { color: '#60a5fa' }, grid: { color: '#374151' } },
-                                yBodyFat: { type: 'linear', position: 'right', ticks: { color: '#34d399' }, grid: { drawOnChartArea: false } },
+                                yWeight: { type: 'linear', position: 'left', ticks: { color: '#F5F5F5' }, grid: { color: '#374151' } },
+                                yBodyFat: { type: 'linear', position: 'right', ticks: { color: '#A5694B' }, grid: { drawOnChartArea: false } },
                                 yHeight: { type: 'linear', position: 'right', display: currentTab.value === 'child', ticks: { color: '#f59e0b' }, grid: { drawOnChartArea: false } }
                             },
                             plugins: { legend: { labels: { color: '#d1d5db' } } }
@@ -389,4 +398,5 @@
 
 </body>
 </html>
+
 

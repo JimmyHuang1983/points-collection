@@ -112,10 +112,6 @@
                         <option v-for="member in currentMembers" :key="member" :value="member">{{ member }}</option>
                     </select>
                 </div>
-                <!-- Debug Info -->
-                <div class="text-xs text-center text-gray-500 mb-2">
-                    [除錯資訊] MaxW: {{ debugInfo.maxWeight }}, MinW: {{ debugInfo.minWeight }}, MaxBF: {{ debugInfo.maxBodyFat }}, MinBF: {{ debugInfo.minBodyFat }}
-                </div>
                 <div class="relative" style="height: 400px;">
                     <canvas id="healthChart"></canvas>
                 </div>
@@ -202,7 +198,6 @@
                 const currentTab = ref('adult');
                 const allRecords = ref([]);
                 const selectedMember = ref('');
-                const debugInfo = ref({});
                 
                 const form = reactive({
                     name: '',
@@ -253,7 +248,6 @@
                     const chartData = [...selectedMemberData.value].reverse();
                     
                     if(chartData.length < 2) {
-                        debugInfo.value = {};
                          if (chartData.length > 0) {
                               healthChart = new Chart(ctx.getContext('2d'), {
                                 type: 'line',
@@ -276,13 +270,11 @@
                     const minWeightIndex = weightData.indexOf(minWeight);
                     const maxBodyFatIndex = bodyFatData.indexOf(maxBodyFat);
                     const minBodyFatIndex = bodyFatData.indexOf(minBodyFat);
-
-                    debugInfo.value = { maxWeight, minWeight, maxBodyFat, minBodyFat };
                     
                     const annotations = {
                         pointMaxWeight: {
                             type: 'point',
-                            xValue: chartData[maxWeightIndex].date,
+                            xValue: maxWeightIndex,
                             yValue: maxWeight,
                             yScaleID: 'yWeight',
                             backgroundColor: 'rgba(245, 245, 245, 0.8)',
@@ -295,7 +287,7 @@
                         },
                         pointMinWeight: {
                             type: 'point',
-                            xValue: chartData[minWeightIndex].date,
+                            xValue: minWeightIndex,
                             yValue: minWeight,
                             yScaleID: 'yWeight',
                             backgroundColor: 'rgba(245, 245, 245, 0.8)',
@@ -308,7 +300,7 @@
                         },
                         pointMaxBodyFat: {
                             type: 'point',
-                            xValue: chartData[maxBodyFatIndex].date,
+                            xValue: maxBodyFatIndex,
                             yValue: maxBodyFat,
                             yScaleID: 'yBodyFat',
                             backgroundColor: 'rgba(165, 105, 75, 0.8)',
@@ -321,7 +313,7 @@
                         },
                         pointMinBodyFat: {
                              type: 'point',
-                             xValue: chartData[minBodyFatIndex].date,
+                             xValue: minBodyFatIndex,
                              yValue: minBodyFat,
                              yScaleID: 'yBodyFat',
                              backgroundColor: 'rgba(165, 105, 75, 0.8)',

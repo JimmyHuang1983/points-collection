@@ -7,7 +7,6 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-annotation@2.2.1/dist/chartjs-plugin-annotation.min.js"></script>
     <!-- Ionicons for icons -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
@@ -101,6 +100,30 @@
                 <div class="flex border border-gray-700 rounded-lg p-1 max-w-md mx-auto">
                     <button @click="changeTab('adult')" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'adult' }">大人</button>
                     <button @click="changeTab('child')" class="tab-button w-1/2 p-2 rounded-md font-semibold" :class="{ 'active': currentTab === 'child' }">小孩</button>
+                </div>
+            </div>
+
+            <!-- Summary Metrics -->
+            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
+                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-sm font-medium text-gray-400">最高體重</h3>
+                    <p class="text-2xl font-semibold mt-1 text-white">{{ summaryMetrics.maxWeight.value }} kg</p>
+                    <p class="text-xs text-gray-500 mt-1 h-4">{{ summaryMetrics.maxWeight.date }}</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-sm font-medium text-gray-400">最低體重</h3>
+                    <p class="text-2xl font-semibold mt-1 text-white">{{ summaryMetrics.minWeight.value }} kg</p>
+                    <p class="text-xs text-gray-500 mt-1 h-4">{{ summaryMetrics.minWeight.date }}</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-sm font-medium text-gray-400">最高體脂</h3>
+                    <p class="text-2xl font-semibold mt-1 text-white">{{ summaryMetrics.maxBodyFat.value }} %</p>
+                    <p class="text-xs text-gray-500 mt-1 h-4">{{ summaryMetrics.maxBodyFat.date }}</p>
+                </div>
+                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-sm font-medium text-gray-400">最低體脂</h3>
+                    <p class="text-2xl font-semibold mt-1 text-white">{{ summaryMetrics.minBodyFat.value }} %</p>
+                    <p class="text-xs text-gray-500 mt-1 h-4">{{ summaryMetrics.minBodyFat.date }}</p>
                 </div>
             </div>
 
@@ -211,6 +234,7 @@
                 let healthChart;
                 let unsubscribe = null;
 
+                // --- Computed Properties ---
                 const currentRecords = computed(() => allRecords.value.filter(r => r.type === currentTab.value));
                 const currentMembers = computed(() => [...new Set(currentRecords.value.map(r => r.name))]);
                 const allMemberNames = computed(() => [...new Set(allRecords.value.map(r => r.name))]);
@@ -220,7 +244,29 @@
                         .filter(r => r.name === selectedMember.value)
                         .sort((a, b) => new Date(b.date) - new Date(a.date));
                 });
+                
+                const summaryMetrics = computed(() => {
+                    const data = selectedMemberData.value;
+                    const defaultResult = {
+                        maxWeight: { value: '-', date: '' }, minWeight: { value: '-', date: '' },
+                        maxBodyFat: { value: '-', date: '' }, minBodyFat: { value: '-', date: '' },
+                    };
+                    if (data.length === 0) return defaultResult;
 
+                    const maxWeightRecord = data.reduce((max, current) => (current.weight > max.weight ? current : max), data[0]);
+                    const minWeightRecord = data.reduce((min, current) => (current.weight < min.weight ? current : min), data[0]);
+                    const maxBodyFatRecord = data.reduce((max, current) => (current.bodyFat > max.bodyFat ? current : max), data[0]);
+                    const minBodyFatRecord = data.reduce((min, current) => (current.bodyFat < min.bodyFat ? current : min), data[0]);
+
+                    return {
+                        maxWeight: { value: maxWeightRecord.weight, date: maxWeightRecord.date },
+                        minWeight: { value: minWeightRecord.weight, date: minWeightRecord.date },
+                        maxBodyFat: { value: maxBodyFatRecord.bodyFat, date: maxBodyFatRecord.date },
+                        minBodyFat: { value: minBodyFatRecord.bodyFat, date: minBodyFatRecord.date },
+                    };
+                });
+
+                // --- Watchers ---
                 watch(selectedMemberData, () => {
                     renderChart();
                 });
@@ -231,6 +277,7 @@
                     }
                 });
 
+                // --- Methods ---
                 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
 
                 function changeTab(tab) {
@@ -247,48 +294,7 @@
                     
                     const chartData = [...selectedMemberData.value].reverse();
                     
-                    if (chartData.length === 0) return;
-
-                    let annotations = {};
-
-                    if (chartData.length >= 2) {
-                        const weightData = chartData.map(d => d.weight);
-                        const bodyFatData = chartData.map(d => d.bodyFat);
-
-                        const maxWeight = Math.max(...weightData);
-                        const minWeight = Math.min(...weightData);
-                        const maxBodyFat = Math.max(...bodyFatData);
-                        const minBodyFat = Math.min(...bodyFatData);
-
-                        const maxWeightIndex = weightData.indexOf(maxWeight);
-                        const minWeightIndex = weightData.indexOf(minWeight);
-                        const maxBodyFatIndex = bodyFatData.indexOf(maxBodyFat);
-                        const minBodyFatIndex = bodyFatData.indexOf(minBodyFat);
-                        
-                        annotations = {
-                            pointMaxWeight: {
-                                type: 'point', xValue: maxWeightIndex, yValue: maxWeight,
-                                yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.8)', radius: 5,
-                                label: { content: `最高: ${maxWeight} kg`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: -15 }
-                            },
-                            pointMinWeight: {
-                                type: 'point', xValue: minWeightIndex, yValue: minWeight,
-                                yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.8)', radius: 5,
-                                label: { content: `最低: ${minWeight} kg`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: 15 }
-                            },
-                            pointMaxBodyFat: {
-                                type: 'point', xValue: maxBodyFatIndex, yValue: maxBodyFat,
-                                yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.8)', radius: 5,
-                                label: { content: `最高: ${maxBodyFat}%`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: -15 }
-                            },
-                            pointMinBodyFat: {
-                                type: 'point', xValue: minBodyFatIndex, yValue: minBodyFat,
-                                yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.8)', radius: 5,
-                                label: { content: `最低: ${minBodyFat}%`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: 15 }
-                            }
-                        };
-                    }
-
+                    if(chartData.length === 0) return;
 
                     const datasets = [
                         { type: 'line', label: '體重 (kg)', data: chartData.map(d => d.weight), borderColor: '#F5F5F5', yAxisID: 'yWeight', tension: 0.1, fill: false },
@@ -314,10 +320,7 @@
                                 yHeight: { type: 'linear', position: 'right', display: currentTab.value === 'child', ticks: { color: '#f59e0b' }, grid: { drawOnChartArea: false } }
                             },
                             plugins: { 
-                                legend: { labels: { color: '#d1d5db' } },
-                                annotation: {
-                                    annotations: annotations
-                                }
+                                legend: { labels: { color: '#d1d5db' } }
                             }
                         }
                     });
@@ -360,17 +363,14 @@
 
                 function setupListeners(userId) {
                     if (unsubscribe) unsubscribe();
-
                     const collRef = collection(db, `users/${userId}/healthRecords`);
                     const q = query(collRef, orderBy("date", "asc"));
-
                     unsubscribe = onSnapshot(q, (snapshot) => {
                         const data = [];
                         snapshot.forEach(doc => {
                             data.push({ id: doc.id, ...doc.data() });
                         });
                         allRecords.value = data;
-                        
                     }, (error) => {
                         console.error("Error listening to health data:", error);
                     });
@@ -403,18 +403,9 @@
                 });
 
                 return {
-                    loading,
-                    currentUser,
-                    currentTab,
-                    form,
-                    addRecord,
-                    changeTab,
-                    currentMembers,
-                    allMemberNames,
-                    selectedMember,
-                    selectedMemberData,
-                    isMenuOpen,
-                    toggleMenu
+                    loading, currentUser, currentTab, form, addRecord, changeTab,
+                    currentMembers, allMemberNames, selectedMember, selectedMemberData,
+                    isMenuOpen, toggleMenu, summaryMetrics
                 };
             }
         });
@@ -423,4 +414,5 @@
 
 </body>
 </html>
+
 

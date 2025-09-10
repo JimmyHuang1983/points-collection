@@ -269,22 +269,22 @@
                             pointMaxWeight: {
                                 type: 'point', xValue: maxWeightIndex, yValue: maxWeight,
                                 yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.8)', radius: 5,
-                                label: { content: `最高: ${maxWeight} kg`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: -15 }
+                                label: { content: `最高: ${maxWeight} kg`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: -15 }
                             },
                             pointMinWeight: {
                                 type: 'point', xValue: minWeightIndex, yValue: minWeight,
                                 yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.8)', radius: 5,
-                                label: { content: `最低: ${minWeight} kg`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: 15 }
+                                label: { content: `最低: ${minWeight} kg`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: 15 }
                             },
                             pointMaxBodyFat: {
                                 type: 'point', xValue: maxBodyFatIndex, yValue: maxBodyFat,
                                 yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.8)', radius: 5,
-                                label: { content: `最高: ${maxBodyFat}%`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: -15 }
+                                label: { content: `最高: ${maxBodyFat}%`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: -15 }
                             },
                             pointMinBodyFat: {
                                 type: 'point', xValue: minBodyFatIndex, yValue: minBodyFat,
                                 yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.8)', radius: 5,
-                                label: { content: `最低: ${minBodyFat}%`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: 15 }
+                                label: { content: `最低: ${minBodyFat}%`, display: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: 15 }
                             }
                         };
                     }
@@ -423,5 +423,4 @@
 
 </body>
 </html>
-
 

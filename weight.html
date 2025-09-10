@@ -256,7 +256,14 @@
 
                     const datasets = [
                         { type: 'line', label: '體重 (kg)', data: chartData.map(d => d.weight), borderColor: '#3b82f6', yAxisID: 'yWeight', tension: 0.1, fill: false },
-                        { type: 'line', label: '體脂率 (%)', data: chartData.map(d => d.bodyFat), borderColor: '#10b981', yAxisID: 'yBodyFat', tension: 0.1, fill: false }
+                        { 
+                            type: 'bar', 
+                            label: '體脂率 (%)', 
+                            data: chartData.map(d => d.bodyFat), 
+                            backgroundColor: 'rgba(16, 185, 129, 0.6)',
+                            borderColor: 'rgba(16, 185, 129, 1)',
+                            yAxisID: 'yBodyFat'
+                        }
                     ];
 
                     if (currentTab.value === 'child') {
@@ -382,5 +389,4 @@
 
 </body>
 </html>
-
 

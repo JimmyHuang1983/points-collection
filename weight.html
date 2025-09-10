@@ -247,88 +247,52 @@
                     
                     const chartData = [...selectedMemberData.value].reverse();
                     
-                    if(chartData.length < 2) {
-                         if (chartData.length > 0) {
-                              healthChart = new Chart(ctx.getContext('2d'), {
-                                type: 'line',
-                                data: { labels: chartData.map(d=>d.date), datasets: [{ label: '體重', data: chartData.map(d=>d.weight) }] },
-                                options: { responsive: true, maintainAspectRatio: false }
-                            });
-                         }
-                        return;
+                    if (chartData.length === 0) return;
+
+                    let annotations = {};
+
+                    if (chartData.length >= 2) {
+                        const weightData = chartData.map(d => d.weight);
+                        const bodyFatData = chartData.map(d => d.bodyFat);
+
+                        const maxWeight = Math.max(...weightData);
+                        const minWeight = Math.min(...weightData);
+                        const maxBodyFat = Math.max(...bodyFatData);
+                        const minBodyFat = Math.min(...bodyFatData);
+
+                        const maxWeightIndex = weightData.indexOf(maxWeight);
+                        const minWeightIndex = weightData.indexOf(minWeight);
+                        const maxBodyFatIndex = bodyFatData.indexOf(maxBodyFat);
+                        const minBodyFatIndex = bodyFatData.indexOf(minBodyFat);
+                        
+                        annotations = {
+                            pointMaxWeight: {
+                                type: 'point', xValue: maxWeightIndex, yValue: maxWeight,
+                                yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.8)', radius: 5,
+                                label: { content: `最高: ${maxWeight} kg`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: -15 }
+                            },
+                            pointMinWeight: {
+                                type: 'point', xValue: minWeightIndex, yValue: minWeight,
+                                yScaleID: 'yWeight', backgroundColor: 'rgba(245, 245, 245, 0.8)', radius: 5,
+                                label: { content: `最低: ${minWeight} kg`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'start', yAdjust: 15 }
+                            },
+                            pointMaxBodyFat: {
+                                type: 'point', xValue: maxBodyFatIndex, yValue: maxBodyFat,
+                                yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.8)', radius: 5,
+                                label: { content: `最高: ${maxBodyFat}%`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: -15 }
+                            },
+                            pointMinBodyFat: {
+                                type: 'point', xValue: minBodyFatIndex, yValue: minBodyFat,
+                                yScaleID: 'yBodyFat', backgroundColor: 'rgba(165, 105, 75, 0.8)', radius: 5,
+                                label: { content: `最低: ${minBodyFat}%`, enabled: true, font: { size: 12 }, color: '#FFFFFF', position: 'end', yAdjust: 15 }
+                            }
+                        };
                     }
 
-                    const weightData = chartData.map(d => d.weight);
-                    const bodyFatData = chartData.map(d => d.bodyFat);
-
-                    const maxWeight = Math.max(...weightData);
-                    const minWeight = Math.min(...weightData);
-                    const maxBodyFat = Math.max(...bodyFatData);
-                    const minBodyFat = Math.min(...bodyFatData);
-
-                    const maxWeightIndex = weightData.indexOf(maxWeight);
-                    const minWeightIndex = weightData.indexOf(minWeight);
-                    const maxBodyFatIndex = bodyFatData.indexOf(maxBodyFat);
-                    const minBodyFatIndex = bodyFatData.indexOf(minBodyFat);
-                    
-                    const annotations = {
-                        pointMaxWeight: {
-                            type: 'point',
-                            xValue: maxWeightIndex,
-                            yValue: maxWeight,
-                            yScaleID: 'yWeight',
-                            backgroundColor: 'rgba(245, 245, 245, 0.8)',
-                            radius: 5,
-                            label: {
-                                content: `最高: ${maxWeight} kg`,
-                                enabled: true, font: { size: 12 }, color: '#FFFFFF',
-                                position: 'start', yAdjust: -15,
-                            }
-                        },
-                        pointMinWeight: {
-                            type: 'point',
-                            xValue: minWeightIndex,
-                            yValue: minWeight,
-                            yScaleID: 'yWeight',
-                            backgroundColor: 'rgba(245, 245, 245, 0.8)',
-                            radius: 5,
-                             label: {
-                                content: `最低: ${minWeight} kg`,
-                                enabled: true, font: { size: 12 }, color: '#FFFFFF',
-                                position: 'start', yAdjust: 15,
-                            }
-                        },
-                        pointMaxBodyFat: {
-                            type: 'point',
-                            xValue: maxBodyFatIndex,
-                            yValue: maxBodyFat,
-                            yScaleID: 'yBodyFat',
-                            backgroundColor: 'rgba(165, 105, 75, 0.8)',
-                            radius: 5,
-                            label: {
-                                content: `最高: ${maxBodyFat}%`,
-                                enabled: true, font: { size: 12 }, color: '#FFFFFF',
-                                position: 'end', yAdjust: -15,
-                            }
-                        },
-                        pointMinBodyFat: {
-                             type: 'point',
-                             xValue: minBodyFatIndex,
-                             yValue: minBodyFat,
-                             yScaleID: 'yBodyFat',
-                             backgroundColor: 'rgba(165, 105, 75, 0.8)',
-                             radius: 5,
-                             label: {
-                                 content: `最低: ${minBodyFat}%`,
-                                 enabled: true, font: { size: 12 }, color: '#FFFFFF',
-                                 position: 'end', yAdjust: 15,
-                             }
-                        }
-                    };
 
                     const datasets = [
-                        { type: 'line', label: '體重 (kg)', data: weightData, borderColor: '#F5F5F5', yAxisID: 'yWeight', tension: 0.1, fill: false },
-                        { type: 'line', label: '體脂率 (%)', data: bodyFatData, borderColor: '#A5694B', yAxisID: 'yBodyFat', tension: 0.1, fill: false }
+                        { type: 'line', label: '體重 (kg)', data: chartData.map(d => d.weight), borderColor: '#F5F5F5', yAxisID: 'yWeight', tension: 0.1, fill: false },
+                        { type: 'line', label: '體脂率 (%)', data: chartData.map(d => d.bodyFat), borderColor: '#A5694B', yAxisID: 'yBodyFat', tension: 0.1, fill: false }
                     ];
 
                     if (currentTab.value === 'child') {
@@ -450,8 +414,7 @@
                     selectedMember,
                     selectedMemberData,
                     isMenuOpen,
-                    toggleMenu,
-                    debugInfo
+                    toggleMenu
                 };
             }
         });

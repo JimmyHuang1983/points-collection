@@ -7,90 +7,159 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <!-- Ionicons for icons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
     <style>
         body {
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
         }
-        /* Chart.js Tooltip Customization */
-        .chartjs-tooltip {
-            background: rgba(31, 41, 55, 0.9);
-            border-radius: 0.5rem;
-            color: white;
-            opacity: 1;
-            pointer-events: none;
-            position: absolute;
-            transform: translate(-50%, 0);
-            transition: all .1s ease;
-            padding: 0.5rem;
-            border: 1px solid #4b5563;
-        }
-        .chartjs-tooltip-key {
-            display: inline-block;
-            width: 10px;
-            height: 10px;
-            margin-right: 5px;
-            border-radius: 2px;
-        }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+        .icon-button { transition: background-color 0.2s; }
+        .icon-button:hover { background-color: #374151; }
     </style>
 </head>
 <body class="bg-gray-900 text-gray-200">
 
-    <div class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
-        <header class="text-center mb-8">
-            <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">股票投資儀表板</h1>
-            <p class="text-gray-400 mt-2">紀錄並視覺化您的投資組合表現</p>
-            <!-- Status Indicator -->
-            <div id="connectionStatus" class="mt-4 inline-block px-3 py-1 rounded-full text-xs font-medium bg-gray-700 text-gray-300">
-                正在連接資料庫...
-            </div>
-        </header>
+    <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        
+        <!-- Side Menu Overlay -->
+        <transition name="fade">
+            <div v-if="isMenuOpen" @click="toggleMenu" class="fixed inset-0 bg-black bg-opacity-60 z-40"></div>
+        </transition>
 
-        <main>
+        <!-- Side Menu -->
+        <transition name="slide">
+            <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-xl z-50 p-6">
+                <h2 class="text-2xl font-bold mb-6 text-white">功能選單</h2>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                                親子集點
+                            </a>
+                        </li>
+                        <li>
+                            <a href="investment.html" class="flex items-center gap-3 text-lg text-blue-400 font-semibold py-2">
+                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                                投資紀錄
+                            </a>
+                        </li>
+                        <li>
+                            <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                                體重管理
+                            </a>
+                        </li>
+                        <li>
+                            <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                                匯率換算
+                            </a>
+                        </li>
+                        <li>
+                            <a href="book_list.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="book-outline" class="text-2xl"></ion-icon>
+                                閱讀書單
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </transition>
+        
+        <!-- Auth Guard -->
+        <div v-if="!currentUser && !loading" class="text-center py-20">
+            <h1 class="text-3xl font-bold text-white mb-4">請先登入</h1>
+            <p class="text-gray-400 mb-6">您需要登入才能存取您的投資儀表板。</p>
+            <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">返回主頁登入</a>
+        </div>
+        
+        <div v-if="loading" class="text-center py-20">
+            <p class="text-xl text-gray-400">載入中，請稍候...</p>
+        </div>
+
+        <main v-if="currentUser && !loading">
+            <header class="mb-8 flex items-center gap-4">
+                <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
+                     <ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon>
+                </button>
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">股票投資儀表板</h1>
+                    <p class="text-gray-400 mt-2">屬於 {{ currentUser.email }} 的投資組合</p>
+                </div>
+            </header>
+
             <!-- Summary Metrics -->
-            <div class="grid grid-cols-2 md:grid-cols-4 gap-4 sm:gap-6 mb-8">
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">總損益</h3>
-                    <p id="totalProfitLoss" class="text-2xl font-semibold mt-1">-</p>
+                    <h3 class="text-sm font-medium text-gray-400">區間損益</h3>
+                    <p :class="summary.totalProfitLossClass" class="text-2xl font-semibold mt-1">{{ summary.totalProfitLoss }}</p>
+                </div>
+                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-sm font-medium text-gray-400">區間報酬率</h3>
+                    <p :class="summary.returnRateClass" class="text-2xl font-semibold mt-1">{{ summary.returnRate }}</p>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">總買賣額 (萬)</h3>
-                    <p id="totalBuySell" class="text-2xl font-semibold mt-1">-</p>
+                    <h3 class="text-sm font-medium text-gray-400">區間買賣額 (萬)</h3>
+                    <p :class="summary.totalBuySellClass" class="text-2xl font-semibold mt-1">{{ summary.totalBuySell }}</p>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
                     <h3 class="text-sm font-medium text-gray-400">最新市值</h3>
-                    <p id="latestMarketValue" class="text-2xl font-semibold mt-1">-</p>
+                    <p class="text-2xl font-semibold mt-1 text-white">{{ summary.latestMarketValue }}</p>
                 </div>
                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">歷史最高市值</h3>
-                    <p id="highestMarketValue" class="text-2xl font-semibold mt-1">-</p>
+                    <h3 class="text-sm font-medium text-gray-400">區間最高市值</h3>
+                    <p class="text-2xl font-semibold mt-1 text-white">{{ summary.highestMarketValue }}</p>
+                </div>
+            </div>
+
+            <!-- Date Range Selector -->
+            <div class="flex flex-wrap items-center justify-center gap-2 mb-6 bg-gray-800 p-2 rounded-lg">
+                <button @click="setRange('1M')" :class="activeRange === '1M' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">1個月</button>
+                <button @click="setRange('3M')" :class="activeRange === '3M' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">3個月</button>
+                <button @click="setRange('6M')" :class="activeRange === '6M' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">6個月</button>
+                <button @click="setRange('YTD')" :class="activeRange === 'YTD' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">今年以來</button>
+                <button @click="setRange('1Y')" :class="activeRange === '1Y' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">1年</button>
+                <button @click="setRange('All')" :class="activeRange === 'All' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">全部</button>
+                <div class="flex items-center gap-2 ml-4">
+                    <input type="date" v-model="customStartDate" @change="setCustomRange" class="bg-gray-700 border-gray-600 rounded-md text-sm p-1 text-white">
+                    <span class="text-gray-400">-</span>
+                    <input type="date" v-model="customEndDate" @change="setCustomRange" class="bg-gray-700 border-gray-600 rounded-md text-sm p-1 text-white">
                 </div>
             </div>
 
             <!-- Chart Section -->
             <div class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg mb-8">
-                <canvas id="investmentChart" style="min-height: 400px;"></canvas>
+                <div class="relative" style="height: 400px;">
+                    <canvas id="investmentChart"></canvas>
+                </div>
             </div>
 
             <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
                 <!-- Add New Record Form Section -->
                 <div class="lg:col-span-1 bg-gray-800 p-6 rounded-2xl shadow-lg">
                     <h2 class="text-2xl font-semibold mb-4 text-white">新增紀錄</h2>
-                    <form id="addRecordForm" class="space-y-4">
+                    <form @submit.prevent="handleAddRecord" class="space-y-4">
                         <div>
                             <label for="date" class="block text-sm font-medium text-gray-300">日期</label>
-                            <input type="date" id="date" name="date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="date" id="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
                         </div>
                         <div>
                             <label for="marketValue" class="block text-sm font-medium text-gray-300">市值</label>
-                            <input type="number" id="marketValue" name="marketValue" required placeholder="例如: 10000000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="number" id="marketValue" v-model.number="form.marketValue" required placeholder="例如: 10000000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
                         </div>
                         <div>
                             <label for="profitLoss" class="block text-sm font-medium text-gray-300">損益</label>
-                            <input type="number" id="profitLoss" name="profitLoss" required placeholder="例如: 50000 或 -20000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="number" id="profitLoss" v-model.number="form.profitLoss" required placeholder="例如: 50000 或 -20000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
                         </div>
                         <div>
                             <label for="buySell" class="block text-sm font-medium text-gray-300">買賣 (萬)</label>
-                            <input type="number" step="0.1" id="buySell" name="buySell" placeholder="正數為買超, 負數為賣超" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="number" step="0.1" id="buySell" v-model.number="form.buySell" placeholder="負數為買超, 正數為賣超" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                             新增紀錄
@@ -109,11 +178,18 @@
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">市值</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">損益</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">買賣 (萬)</th>
-                                    <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">操作</th>
                                 </tr>
                             </thead>
-                            <tbody id="recordsTableBody" class="bg-gray-800 divide-y divide-gray-700">
-                                <!-- Data will be inserted here by JavaScript -->
+                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                                <tr v-if="filteredInvestmentData.length === 0">
+                                     <td colspan="4" class="text-center py-10 text-gray-400">此區間無資料</td>
+                                </tr>
+                                <tr v-for="record in reversedFilteredData" :key="record.id">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ record.date }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ formatNumber(record.marketValue) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right" :class="record.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'">{{ formatNumber(record.profitLoss) }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ record.buySell !== 0 ? record.buySell : '-' }}</td>
+                                </tr>
                             </tbody>
                         </table>
                     </div>
@@ -122,375 +198,252 @@
         </main>
     </div>
 
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously, onAuthStateChanged, signInWithCustomToken } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, addDoc, deleteDoc, doc, onSnapshot, writeBatch, query, orderBy } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, writeBatch, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
-        // ==========================================
-        // ★★★ 請在此處設定您的資料庫資訊 ★★★
-        // ==========================================
-        
-        // 1. 已啟用您的個人設定
-        const usePersonalConfig = true; 
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
-        // 2. 您的 Firebase Config (已填入)
-        const personalFirebaseConfig = {
-            apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
-            authDomain: "points-collection-cff99.firebaseapp.com",
-            projectId: "points-collection-cff99",
-            storageBucket: "points-collection-cff99.firebasestorage.app",
-            messagingSenderId: "794494861925",
-            appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
-        };
+        const app = createApp({
+            setup() {
+                const loading = ref(true);
+                const currentUser = ref(null);
+                const isMenuOpen = ref(false);
+                const investmentData = ref([]); // Master data
+                const form = reactive({
+                    date: dayjs().format('YYYY-MM-DD'),
+                    marketValue: null,
+                    profitLoss: null,
+                    buySell: null,
+                });
 
-        // 3. ★ 重要 ★：請填入您在資料庫裡看到的那個「很長的亂碼 ID」
-        // 如果填入此欄位，網頁將強制讀取該使用者的資料
-        // 格式範例： const specificUserId = '7d9f8a7e-xxxx-xxxx...';
-        const specificUserId = 'leHEw1oClGT3eosel4cEFPiUeBC2'; // <--- 已填入您的 User ID
+                // Date Range State
+                const activeRange = ref('All');
+                const customStartDate = ref('');
+                const customEndDate = ref('');
+                
+                let db, auth;
+                let investmentChart;
+                let unsubscribeInvestmentData = null;
 
-        // 4. 資料庫集合名稱
-        // 根據您的描述，名稱應該是 'investmentRecords'
-        const customCollectionName = 'investmentRecords'; 
+                const jay198377InitialData = [
+                    { date: "2025-03-31", profitLoss: -230246, marketValue: 10010158, buySell: 0 }, { date: "2025-04-01", profitLoss: 175663, marketValue: 10185821, buySell: 0 }, { date: "2025-04-02", profitLoss: 13209, marketValue: 10199030, buySell: 0 }, { date: "2025-04-07", profitLoss: -911031, marketValue: 9287999, buySell: 0 }, { date: "2025-04-08", profitLoss: -72378, marketValue: 9215621, buySell: -21.4 }, { date: "2025-04-09", profitLoss: -473575, marketValue: 8742046, buySell: -8.8 }, { date: "2025-04-10", profitLoss: 739663, marketValue: 9481709, buySell: 0 }, { date: "2025-04-11", profitLoss: 28955, marketValue: 9510665, buySell: 0 }, { date: "2025-04-14", profitLoss: 23720, marketValue: 9345923, buySell: 18.9 }, { date: "2025-04-15", profitLoss: 156307, marketValue: 9502234, buySell: 0 }, { date: "2025-04-16", profitLoss: -57944, marketValue: 9444288, buySell: 0 }, { date: "2025-04-17", profitLoss: 4680, marketValue: 9448966, buySell: 0 }, { date: "2025-04-18", profitLoss: 25059, marketValue: 9546865, buySell: 0 }, { date: "2025-04-21", profitLoss: -148680, marketValue: 9398187, buySell: 0 }, { date: "2025-04-22", profitLoss: -106435, marketValue: 9291550, buySell: 0 }, { date: "2025-04-23", profitLoss: 198240, marketValue: 9489790, buySell: 0 }, { date: "2025-04-24", profitLoss: -5078, marketValue: 9484711, buySell: 0 }, { date: "2025-04-25", profitLoss: 51385, marketValue: 9536099, buySell: 0 }, { date: "2025-04-28", profitLoss: 20780, marketValue: 9556879, buySell: 0 }, { date: "2025-04-29", profitLoss: 28971, marketValue: 9585850, buySell: 0 }, { date: "2025-04-30", profitLoss: 60967, marketValue: 9646815, buySell: 0 }, { date: "2025-05-02", profitLoss: 106786, marketValue: 9753603, buySell: 0 }, { date: "2025-05-05", profitLoss: 14213, marketValue: 9767813, buySell: 0 }, { date: "2025-05-06", profitLoss: 88775, marketValue: 9856590, buySell: 0 }, { date: "2025-05-07", profitLoss: -329, marketValue: 9856263, buySell: 0 }, { date: "2025-05-08", profitLoss: 102626, marketValue: 9958886, buySell: 0 }, { date: "2025-05-09", profitLoss: 57002, marketValue: 10015890, buySell: 0 }, { date: "2025-05-12", profitLoss: -57754, marketValue: 9725637, buySell: 23.3 }, { date: "2025-05-13", profitLoss: -102, marketValue: 9725536, buySell: 0 }, { date: "2025-05-14", profitLoss: 21987, marketValue: 9404024, buySell: 35 }, { date: "2025-05-15", profitLoss: 23837, marketValue: 9427860, buySell: 0 }, { date: "2025-05-16", profitLoss: 68685, marketValue: 9496551, buySell: 0 }, { date: "2025-05-19", profitLoss: -20459, marketValue: 9463620, buySell: 0 }, { date: "2025-05-20", profitLoss: 29984, marketValue: 9493325, buySell: 0 }, { date: "2025-05-21", profitLoss: 33804, marketValue: 9527130, buySell: 0 }, { date: "2025-05-22", profitLoss: -19007, marketValue: 9508120, buySell: 0 }, { date: "2025-05-23", profitLoss: -4831, marketValue: 9503288, buySell: 0 }, { date: "2025-05-26", profitLoss: 38679, marketValue: 9541969, buySell: 0 }, { date: "2025-05-27", profitLoss: -77457, marketValue: 9464510, buySell: 0 }, { date: "2025-05-28", profitLoss: -30402, marketValue: 9434107, buySell: 0 }, { date: "2025-05-29", profitLoss: 12749, marketValue: 9446855, buySell: 0 }, { date: "2025-06-02", profitLoss: -129219, marketValue: 9317634, buySell: 0 }, { date: "2025-06-03", profitLoss: -37401, marketValue: 9280233, buySell: 0 }, { date: "2025-06-04", profitLoss: 95151, marketValue: 9375386, buySell: 0 }, { date: "2025-06-05", profitLoss: -23261, marketValue: 9352123, buySell: 0 }, { date: "2025-06-06", profitLoss: -40151, marketValue: 9311975, buySell: 0 }, { date: "2025-06-09", profitLoss: -6506, marketValue: 9305469, buySell: 0 }, { date: "2025-06-10", profitLoss: 8979, marketValue: 9314448, buySell: 0 }, { date: "2025-06-11", profitLoss: 4939, marketValue: 9319386, buySell: 0 }, { date: "2025-06-12", profitLoss: 13763, marketValue: 9333152, buySell: 0 }, { date: "2025-06-13", profitLoss: -78702, marketValue: 9254448, buySell: 0 }, { date: "2025-06-16", profitLoss: 39318, marketValue: 9268767, buySell: 0 }, { date: "2025-06-17", profitLoss: 20366, marketValue: 9288853, buySell: 0 }, { date: "2025-06-18", profitLoss: 1062, marketValue: 9289637, buySell: 0 }, { date: "2025-06-19", profitLoss: -83412, marketValue: 9206224, buySell: 0 }, { date: "2025-06-20", profitLoss: -55302, marketValue: 9150921, buySell: 0 }, { date: "2025-06-23", profitLoss: -55723, marketValue: 9065196, buySell: 0 }, { date: "2025-06-24", profitLoss: 127854, marketValue: 9193052, buySell: 0 }, { date: "2025-06-25", profitLoss: 51510, marketValue: 9244565, buySell: 0 }, { date: "2025-06-26", profitLoss: 50748, marketValue: 9295313, buySell: 0 }, { date: "2025-06-27", profitLoss: 153153, marketValue: 9448467, buySell: 0 }, { date: "2025-06-30", profitLoss: -50149, marketValue: 9395318, buySell: 0 }, { date: "2025-07-01", profitLoss: 42791, marketValue: 9438112, buySell: 0 }, { date: "2025-07-02", profitLoss: 35928, marketValue: 9474040, buySell: 0 }, { date: "2025-07-03", profitLoss: 44328, marketValue: 9518368, buySell: 0 }, { date: "2025-07-04", profitLoss: -31376, marketValue: 9486992, buySell: 0 }, { date: "2025-07-07", profitLoss: 37615, marketValue: 9524610, buySell: 0 }, { date: "2025-07-08", profitLoss: -58134, marketValue: 9466475, buySell: 0 }, { date: "2025-07-09", profitLoss: 48911, marketValue: 9515385, buySell: 0 }, { date: "2025-07-10", profitLoss: 33200, marketValue: 9548587, buySell: 0 }, { date: "2025-07-11", profitLoss: 75941, marketValue: 9624528, buySell: 0 }, { date: "2025-07-14", profitLoss: 38882, marketValue: 9661111, buySell: 0 }, { date: "2025-07-15", profitLoss: -16970, marketValue: 9644141, buySell: 0 }, { date: "2025-07-16", profitLoss: 17590, marketValue: 9655972, buySell: 0 }, { date: "2025-07-17", profitLoss: 38466, marketValue: 9667158, buySell: 0 }, { date: "2025-07-18", profitLoss: -10165, marketValue: 9656996, buySell: 0 }, { date: "2025-07-21", profitLoss: -63245, marketValue: 9593748, buySell: 0 }, { date: "2025-07-22", profitLoss: -80047, marketValue: 9491749, buySell: 0 }, { date: "2025-07-23", profitLoss: 94884, marketValue: 9586634, buySell: 0 }, { date: "2025-07-24", profitLoss: -9655, marketValue: 9457240, buySell: 0 }, { date: "2025-07-25", profitLoss: -16952, marketValue: 9440288, buySell: 0 }, { date: "2025-07-28", profitLoss: -2980, marketValue: 9437306, buySell: 0 }, { date: "2025-07-29", profitLoss: -50048, marketValue: 9387255, buySell: 0 }, { date: "2025-07-30", profitLoss: 86281, marketValue: 9473539, buySell: 0 }, { date: "2025-07-31", profitLoss: -80350, marketValue: 9375035, buySell: 0 }, { date: "2025-08-01", profitLoss: 34826, marketValue: 9409864, buySell: 0 }, { date: "2025-08-04", profitLoss: 38908, marketValue: 9448771, buySell: 0 }, { date: "2025-08-05", profitLoss: 84939, marketValue: 9533714, buySell: 0 }, { date: "2025-08-06", profitLoss: 5425, marketValue: 9539139, buySell: 0 }, { date: "2025-08-07", profitLoss: -7964, marketValue: 9508133, buySell: 0 }, { date: "2025-08-08", profitLoss: -73557, marketValue: 9371016, buySell: 0 }, { date: "2025-08-11", profitLoss: -78162, marketValue: 9292851, buySell: 0 }, { date: "2025-08-12", profitLoss: 28941, marketValue: 9321795, buySell: 0 }, { date: "2025-08-13", profitLoss: 102533, marketValue: 9424331, buySell: 0 }, { date: "2025-08-14", profitLoss: 66498, marketValue: 9490831, buySell: 0 }, { date: "2025-08-15", profitLoss: 11949, marketValue: 9502782, buySell: 0 }, { date: "2025-08-18", profitLoss: 53102, marketValue: 9545154, buySell: 0 }, { date: "2025-08-19", profitLoss: -25203, marketValue: 9488133, buySell: 0 }, { date: "2025-08-20", profitLoss: -102838, marketValue: 9385293, buySell: 0 }, { date: "2025-08-21", profitLoss: 57653, marketValue: 9409947, buySell: 0 }
+                ];
 
-        // ==========================================
-        // 設定結束，下方程式碼無需修改
-        // ==========================================
-
-        let firebaseConfig;
-        let appId;
-
-        if (usePersonalConfig) {
-            firebaseConfig = personalFirebaseConfig;
-            appId = 'custom-app'; 
-        } else {
-            firebaseConfig = JSON.parse(__firebase_config);
-            appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
-        }
-        
-        const app = initializeApp(firebaseConfig);
-        const auth = getAuth(app);
-        const db = getFirestore(app);
-
-        let currentUser = null;
-        let investmentData = [];
-        let investmentChart;
-        let unsubscribeSnapshot = null;
-
-        const statusEl = document.getElementById('connectionStatus');
-
-        // --- AUTH & LOGIC ---
-        const initAuth = async () => {
-            try {
-                if (!usePersonalConfig && typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
-                    await signInWithCustomToken(auth, __initial_auth_token);
-                } else {
-                    await signInAnonymously(auth);
+                const filteredInvestmentData = computed(() => {
+                    if (!customStartDate.value || !customEndDate.value) {
+                        return [];
+                    }
+                    return investmentData.value.filter(d => {
+                        const date = dayjs(d.date);
+                        return date.isAfter(dayjs(customStartDate.value).subtract(1, 'day')) &&
+                               date.isBefore(dayjs(customEndDate.value).add(1, 'day'));
+                    });
+                });
+                
+                function formatNumber(num) {
+                    if (typeof num !== 'number') return '-';
+                    return new Intl.NumberFormat('en-US').format(num);
                 }
-            } catch (error) {
-                console.error("Auth Error:", error);
-                statusEl.textContent = "登入失敗";
-                statusEl.className = "mt-4 inline-block px-3 py-1 rounded-full text-xs font-medium bg-red-600 text-white";
-            }
-        };
 
-        initAuth();
+                const summary = computed(() => {
+                    const data = filteredInvestmentData.value;
+                    if (data.length === 0) {
+                        return { totalProfitLoss: '-', totalBuySell: '-', latestMarketValue: '-', highestMarketValue: '-', returnRate: '-', returnRateClass: 'text-white', totalProfitLossClass: 'text-white', totalBuySellClass: 'text-white' };
+                    }
+                    
+                    const totalProfitLoss = data.reduce((acc, cur) => acc + cur.profitLoss, 0);
+                    const totalBuySell = data.reduce((acc, cur) => acc + (cur.buySell || 0), 0);
+                    const latestRecord = data[data.length - 1];
 
-        onAuthStateChanged(auth, (user) => {
-            currentUser = user;
-            if (user) {
-                // 如果有指定 specificUserId，顯示該 ID，否則顯示當前登入的 ID
-                const displayId = (usePersonalConfig && specificUserId) ? specificUserId : user.uid;
-                statusEl.textContent = `已連接 (ID: ${displayId.substring(0, 6)}...)`;
-                statusEl.className = "mt-4 inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-600 text-white";
+                    // --- Return Rate Calculation ---
+                    let returnRate = '-';
+                    let returnRateClass = 'text-white';
+                    const firstDateInRange = data[0].date;
+                    const startIndexInMaster = investmentData.value.findIndex(d => d.date === firstDateInRange);
+                    let startingMarketValue = 0;
+
+                    if (startIndexInMaster > 0) {
+                        startingMarketValue = investmentData.value[startIndexInMaster - 1].marketValue;
+                    } else if (startIndexInMaster === 0) {
+                        const firstRecord = investmentData.value[0];
+                        startingMarketValue = firstRecord.marketValue - firstRecord.profitLoss + (firstRecord.buySell * 10000);
+                    }
+                    
+                    if (startingMarketValue > 0) {
+                        const rate = (totalProfitLoss / startingMarketValue) * 100;
+                        returnRate = rate.toFixed(2) + '%';
+                        returnRateClass = rate >= 0 ? 'text-green-400' : 'text-red-400';
+                    }
+
+                    return {
+                        totalProfitLoss: formatNumber(totalProfitLoss),
+                        totalBuySell: totalBuySell.toFixed(1),
+                        latestMarketValue: formatNumber(latestRecord.marketValue),
+                        highestMarketValue: formatNumber(Math.max(...data.map(d => d.marketValue))),
+                        returnRate: returnRate,
+                        returnRateClass: returnRateClass,
+                        totalProfitLossClass: totalProfitLoss >= 0 ? 'text-green-400' : 'text-red-400',
+                        totalBuySellClass: totalBuySell >= 0 ? 'text-red-400' : 'text-green-400'
+                    };
+                });
+
+                const reversedFilteredData = computed(() => [...filteredInvestmentData.value].reverse());
+
+                function renderChart() {
+                    const ctx = document.getElementById('investmentChart');
+                    if (!ctx) return;
+                    if (investmentChart) investmentChart.destroy();
+                    if (filteredInvestmentData.value.length === 0) return;
+                    
+                    const data = filteredInvestmentData.value;
+                    const labels = data.map(d => d.date);
+                    const marketValueData = data.map(d => d.marketValue);
+                    const profitLossData = data.map(d => d.profitLoss);
+                    const minMarketValue = Math.min(...marketValueData);
+                    const padding = (Math.max(...marketValueData) - minMarketValue) * 0.1;
+
+                    investmentChart = new Chart(ctx.getContext('2d'), {
+                        type: 'bar',
+                        data: {
+                            labels: labels,
+                            datasets: [
+                                { type: 'line', label: '市值', data: marketValueData, borderColor: '#3b82f6', backgroundColor: 'rgba(59, 130, 246, 0.1)', yAxisID: 'yMarketValue', tension: 0.1, fill: true, borderWidth: 2, pointRadius: 0, pointHoverRadius: 5, pointBackgroundColor: '#3b82f6' },
+                                { type: 'bar', label: '損益', data: profitLossData, backgroundColor: profitLossData.map(p => p >= 0 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'), yAxisID: 'yProfitLoss' }
+                            ]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false, interaction: { mode: 'index', intersect: false },
+                            scales: {
+                                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                                yMarketValue: { type: 'linear', position: 'left', min: minMarketValue - padding, ticks: { color: '#60a5fa', callback: value => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value) } },
+                                yProfitLoss: { type: 'linear', position: 'right', ticks: { color: '#86efac', callback: value => new Intl.NumberFormat('en-US', { notation: 'compact' }).format(value) }, grid: { drawOnChartArea: false } }
+                            },
+                            plugins: { legend: { labels: { color: '#d1d5db' } }, tooltip: { enabled: true, backgroundColor: 'rgba(31, 41, 55, 0.9)', callbacks: { label: (c) => `${c.dataset.label}: ${formatNumber(c.parsed.y)}` } } }
+                        }
+                    });
+                }
                 
-                subscribeToData(user.uid);
-            } else {
-                statusEl.textContent = "未連接";
-            }
-        });
+                watch(filteredInvestmentData, renderChart);
 
-        function getCollectionRef(currentUid) {
-            if (usePersonalConfig) {
-                // 邏輯：如果設定了 specificUserId，就強制讀取該 ID 的資料
-                // 否則讀取當前登入者 (currentUid) 的資料
-                const targetUid = specificUserId ? specificUserId : currentUid;
+                function setRange(range) {
+                    activeRange.value = range;
+                    const end = dayjs();
+                    let start;
+                    const allData = investmentData.value;
+
+                    if (allData.length === 0 && range !== 'All') {
+                        start = end;
+                    } else {
+                         switch (range) {
+                            case '1M': start = end.subtract(1, 'month'); break;
+                            case '3M': start = end.subtract(3, 'months'); break;
+                            case '6M': start = end.subtract(6, 'months'); break;
+                            case 'YTD': start = end.startOf('year'); break;
+                            case '1Y': start = end.subtract(1, 'year'); break;
+                            case 'All': start = allData.length > 0 ? dayjs(allData[0].date) : end; break;
+                        }
+                    }
+                    customStartDate.value = start.format('YYYY-MM-DD');
+                    customEndDate.value = end.format('YYYY-MM-DD');
+                }
+
+                function setCustomRange() {
+                    activeRange.value = 'Custom';
+                }
+
+                async function handleAddRecord() {
+                    if (!form.date || form.marketValue === null || form.profitLoss === null) {
+                        alert('請填寫所有必填欄位 (日期, 市值, 損益)');
+                        return;
+                    }
+                    const newRecord = {
+                        date: form.date,
+                        marketValue: Number(form.marketValue),
+                        profitLoss: Number(form.profitLoss),
+                        buySell: Number(form.buySell) || 0,
+                    };
+
+                    try {
+                        const collRef = collection(db, `users/${currentUser.value.uid}/investmentRecords`);
+                        await addDoc(collRef, newRecord);
+                        form.marketValue = null;
+                        form.profitLoss = null;
+                        form.buySell = null;
+                        form.date = dayjs().format('YYYY-MM-DD');
+                    } catch (error) {
+                        console.error("Error adding document: ", error);
+                        alert('新增紀錄失敗，請稍後再試。');
+                    }
+                }
+
+                function setupListeners(userId, userEmail) {
+                    if (unsubscribeInvestmentData) unsubscribeInvestmentData();
+
+                    const collRef = collection(db, `users/${userId}/investmentRecords`);
+                    const q = query(collRef, orderBy("date", "asc"));
+
+                    unsubscribeInvestmentData = onSnapshot(q, async (snapshot) => {
+                        if (snapshot.empty && userEmail === 'jay198377@gmail.com') {
+                            const batch = writeBatch(db);
+                            jay198377InitialData.forEach(record => {
+                                const docRef = doc(collRef);
+                                batch.set(docRef, record);
+                            });
+                            await batch.commit();
+                            return;
+                        }
+
+                        const data = [];
+                        snapshot.forEach(doc => {
+                            data.push({ id: doc.id, ...doc.data() });
+                        });
+                        investmentData.value = data;
+                        if (activeRange.value === 'All') {
+                           setRange('All');
+                        }
+                    }, (error) => {
+                        console.error("Error listening to investment data:", error);
+                    });
+                }
                 
-                // 您的路徑結構是: users -> {uid} -> investmentRecords
-                return collection(db, 'users', targetUid, customCollectionName);
-            } else {
-                // 平台預設公開路徑
-                return collection(db, 'artifacts', appId, 'public', 'data', 'investment_records');
-            }
-        }
+                onMounted(() => {
+                    const firebaseConfig = {
+                      apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
+                      authDomain: "points-collection-cff99.firebaseapp.com",
+                      projectId: "points-collection-cff99",
+                      storageBucket: "points-collection-cff99.appspot.com",
+                      messagingSenderId: "794494861925",
+                      appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
+                    };
+                    const firebaseApp = initializeApp(firebaseConfig);
+                    db = getFirestore(firebaseApp);
+                    auth = getAuth(firebaseApp);
 
-        function subscribeToData(currentUid) {
-            if (unsubscribeSnapshot) unsubscribeSnapshot();
-
-            const colRef = getCollectionRef(currentUid);
-            
-            unsubscribeSnapshot = onSnapshot(colRef, async (snapshot) => {
-                investmentData = [];
-                snapshot.forEach(doc => {
-                    investmentData.push({
-                        id: doc.id,
-                        ...doc.data()
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUser.value = user;
+                            setupListeners(user.uid, user.email);
+                        } else {
+                            currentUser.value = null;
+                            if (unsubscribeInvestmentData) unsubscribeInvestmentData();
+                            investmentData.value = [];
+                        }
+                        loading.value = false;
                     });
                 });
 
-                console.log(`Loaded ${investmentData.length} records.`);
-                
-                if (investmentData.length === 0) {
-                     statusEl.textContent = "已連接 (無資料)";
-                     statusEl.className = "mt-4 inline-block px-3 py-1 rounded-full text-xs font-medium bg-yellow-600 text-white";
-                     
-                     if (usePersonalConfig && !specificUserId) {
-                         alert("連接成功！但尚未填入舊的 User ID，所以看不到舊資料。\n\n請在程式碼中找到 specificUserId 並填入那個「長亂碼」，\n或者使用「新增紀錄」來建立新的資料。");
-                     }
-                } else {
-                     const displayId = (usePersonalConfig && specificUserId) ? specificUserId : currentUid;
-                     statusEl.textContent = `已連接 (ID: ${displayId.substring(0, 6)}... | 資料: ${investmentData.length}筆)`;
-                     statusEl.className = "mt-4 inline-block px-3 py-1 rounded-full text-xs font-medium bg-green-600 text-white";
-                }
-
-                sortData();
-                updateSummaryMetrics();
-                renderTable();
-                renderChart();
-            }, (error) => {
-                console.error("Error fetching data: ", error);
-                statusEl.textContent = "讀取錯誤 (權限/路徑錯誤)";
-                statusEl.className = "mt-4 inline-block px-3 py-1 rounded-full text-xs font-medium bg-red-600 text-white";
-                
-                let errorMsg = "讀取資料失敗。\n\n可能原因：\n1. Config 填寫錯誤\n2. 'specificUserId' 填錯 (那個長亂碼)\n3. 資料庫權限不足 (Firestore Rules)";
-                if(error.code === 'permission-denied') {
-                    errorMsg += "\n\n錯誤代碼: Permission Denied (權限不足)";
-                }
-                alert(errorMsg);
-            });
-        }
-
-        // --- UI FUNCTIONS ---
-        document.addEventListener('DOMContentLoaded', () => {
-            document.getElementById('date').value = dayjs().format('YYYY-MM-DD');
-            const form = document.getElementById('addRecordForm');
-            form.addEventListener('submit', handleAddRecord);
+                return {
+                    loading, currentUser, isMenuOpen, toggleMenu: () => { isMenuOpen.value = !isMenuOpen.value; },
+                    investmentData, reversedFilteredData, filteredInvestmentData,
+                    form, summary, handleAddRecord, formatNumber,
+                    activeRange, customStartDate, customEndDate, setRange, setCustomRange,
+                };
+            }
         });
-
-        function sortData() {
-            investmentData.sort((a, b) => new Date(a.date) - new Date(b.date));
-        }
-
-        function formatNumber(num) {
-            return new Intl.NumberFormat('en-US').format(num);
-        }
-
-        window.deleteRecord = async function(id) {
-            if (!currentUser) return;
-            if (confirm('確定要刪除這筆紀錄嗎？')) {
-                try {
-                    const colRef = getCollectionRef(currentUser.uid);
-                    await deleteDoc(doc(colRef, id));
-                } catch (e) {
-                    console.error("Error deleting document: ", e);
-                    alert("刪除失敗：權限不足或路徑錯誤");
-                }
-            }
-        };
-
-        async function handleAddRecord(event) {
-            event.preventDefault();
-            if (!currentUser) {
-                alert("尚未連接資料庫");
-                return;
-            }
-
-            const form = event.target;
-            const newRecord = {
-                date: form.date.value,
-                marketValue: parseFloat(form.marketValue.value),
-                profitLoss: parseFloat(form.profitLoss.value),
-                buySell: parseFloat(form.buySell.value) || 0,
-            };
-
-            if (!newRecord.date || isNaN(newRecord.marketValue) || isNaN(newRecord.profitLoss)) {
-                alert('請填寫所有必填欄位 (日期, 市值, 損益)');
-                return;
-            }
-
-            try {
-                const colRef = getCollectionRef(currentUser.uid);
-                await addDoc(colRef, newRecord);
-                form.reset();
-                document.getElementById('date').value = dayjs().format('YYYY-MM-DD');
-            } catch (e) {
-                console.error("Error adding document: ", e);
-                alert("新增失敗：請檢查資料庫寫入權限 (Firestore Rules)");
-            }
-        }
-
-        function updateSummaryMetrics() {
-            if (investmentData.length === 0) {
-                document.getElementById('totalProfitLoss').textContent = '-';
-                document.getElementById('totalBuySell').textContent = '-';
-                document.getElementById('latestMarketValue').textContent = '-';
-                document.getElementById('highestMarketValue').textContent = '-';
-                return;
-            }
-
-            const totalProfitLoss = investmentData.reduce((acc, cur) => acc + cur.profitLoss, 0);
-            const totalBuySell = investmentData.reduce((acc, cur) => acc + (cur.buySell || 0), 0);
-            
-            const latestRecord = investmentData[investmentData.length - 1];
-            const latestMarketValue = latestRecord.marketValue;
-            
-            const highestMarketValue = Math.max(...investmentData.map(d => d.marketValue));
-
-            const totalPlEl = document.getElementById('totalProfitLoss');
-            totalPlEl.textContent = formatNumber(totalProfitLoss);
-            totalPlEl.className = `text-2xl font-semibold mt-1 ${totalProfitLoss >= 0 ? 'text-green-400' : 'text-red-400'}`;
-
-            const totalBsEl = document.getElementById('totalBuySell');
-            totalBsEl.textContent = `${totalBuySell.toFixed(1)}`;
-            totalBsEl.className = `text-2xl font-semibold mt-1 ${totalBuySell >= 0 ? 'text-red-400' : 'text-green-400'}`;
-
-            document.getElementById('latestMarketValue').textContent = formatNumber(latestMarketValue);
-            document.getElementById('highestMarketValue').textContent = formatNumber(highestMarketValue);
-        }
-
-        function renderTable() {
-            const tableBody = document.getElementById('recordsTableBody');
-            tableBody.innerHTML = ''; 
-            
-            const displayData = [...investmentData].reverse();
-
-            displayData.forEach(record => {
-                const row = document.createElement('tr');
-                const profitLossClass = record.profitLoss >= 0 ? 'text-green-400' : 'text-red-400';
-                row.innerHTML = `
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">${record.date}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">${formatNumber(record.marketValue)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right ${profitLossClass}">${formatNumber(record.profitLoss)}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">${record.buySell !== 0 ? record.buySell : '-'}</td>
-                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">
-                        <button onclick="deleteRecord('${record.id}')" class="text-red-400 hover:text-red-300 font-medium transition-colors duration-200 flex items-center justify-end w-full gap-1">
-                            <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
-                            </svg>
-                            刪除
-                        </button>
-                    </td>
-                `;
-                tableBody.appendChild(row);
-            });
-        }
-
-        function renderChart() {
-            const ctx = document.getElementById('investmentChart').getContext('2d');
-            
-            if (investmentChart) {
-                investmentChart.destroy();
-            }
-
-            if (investmentData.length === 0) return;
-
-            const labels = investmentData.map(d => d.date);
-            const marketValueData = investmentData.map(d => d.marketValue);
-            const profitLossData = investmentData.map(d => d.profitLoss);
-            
-            const minMarketValue = Math.min(...marketValueData);
-            const padding = (Math.max(...marketValueData) - minMarketValue) * 0.1; 
-
-            investmentChart = new Chart(ctx, {
-                type: 'bar',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            type: 'line',
-                            label: '市值',
-                            data: marketValueData,
-                            borderColor: '#3b82f6',
-                            backgroundColor: 'rgba(59, 130, 246, 0.1)',
-                            yAxisID: 'yMarketValue',
-                            tension: 0.1,
-                            fill: true,
-                            borderWidth: 2,
-                            pointRadius: 0,
-                            pointHoverRadius: 5,
-                            pointBackgroundColor: '#3b82f6'
-                        },
-                        {
-                            type: 'bar',
-                            label: '損益',
-                            data: profitLossData,
-                            backgroundColor: profitLossData.map(p => p >= 0 ? 'rgba(34, 197, 94, 0.6)' : 'rgba(239, 68, 68, 0.6)'),
-                            borderColor: profitLossData.map(p => p >= 0 ? 'rgba(34, 197, 94, 1)' : 'rgba(239, 68, 68, 1)'),
-                            borderWidth: 1,
-                            yAxisID: 'yProfitLoss',
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    maintainAspectRatio: false,
-                    interaction: {
-                        mode: 'index',
-                        intersect: false,
-                    },
-                    scales: {
-                        x: {
-                            ticks: { color: '#9ca3af' },
-                            grid: { color: '#374151' }
-                        },
-                        yMarketValue: {
-                            type: 'linear',
-                            position: 'left',
-                            min: minMarketValue - padding,
-                            ticks: { 
-                                color: '#60a5fa',
-                                callback: value => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value)
-                            },
-                            grid: { color: '#374151' },
-                            title: { display: true, text: '市值', color: '#60a5fa'}
-                        },
-                        yProfitLoss: {
-                            type: 'linear',
-                            position: 'right',
-                            ticks: { 
-                                color: '#86efac',
-                                callback: value => new Intl.NumberFormat('en-US', { notation: 'compact', compactDisplay: 'short' }).format(value)
-                            },
-                            grid: { drawOnChartArea: false },
-                            title: { display: true, text: '損益', color: '#86efac'}
-                        }
-                    },
-                    plugins: {
-                        legend: { labels: { color: '#d1d5db' } },
-                        tooltip: {
-                            enabled: true,
-                            backgroundColor: 'rgba(31, 41, 55, 0.9)',
-                            titleColor: '#ffffff',
-                            bodyColor: '#ffffff',
-                            borderColor: '#4b5563',
-                            borderWidth: 1,
-                            callbacks: {
-                                label: function(context) {
-                                    let label = context.dataset.label || '';
-                                    if (label) {
-                                        label += ': ';
-                                    }
-                                    if (context.parsed.y !== null) {
-                                       label += formatNumber(context.parsed.y);
-                                    }
-                                    return label;
-                                }
-                            }
-                        }
-                    }
-                }
-            });
-        }
+        app.mount('#app');
     </script>
 </body>
 </html>

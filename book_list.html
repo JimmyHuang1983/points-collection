@@ -4,633 +4,504 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>我的閱讀心得知識庫</title>
+    
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script type="module" src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@7.1.0/dist/ionicons/ionicons.js"></script>
+
     <style>
-        /* --- 全局設定 --- */
-        body { 
-            margin: 0; 
-            font-family: "Helvetica Neue", Helvetica, "PingFang TC", "Microsoft JhengHei", sans-serif; 
-            display: flex; 
-            height: 100vh; 
-            background-color: #f4f6f9; 
-            color: #333;
-        }
-
-        /* --- 左側選單 (Sidebar) --- */
-        #sidebar {
-            width: 320px;
-            background-color: #2c3e50;
-            color: #ecf0f1;
-            padding: 20px;
-            overflow-y: auto;
-            flex-shrink: 0;
-            border-right: 1px solid #1a252f;
-        }
-        #sidebar h2 {
-            margin-top: 10px;
-            font-size: 1.3rem;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 2px solid #34495e;
-            text-align: center;
-            color: #1abc9c;
-        }
-        .book-item {
-            padding: 15px 20px;
-            margin-bottom: 8px;
-            cursor: pointer;
-            border-radius: 6px;
-            transition: all 0.2s ease;
-            font-size: 1.1rem;
-            color: #bdc3c7;
-            display: flex;
-            align-items: center;
-        }
-        .book-item:hover {
-            background-color: #34495e;
-            color: white;
-            padding-left: 25px; /* 輕微位移 */
-        }
-        .book-item.active {
-            background-color: #1abc9c;
-            color: white;
-            font-weight: bold;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
-        }
-
-        /* --- 右側內容顯示區域 --- */
-        #content-area {
-            flex-grow: 1;
-            padding: 40px 60px;
-            overflow-y: auto;
-        }
-        #display-zone {
-            max-width: 900px; 
-            margin: 0 auto;
-            padding-bottom: 100px;
-        }
-
-        /* --- 內容 Typography --- */
-        h1.book-title {
-            font-size: 2.5rem;
-            color: #2c3e50;
-            margin-bottom: 30px;
-            border-bottom: 4px solid #1abc9c;
-            padding-bottom: 15px;
-        }
-        h3 {
-            font-size: 1.6rem;
-            color: #2c3e50;
-            margin-top: 50px;
-            margin-bottom: 25px;
-            display: flex;
-            align-items: center;
-            background: #e8f6f3;
-            padding: 10px 15px;
-            border-radius: 8px;
-            border-left: 8px solid #16a085;
-        }
-        
-        /* 核心觀念列表 */
-        ul.concept-list {
-            list-style: none;
-            padding: 0;
-        }
+        /* --- 核心觀念列表樣式 --- */
+        ul.concept-list { list-style: none; padding: 0; }
         ul.concept-list li {
-            font-size: 1.2rem;
-            line-height: 1.8;
-            margin-bottom: 25px;
-            background: white;
-            padding: 20px;
-            border-radius: 10px;
-            box-shadow: 0 2px 5px rgba(0,0,0,0.05);
-            border-left: 4px solid #ddd;
+            font-size: 1.1rem; line-height: 1.8; margin-bottom: 20px;
+            background: white; padding: 20px; border-radius: 10px;
+            box-shadow: 0 2px 5px rgba(0,0,0,0.05); border-left: 4px solid #ddd;
         }
-        ul.concept-list li strong {
-            color: #e67e22;
-            font-size: 1.25rem;
-            display: block;
-            margin-bottom: 8px;
-        }
+        ul.concept-list li strong { color: #d97706; font-size: 1.2rem; display: block; margin-bottom: 8px; }
 
-        /* --- 金句互動卡片 (Hover Effect) --- */
-        .quote-grid {
-            display: grid;
-            grid-template-columns: 1fr;
-            gap: 25px;
-        }
+        /* --- 金句互動卡片 (Hover 效果) --- */
+        .quote-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
         .quote-box {
-            background: white;
-            padding: 25px;
-            border-radius: 12px;
-            box-shadow: 0 4px 10px rgba(0,0,0,0.08);
-            border: 1px solid #eee;
-            position: relative;
-            cursor: help; /* 滑鼠游標變成問號，提示有功能 */
+            background: white; padding: 20px; border-radius: 12px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.08); border: 1px solid #eee;
+            position: relative; cursor: help; overflow: hidden;
             transition: transform 0.2s, box-shadow 0.2s;
-            overflow: hidden; /* 隱藏超出的部分 */
         }
-        .quote-box:hover {
-            transform: translateY(-5px);
-            box-shadow: 0 10px 20px rgba(0,0,0,0.15);
-            border-color: #1abc9c;
-        }
+        .quote-box:hover { transform: translateY(-3px); box-shadow: 0 10px 20px rgba(0,0,0,0.15); border-color: #1abc9c; }
         
-        /* 提示標籤 */
-        .hover-hint {
-            position: absolute;
-            top: 10px;
-            right: 15px;
-            font-size: 0.8rem;
-            color: #95a5a6;
-            text-transform: uppercase;
-            letter-spacing: 1px;
-        }
-
-        .quote-main {
-            font-size: 1.3rem;
-            font-weight: bold;
-            color: #2c3e50;
-            margin-bottom: 10px;
-            line-height: 1.5;
-        }
-        .quote-source {
-            font-family: "Georgia", serif;
-            font-style: italic;
-            color: #7f8c8d;
-            font-size: 1.1rem;
-        }
-
-        /* 隱藏的上下文內容 */
+        .hover-hint { position: absolute; top: 10px; right: 15px; font-size: 0.75rem; color: #9ca3af; text-transform: uppercase; }
+        .quote-main { font-size: 1.25rem; font-weight: bold; color: #1f2937; margin-bottom: 8px; line-height: 1.5; }
+        .quote-source { font-family: "Georgia", serif; font-style: italic; color: #6b7280; font-size: 1rem; }
+        
+        /* 隱藏內容與展開動畫 */
         .quote-context {
-            max-height: 0;
-            opacity: 0;
-            overflow: hidden;
-            transition: all 0.5s ease-in-out;
-            background-color: #f9f9f9;
-            margin-top: 0;
-            padding: 0 15px;
-            border-radius: 8px;
-            border-left: 4px solid #3498db;
-            color: #555;
-            font-size: 1.05rem;
-            line-height: 1.6;
+            max-height: 0; opacity: 0; overflow: hidden;
+            transition: all 0.5s ease-in-out; background-color: #f9fafb;
+            margin-top: 0; padding: 0 15px; border-radius: 8px;
+            border-left: 4px solid #3b82f6; color: #4b5563; font-size: 1rem; line-height: 1.6;
+        }
+        .quote-box:hover .quote-context { max-height: 500px; opacity: 1; margin-top: 15px; padding: 15px; }
+
+        /* 手機版適配微調 */
+        @media (max-width: 768px) {
+            .quote-box:active .quote-context { max-height: 500px; opacity: 1; margin-top: 15px; padding: 15px; } /* 手機點擊也能展開 */
         }
         
-        /* Hover 時展開 */
-        .quote-box:hover .quote-context {
-            max-height: 500px; /* 設定一個足夠的高度 */
-            opacity: 1;
-            margin-top: 20px;
-            padding: 15px;
-        }
-
-        /* 手機版適配 */
-        @media (max-width: 768px) {
-            body { flex-direction: column; }
-            #sidebar { width: 100%; height: auto; max-height: 300px; }
-            #content-area { padding: 20px; }
-            h1.book-title { font-size: 1.8rem; }
-            .quote-context { max-height: none; opacity: 1; margin-top: 15px; padding: 15px; display: block;} /* 手機版直接顯示，因為沒有 hover */
-            .hover-hint { display: none; }
-        }
+        /* 滑入動畫 */
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 text-gray-800 h-screen overflow-hidden">
 
-    <div id="sidebar">
-        <h2>📑 閱讀書單</h2>
-        <div id="book-list">
+    <div id="app" class="flex h-full flex-col md:flex-row relative">
+
+        <transition name="slide">
+            <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-xl z-50 p-6">
+                <div class="flex justify-between items-center mb-6">
+                    <h2 class="text-2xl font-bold text-white">功能選單</h2>
+                    <button @click="isMenuOpen = false" class="text-gray-400 hover:text-white">
+                        <ion-icon name="close-outline" class="text-3xl"></ion-icon>
+                    </button>
+                </div>
+                <nav>
+                    <ul class="space-y-4">
+                        <li><a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white"><ion-icon name="star-outline" class="text-2xl"></ion-icon> 親子集點</a></li>
+                        <li><a href="investment.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white"><ion-icon name="analytics-outline" class="text-2xl"></ion-icon> 投資紀錄</a></li>
+                        <li><a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white"><ion-icon name="body-outline" class="text-2xl"></ion-icon> 體重管理</a></li>
+                        <li><a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white"><ion-icon name="cash-outline" class="text-2xl"></ion-icon> 匯率換算</a></li>
+                        <li><a href="book_list.html" class="flex items-center gap-3 text-lg text-blue-400 font-bold"><ion-icon name="book-outline" class="text-2xl"></ion-icon> 閱讀書單</a></li>
+                    </ul>
+                </nav>
             </div>
-    </div>
+        </transition>
 
-    <div id="content-area">
-        <div id="display-zone">
-            <div style="text-align: center; margin-top: 100px; color: #aaa;">
-                <h2>請點選左側書名開始閱讀</h2>
+        <div v-if="isMenuOpen" @click="isMenuOpen = false" class="fixed inset-0 bg-black bg-opacity-50 z-40"></div>
+
+        <div class="md:hidden flex items-center justify-between bg-white p-4 shadow-sm z-30 shrink-0">
+            <button @click="isMenuOpen = true" class="text-gray-700">
+                <ion-icon name="menu-outline" class="text-3xl"></ion-icon>
+            </button>
+            <h1 class="text-xl font-bold text-gray-800">閱讀心得</h1>
+            <div class="w-8"></div> </div>
+
+        <div class="flex flex-1 overflow-hidden relative">
+            
+            <div :class="['bg-gray-800 text-gray-100 overflow-y-auto flex-shrink-0 transition-all duration-300', 
+                         mobileShowDetail ? 'hidden md:block md:w-80' : 'w-full md:w-80']">
+                
+                <div class="hidden md:flex items-center p-4 border-b border-gray-700">
+                    <button @click="isMenuOpen = !isMenuOpen" class="text-gray-400 hover:text-white mr-3">
+                        <ion-icon name="menu-outline" class="text-2xl"></ion-icon>
+                    </button>
+                    <h2 class="text-xl font-bold">書架</h2>
+                </div>
+
+                <div class="p-4 space-y-2">
+                    <div v-for="(book, index) in books" :key="book.id" 
+                         @click="selectBook(index)"
+                         :class="['p-4 rounded-lg cursor-pointer transition flex items-center justify-between', 
+                                  currentIndex === index ? 'bg-teal-600 text-white shadow-lg' : 'hover:bg-gray-700 text-gray-300']">
+                        <span class="font-medium text-lg">{{ book.title }}</span>
+                        <ion-icon name="chevron-forward-outline" class="md:hidden"></ion-icon>
+                    </div>
+                </div>
+            </div>
+
+            <div :class="['flex-1 bg-white overflow-y-auto p-6 md:p-12 relative', 
+                         mobileShowDetail ? 'block' : 'hidden md:block']">
+                
+                <button @click="backToList" class="md:hidden mb-6 flex items-center text-gray-600 hover:text-gray-900 font-bold">
+                    <ion-icon name="arrow-back-outline" class="text-xl mr-2"></ion-icon>
+                    返回書單
+                </button>
+
+                <div v-if="currentBook" class="max-w-4xl mx-auto pb-20">
+                    <div v-html="currentBook.content"></div>
+                </div>
+                
+                <div v-else class="h-full flex flex-col items-center justify-center text-gray-400">
+                    <ion-icon name="book-outline" class="text-6xl mb-4"></ion-icon>
+                    <p class="text-xl">請從左側選擇一本書開始閱讀</p>
+                </div>
+
             </div>
         </div>
+
     </div>
 
     <script>
-        // --- 資料庫區 ---
-        // 為了讓右邊漂亮，我在 content 裡面加了一些 class (summary-card, quote-box 等)
-        const booksData = [
-            {
-                id: 1,
-                title: "股神巴菲特給兒女的忠告",
-                content: `
-                    <h1 class="book-title">股神巴菲特給兒女的忠告</h1>
-                    
-                    <h3>📖 7 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 獨立思考是財富的源頭</strong> 不要在意別人的看法。如果因為別人同意你而覺得自己是對的，這在投資上非常危險。你必須基於事實和推理來判斷。</li>
-                        <li><strong>2. 工作的定義</strong> 每天早上起床時，你是否期待接下來的一天？找一份你願意「跳著踢踏舞」去上班的工作，金錢自然會隨之而來。</li>
-                        <li><strong>3. 關於借貸與負債</strong> 如果你夠聰明，你不需要借錢也能賺錢；如果你不聰明，借錢只會讓你破產得更快。永遠不要讓自己陷入無法翻身的債務中。</li>
-                        <li><strong>4. 誠信是無形資產</strong> 能力和活力固然重要，但如果沒有誠信（Integrity），前兩者會毀了你。</li>
-                        <li><strong>5. 習慣的鎖鏈</strong> 人很難改變習慣。在壞習慣養成之前，它們輕得讓人感覺不到；一旦養成，它們重得讓人無法掙脫。</li>
-                        <li><strong>6. 避免「流動性詛咒」</strong> 巴菲特不留巨額遺產給子女，因為這會讓他們喪失奮鬥的動力。他給的錢「足以讓他們做任何事，但不足以讓他們無所事事」。</li>
-                        <li><strong>7. 投資自己</strong> 這是唯一不會被通膨吃掉、不會被課稅、不會被偷走的資產。</li>
-                    </ul>
+        const { createApp } = Vue;
 
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"It takes 20 years to build a reputation and five minutes to ruin it."</div>
-                            <div class="quote-source">—— 關於名譽</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                巴菲特在所羅門兄弟醜聞案時，對員工說了這句話。他強調，公司可以賠錢（甚至是很多錢），但他絕不容忍賠掉公司的聲譽。這提醒我們，在做任何決策時，都要考慮「如果這件事明天登上報紙頭條，我是否還願意做？」
-                            </div>
-                        </div>
+        createApp({
+            data() {
+                return {
+                    isMenuOpen: false,
+                    currentIndex: 0, // 預設選擇第一本
+                    mobileShowDetail: false, // 手機版是否顯示內容頁
+                    // 這裡放入您原本的資料
+                    books: [
+                        {
+                            id: 1,
+                            title: "股神巴菲特給兒女的忠告",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">股神巴菲特給兒女的忠告</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 7 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 獨立思考是財富的源頭</strong> 不要在意別人的看法。如果因為別人同意你而覺得自己是對的，這在投資上非常危險。你必須基於事實和推理來判斷。</li>
+                                    <li><strong>2. 工作的定義</strong> 每天早上起床時，你是否期待接下來的一天？找一份你願意「跳著踢踏舞」去上班的工作，金錢自然會隨之而來。</li>
+                                    <li><strong>3. 關於借貸與負債</strong> 如果你夠聰明，你不需要借錢也能賺錢；如果你不聰明，借錢只會讓你破產得更快。永遠不要讓自己陷入無法翻身的債務中。</li>
+                                    <li><strong>4. 誠信是無形資產</strong> 能力和活力固然重要，但如果沒有誠信（Integrity），前兩者會毀了你。</li>
+                                    <li><strong>5. 習慣的鎖鏈</strong> 人很難改變習慣。在壞習慣養成之前，它們輕得讓人感覺不到；一旦養成，它們重得讓人無法掙脫。</li>
+                                    <li><strong>6. 避免「流動性詛咒」</strong> 巴菲特不留巨額遺產給子女，因為這會讓他們喪失奮鬥的動力。他給的錢「足以讓他們做任何事，但不足以讓他們無所事事」。</li>
+                                    <li><strong>7. 投資自己</strong> 這是唯一不會被通膨吃掉、不會被課稅、不會被偷走的資產。</li>
+                                </ul>
 
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Price is what you pay. Value is what you get."</div>
-                            <div class="quote-source">—— 價格 vs 價值</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                這句話不僅適用於股票，也適用於購物和人生選擇。很多人只盯著標籤上的價格（Price），卻忽略了這件物品或這項資產長遠能帶給你的真實回報（Value）。不要為了省小錢而買了沒價值的東西。
-                            </div>
-                        </div>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"It takes 20 years to build a reputation and five minutes to ruin it."</div>
+                                        <div class="quote-source">—— 關於名譽</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            巴菲特在所羅門兄弟醜聞案時，對員工說了這句話。他強調，公司可以賠錢（甚至是很多錢），但他絕不容忍賠掉公司的聲譽。這提醒我們，在做任何決策時，都要考慮「如果這件事明天登上報紙頭條，我是否還願意做？」
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"The most important investment you can make is in yourself."</div>
+                                        <div class="quote-source">—— 關於自我成長</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            有人問巴菲特抗通膨最好的方法是什麼？他回答：是你自己的賺錢能力。無論貨幣如何貶值，醫生、律師或優秀工程師的技能永遠有需求，社會願意支付其價值的「購買力」是不變的。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 2,
+                            title: "致富心態",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">致富心態</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 6 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 沒人是瘋子 (No One's Crazy)</strong> 每個人的理財觀都基於他們獨特的生長背景。經歷過大蕭條的人與經歷過科技泡沫的人，對風險的看法截然不同。不要輕易評判別人的理財決定。</li>
+                                    <li><strong>2. 運氣與風險是親兄弟</strong> 成功不僅靠努力，還有運氣；失敗也不全是因為懶惰，還有風險。承認這點，你會對自己寬容，對他人謙卑。</li>
+                                    <li><strong>3. 存錢是為了「容錯空間」</strong> 你不需要為了購買特定東西才存錢。你存錢是為了應對那些「無法預測的糟糕事」。現金提供了生存的權利。</li>
+                                    <li><strong>4. 財富是你看不到的東西</strong> 花錢買名車名錶，你得到的是車和錶，失去的是錢。真正的財富是「沒有被花掉的收入」。</li>
+                                    <li><strong>5. 長尾效應</strong> 股神的財富 99% 來自 50 歲之後。投資的重點不在於每次都對，而在於當那 1% 的暴漲時刻來臨時，你「在場」。</li>
+                                    <li><strong>6. 自由是最高的紅利</strong> 金錢最大的價值，不是買東西，而是讓你擁有「在想做的時間，跟想做的人，做想做的事」的權利。</li>
+                                </ul>
 
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"The most important investment you can make is in yourself."</div>
-                            <div class="quote-source">—— 關於自我成長</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                有人問巴菲特抗通膨最好的方法是什麼？他回答：是你自己的賺錢能力。無論貨幣如何貶值，醫生、律師或優秀工程師的技能永遠有需求，社會願意支付其價值的「購買力」是不變的。
-                            </div>
-                        </div>
-                    </div>
-                `
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Spending money to show people how much money you have is the fastest way to have less money."</div>
+                                        <div class="quote-source">—— 關於炫富</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            作者提到「超跑悖論」：當你開著名車經過，你以為大家在看你，覺得你很酷。其實大家看的是「車」，並且在想像「自己」開那輛車的樣子。根本沒人在乎駕駛是誰。透過消費來尋求尊重是徒勞的。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Planning is important, but the most important part of every plan is to plan on the plan not going according to plan."</div>
+                                        <div class="quote-source">—— 關於安全邊際</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            也就是所謂的「容錯空間」。如果你計算出未來年回報率要有 8% 才能退休，那你的計畫就很脆弱。如果你假設回報率只有 4% 也能活下去，你的財務計畫才具備韌性。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 3,
+                            title: "財務自由, 提早過你真正想過的生活",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">財務自由, 提早過你真正想過的生活</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 5 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 你的技能都有市場價</strong> 不要只看死薪水。盤點你會的所有技能（寫作、遛狗、設計），思考如何將其變現。副業是加速 FIRE 的關鍵。</li>
+                                    <li><strong>2. 居住成本是最大的漏洞</strong> 大多數人花 30-50% 收入在住房。如果你能透過「房屋駭客 (House Hacking)」（如分租房間、住較小的房子）將此降至 10% 甚至 0%，你退休的速度會快兩倍。</li>
+                                    <li><strong>3. 複利不只是金錢</strong> 知識、人脈、健康都有複利效應。你在 20 歲學的一項技能，可能在 40 歲時為你帶來巨大回報。</li>
+                                    <li><strong>4. 跨越「生存」到「生活」</strong> 財務自由有七個階段。從「依賴」到「勉強糊口」，再到「擁有緩衝金」。不需要等到終極目標達成，每跨越一個階段，你的焦慮就會減少一分。</li>
+                                    <li><strong>5. 錢是無限的，時間是有限的</strong> 你可以隨時賺更多的錢，但你無法賺回逝去的一秒鐘。用錢買時間（外包不喜歡的家務）通常是值得的。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"You are not your job. You are not how much money you have in the bank."</div>
+                                        <div class="quote-source">—— 關於自我價值</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            在追求財務自由的過程中，很容易變得執著於數字（淨資產）。作者提醒，FIRE 的目的不是為了變成守財奴，而是為了找回「你是誰」。不要讓存款數字定義你的價值。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Retirement is not an age. It’s a financial number."</div>
+                                        <div class="quote-source">—— 關於退休定義</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            傳統觀念認為 65 歲才能退休。但作者指出，只要你的被動收入 > 生活支出，你當下就是退休狀態。這可能發生在 30 歲，也可能發生在 50 歲，重點在於數學算式，而非年齡。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 4,
+                            title: "通往財富自由之路",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">通往財富自由之路</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 6 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 注意力 > 時間 > 金錢</strong> 這是全書最重要的公式。我們會為了省幾塊錢（金錢）花幾小時排隊（時間），卻在排隊時滑無意義的手機（注意力）。這是在賤賣你最寶貴的資產。</li>
+                                    <li><strong>2. 抱怨是無能的表現</strong> 抱怨不僅解決不了問題，還會向大腦暗示「我對此無能為力」，這會讓你陷入受害者心態。遇到問題，要嘛解決，要嘛承受，絕不抱怨。</li>
+                                    <li><strong>3. 做自己的貴人</strong> 不要等著別人來幫你。當你足夠優秀、一直在進步時，自然會吸引到想與你合作的人（貴人）。這叫「瑟倫迪皮蒂 (Serendipity)」效應。</li>
+                                    <li><strong>4. 什麼是「個人商業模式」</strong> 第一級：一份時間賣一次（打工）。第二級：一份時間賣很多次（寫書、做課程）。第三級：購買他人的時間再賣出（創業）。要努力向高等級移動。</li>
+                                    <li><strong>5. 元認知能力 (Metacognition)</strong> 你能不能意識到「自己正在思考」？當你生氣時，能跳出來看著自己說「喔，我現在在生氣」嗎？這是人類進化的關鍵能力。</li>
+                                    <li><strong>6. 活在未來</strong> 投資就是「用現在的資源換取未來的資源」。你必須相信未來會更好，並且現在就按照未來的標準來要求自己。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">「我們不是要『管理時間』，我們要是『管理自己』。」</div>
+                                        <div class="quote-source">—— 關於時間管理</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            時間是勻速流動的，你無法管理它（你不能讓它變慢）。你只能管理「自己在時間裡的行為」。所以不要說「我沒時間」，要說「這件事目前不在我的優先順序裡」。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">「財富自由的本質，是可以不再為了生活必需而出售自己的時間。」</div>
+                                        <div class="quote-source">—— 定義自由</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            很多人誤以為財富自由就是「有很多錢」。李笑來定義得很精準：重點是將時間的所有權贖回。之後你還是可以工作，但那是為了「成長」或「興趣」，而不是為了「生存」。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 5,
+                            title: "雪球：巴菲特傳",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">雪球：巴菲特傳</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 5 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 內部計分卡 vs 外部計分卡</strong> 你是為了別人的掌聲而活（外部），還是為了自己內心的標準而活（內部）？巴菲特穿舊西裝、住老房子，因為他只在乎內部計分卡。</li>
+                                    <li><strong>2. 專注 (Focus)</strong> 巴菲特和比爾蓋茲第一次見面時，蓋茲的父親讓大家寫下成功的一個詞，兩人都寫了「Focus」。巴菲特一生只專注於一件事：資本配置。</li>
+                                    <li><strong>3. 卵巢樂透</strong> 巴菲特承認自己的成功很大程度是因為運氣：生在美國、生在資本主義黃金時代、生為白人男性。這讓他對社會保持感恩與回饋之心。</li>
+                                    <li><strong>4. 能力圈</strong> 你的能力圈有多大不重要，重要的是你知道它的「邊界」在哪裡。絕不要跨出邊界去投資你不懂的東西。</li>
+                                    <li><strong>5. 選擇配偶</strong> 巴菲特認為人生最重要的決定不是投資哪檔股票，而是跟誰結婚。好的伴侶會讓你情緒穩定，支持你的事業。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Life is like a snowball. The important thing is finding wet snow and a really long hill."</div>
+                                        <div class="quote-source">—— 書名由來</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            這解釋了複利的本質。「濕雪」是指資金和資源（因為濕雪才能黏住更多雪），「長坡」是指時間。你要儘早開始（延長坡道），並確保你的核心資產（濕雪）具有吸附力。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Be fearful when others are greedy and greedy when others are fearful."</div>
+                                        <div class="quote-source">—— 關於市場情緒</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            這句話說來簡單做來難。當股市崩盤、新聞全是壞消息時，大部分人的本能是逃跑（恐懼）。巴菲特之所以是股神，是因為他能克服這種生物本能，在別人恐慌拋售時進場撿便宜。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 6,
+                            title: "富爸爸，窮爸爸",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">富爸爸，窮爸爸</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 6 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 窮人為錢工作，富人讓錢為他工作</strong> 這是全書最核心的概念。不要只是努力工作（爬梯子），要思考如何擁有那把梯子。</li>
+                                    <li><strong>2. 分清「資產」與「負債」</strong> 很簡單的定義：把錢放進口袋的是資產（股票、出租房、版稅）；把錢從口袋拿走的是負債（自用車、自用豪宅、奢侈品）。</li>
+                                    <li><strong>3. 先支付自己 (Pay Yourself First)</strong> 每月拿到薪水，先撥出一部分投資（給未來的自己），剩下的才拿去繳帳單和消費。這會逼迫你用剩下的錢過活，激發賺錢的創意。</li>
+                                    <li><strong>4. 學校不教財商</strong> 學校教你如何成為好員工，但沒教你如何處理金錢。你必須自我教育：會計、投資、市場行銷、法律。</li>
+                                    <li><strong>5. 學習銷售</strong> 羅勃特清崎去全錄當業務員不是為了薪水，是為了克服「被拒絕的恐懼」。銷售能力是創業和人生的基礎技能。</li>
+                                    <li><strong>6. 克服五大障礙</strong> 即使有財商，人還是無法致富，因為：恐懼、憤世嫉俗、懶惰、壞習慣、傲慢。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Don't say 'I can't afford it'. Ask 'How can I afford it?'"</div>
+                                        <div class="quote-source">—— 關於思維模式</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            窮爸爸說「我買不起」，這句話讓大腦停止運作。富爸爸說「我該如何才買得起？」，這句話強迫大腦尋找解決方案。語言會形塑現實，要把陳述句變成疑問句。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"In the real world, the smartest people are people who make mistakes and learn. In school, the smartest people don't make mistakes."</div>
+                                        <div class="quote-source">—— 關於失敗</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            學校教育懲罰錯誤，導致大家害怕犯錯。但現實世界中，所有的進步（騎腳踏車、學走路、投資）都來自於試錯。害怕失敗的人，通常也害怕成功。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 7,
+                            title: "猶太人賺錢術",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">猶太人賺錢術</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 5 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 78:22 宇宙法則</strong> 空氣中氮氣佔78%氧氣22%，人體水分佔78%其他22%。商業上，要專注服務那擁有 78% 財富的 22% 富人，這才是賺大錢的捷徑。</li>
+                                    <li><strong>2. 瞄準「女人」與「嘴巴」</strong> 男人賺錢，女人花錢。鑽石、珠寶、服飾，賺女人的錢最快。嘴巴是唯一「只進不出」的器官，食品是永遠的剛需。</li>
+                                    <li><strong>3. 契約就是神</strong> 猶太人一旦簽訂合約，就算賠錢也要執行到底。但在簽約前，他們會極度計較每一個字。沒有契約精神，就無法在商業世界立足。</li>
+                                    <li><strong>4. 數字不會騙人</strong> 不要用「大概」、「差不多」這種模糊字眼。猶太商人對數字極度敏感，精確到小數點後幾位。感覺會騙人，數字不會。</li>
+                                    <li><strong>5. 逆風也要張滿帆</strong> 當局勢不好時，也是競爭對手最少時。如果你有把握，在逆境中加碼投入，未來的回報是巨大的。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">「厚利適銷。」</div>
+                                        <div class="quote-source">—— 關於定價策略</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            傳統觀念是「薄利多銷」。但藤田田認為，薄利多銷太累且風險高。猶太商法傾向「厚利適銷」，賣給有錢人高品質、高利潤的商品，服務好少數人，利潤反而更穩定。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">「把商品賣給富人，因為他們手裡有錢。」</div>
+                                        <div class="quote-source">—— 關於目標客群</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            這聽起來很勢利，卻是商業真理。試圖從窮人口袋賺錢很難，因為他們本來就沒錢。富人不在乎價格，只在乎品質與服務。專注於服務金字塔頂端，是效率最高的做法。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 8,
+                            title: "與成功有約的7個好習慣 (兒童篇)",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">與成功有約的7個好習慣 (兒童篇)</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 7 個好習慣 (適合教導晴晴與菲菲)</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 主動積極</strong> (我做主) 心情不好不是因為別人，是我自己選擇生氣的。我可以選擇快樂。我自己穿鞋、自己收書包。</li>
+                                    <li><strong>2. 以終為始</strong> (有計畫) 做事情前先想結果。想要週末去露營（結果），那現在要先做完功課（計畫）。</li>
+                                    <li><strong>3. 要事第一</strong> (先工作後玩樂) 先把重要的事情（吃蔬菜、寫作業）做完，剩下的時間就可以盡情玩，而且玩得更安心。</li>
+                                    <li><strong>4. 雙贏思維</strong> (大家贏) 搶玩具時，不是我搶到就是你沒有。我們可以輪流玩，或者一起發明新玩法，讓兩個人都開心。</li>
+                                    <li><strong>5. 知彼解己</strong> (先聽人後開口) 你有兩隻耳朵一張嘴，所以要多聽少說。聽懂妹妹為什麼哭，再告訴她你的想法。</li>
+                                    <li><strong>6. 統合綜效</strong> (合作力量大) 一個人收玩具很慢，兩個人一起收很快。1+1 可以大於 2。</li>
+                                    <li><strong>7. 不斷更新</strong> (身心平衡) 休息是為了走更長的路。吃得健康、睡得飽、多運動、看好書，讓自己隨時保持在最佳狀態。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"I am the captain of my own ship."</div>
+                                        <div class="quote-source">—— 關於責任感</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            這是「主動積極」的核心。當孩子說「是他害我生氣的」時候，提醒他：你是你這艘船的船長，沒有人可以強迫你轉彎，是你自己決定要生氣的。把遙控器拿回自己手上。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Listen with your eyes and your heart, not just your ears."</div>
+                                        <div class="quote-source">—— 關於傾聽</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            書中提到，有時候嘴巴說的話不是心裡的意思。要教導孩子觀察對方的表情（用眼睛）和感受對方的情緒（用心），這才是真正的溝通。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        },
+                        {
+                            id: 9,
+                            title: "讓可愛的錢繼續滾進來",
+                            content: `
+                                <h1 class="text-3xl md:text-4xl font-bold text-gray-800 mb-6 border-b-4 border-teal-500 pb-4">讓可愛的錢繼續滾進來</h1>
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">📖 6 個核心觀念</h3>
+                                <ul class="concept-list">
+                                    <li><strong>1. 被動收入不是「不勞而獲」</strong> 其實前期需要投入大量的「預付時間」和努力（寫書、存錢買房），後期才能享受維護成本極低的收入。</li>
+                                    <li><strong>2. 收入的四種型態</strong> 投資組合收入（股息）、版稅收入、硬資產租金、投幣式收入。</li>
+                                    <li><strong>3. 永遠不要殺死金鵝</strong> 你的本金（能生蛋的鵝）是神聖的。只花費金蛋（利息），永遠不動用本金。</li>
+                                    <li><strong>4. 解決問題就是商機</strong> 如果你覺得某件事很麻煩，這就是一個潛在的被動收入來源（例如製作報稅教學）。</li>
+                                    <li><strong>5. 委外 (Outsourcing)</strong> 要讓收入「被動化」，關鍵在於你不可以事必躬親。請物業管理公司管房子、請助理回信。雖然會少賺一點，但你買到了自由。</li>
+                                    <li><strong>6. 現在就開始</strong> 完美主義是拖延的藉口。你不需要等到寫出一本完美的小說才出版，先寫一篇短文、先買一股股票。行動 > 計畫。</li>
+                                </ul>
+
+                                <h3 class="text-2xl font-bold text-gray-800 mt-8 mb-4 flex items-center bg-teal-50 p-3 rounded-lg border-l-8 border-teal-600">💡 智慧金句 (點擊或Hover查看)</h3>
+                                <div class="quote-grid">
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"Passive income is money you earn while you sleep."</div>
+                                        <div class="quote-source">—— 關於睡後收入</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            只要你必須「出席」才能賺到的錢，都是主動收入。真正的財務自由，是你去海邊度假一個月，回來後帳戶裡的錢比出發前還多。這應該是所有人的終極目標。
+                                        </div>
+                                    </div>
+                                    <div class="quote-box group">
+                                        <div class="hover-hint">🖱️ 查看上下文</div>
+                                        <div class="quote-main">"You don't have to be a genius to build wealth, you just have to be consistent."</div>
+                                        <div class="quote-source">—— 關於持之以恆</div>
+                                        <div class="quote-context">
+                                            <strong>上下文回顧：</strong><br>
+                                            很多人以為創造被動收入需要絕頂聰明。作者指出，其實大部分的方法（如股息投資）都很無聊且簡單，難的是「持續做」。每個月堅持存錢、每天堅持寫作，時間會獎勵堅持的人。
+                                        </div>
+                                    </div>
+                                </div>
+                            `
+                        }
+                    ]
+                }
             },
-            {
-                id: 2,
-                title: "致富心態 (The Psychology of Money)",
-                content: `
-                    <h1 class="book-title">致富心態</h1>
-                    
-                    <h3>📖 6 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 沒人是瘋子 (No One's Crazy)</strong> 每個人的理財觀都基於他們獨特的生長背景。經歷過大蕭條的人與經歷過科技泡沫的人，對風險的看法截然不同。不要輕易評判別人的理財決定。</li>
-                        <li><strong>2. 運氣與風險是親兄弟</strong> 成功不僅靠努力，還有運氣；失敗也不全是因為懶惰，還有風險。承認這點，你會對自己寬容，對他人謙卑。</li>
-                        <li><strong>3. 存錢是為了「容錯空間」</strong> 你不需要為了購買特定東西才存錢。你存錢是為了應對那些「無法預測的糟糕事」。現金提供了生存的權利。</li>
-                        <li><strong>4. 財富是你看不到的東西</strong> 花錢買名車名錶，你得到的是車和錶，失去的是錢。真正的財富是「沒有被花掉的收入」。</li>
-                        <li><strong>5. 長尾效應 (Tail Events)</strong> 股神的財富 99% 來自 50 歲之後。投資的重點不在於每次都對，而在於當那 1% 的暴漲時刻來臨時，你「在場」。</li>
-                        <li><strong>6. 自由是最高的紅利</strong> 金錢最大的價值，不是買東西，而是讓你擁有「在想做的時間，跟想做的人，做想做的事」的權利。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Spending money to show people how much money you have is the fastest way to have less money."</div>
-                            <div class="quote-source">—— 關於炫富</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                作者提到「超跑悖論」：當你開著名車經過，你以為大家在看你，覺得你很酷。其實大家看的是「車」，並且在想像「自己」開那輛車的樣子。根本沒人在乎駕駛是誰。透過消費來尋求尊重是徒勞的。
-                            </div>
-                        </div>
-
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Planning is important, but the most important part of every plan is to plan on the plan not going according to plan."</div>
-                            <div class="quote-source">—— 關於安全邊際</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                也就是所謂的「容錯空間 (Room for error)」。如果你計算出未來年回報率要有 8% 才能退休，那你的計畫就很脆弱。如果你假設回報率只有 4% 也能活下去，你的財務計畫才具備韌性。
-                            </div>
-                        </div>
-                    </div>
-                `
+            computed: {
+                currentBook() {
+                    return this.books[this.currentIndex];
+                }
             },
-            {
-                id: 3,
-                title: "財務自由, 提早過你真正想過的生活",
-                content: `
-                    <h1 class="book-title">財務自由, 提早過你真正想過的生活</h1>
-                    
-                    <h3>📖 5 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 你的技能都有市場價</strong> 不要只看死薪水。盤點你會的所有技能（寫作、遛狗、設計），思考如何將其變現。副業是加速 FIRE 的關鍵。</li>
-                        <li><strong>2. 居住成本是最大的漏洞</strong> 大多數人花 30-50% 收入在住房。如果你能透過「房屋駭客 (House Hacking)」（如分租房間、住較小的房子）將此降至 10% 甚至 0%，你退休的速度會快兩倍。</li>
-                        <li><strong>3. 複利不只是金錢</strong> 知識、人脈、健康都有複利效應。你在 20 歲學的一項技能，可能在 40 歲時為你帶來巨大回報。</li>
-                        <li><strong>4. 跨越「生存」到「生活」</strong> 財務自由有七個階段。從「依賴」到「勉強糊口」，再到「擁有緩衝金」。不需要等到終極目標達成，每跨越一個階段，你的焦慮就會減少一分。</li>
-                        <li><strong>5. 錢是無限的，時間是有限的</strong> 你可以隨時賺更多的錢，但你無法賺回逝去的一秒鐘。用錢買時間（外包不喜歡的家務）通常是值得的。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"You are not your job. You are not how much money you have in the bank."</div>
-                            <div class="quote-source">—— 關於自我價值</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                在追求財務自由的過程中，很容易變得執著於數字（淨資產）。作者提醒，FIRE 的目的不是為了變成守財奴，而是為了找回「你是誰」。不要讓存款數字定義你的價值。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Retirement is not an age. It’s a financial number."</div>
-                            <div class="quote-source">—— 關於退休定義</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                傳統觀念認為 65 歲才能退休。但作者指出，只要你的被動收入 > 生活支出，你當下就是退休狀態。這可能發生在 30 歲，也可能發生在 50 歲，重點在於數學算式，而非年齡。
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            {
-                id: 4,
-                title: "通往財富自由之路 (李笑來)",
-                content: `
-                    <h1 class="book-title">通往財富自由之路</h1>
-                    
-                    <h3>📖 6 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 注意力 > 時間 > 金錢</strong> 這是全書最重要的公式。我們會為了省幾塊錢（金錢）花幾小時排隊（時間），卻在排隊時滑無意義的手機（注意力）。這是在賤賣你最寶貴的資產。</li>
-                        <li><strong>2. 抱怨是無能的表現</strong> 抱怨不僅解決不了問題，還會向大腦暗示「我對此無能為力」，這會讓你陷入受害者心態。遇到問題，要嘛解決，要嘛承受，絕不抱怨。</li>
-                        <li><strong>3. 做自己的貴人</strong> 不要等著別人來幫你。當你足夠優秀、一直在進步時，自然會吸引到想與你合作的人（貴人）。這叫「瑟倫迪皮蒂 (Serendipity)」效應。</li>
-                        <li><strong>4. 什麼是「個人商業模式」</strong> 
-                            <br>- 第一級：一份時間賣一次（打工）。
-                            <br>- 第二級：一份時間賣很多次（寫書、做課程、寫程式）。
-                            <br>- 第三級：購買他人的時間再賣出（創業、投資）。
-                            <br>要努力向高等級移動。</li>
-                        <li><strong>5. 元認知能力 (Metacognition)</strong> 你能不能意識到「自己正在思考」？當你生氣時，能跳出來看著自己說「喔，我現在在生氣」嗎？這是人類進化的關鍵能力。</li>
-                        <li><strong>6. 活在未來</strong> 投資就是「用現在的資源換取未來的資源」。你必須相信未來會更好，並且現在就按照未來的標準來要求自己。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">「我們不是要『管理時間』，我們要是『管理自己』。」</div>
-                            <div class="quote-source">—— 關於時間管理</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                時間是勻速流動的，你無法管理它（你不能讓它變慢）。你只能管理「自己在時間裡的行為」。所以不要說「我沒時間」，要說「這件事目前不在我的優先順序裡」。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">「財富自由的本質，是可以不再為了生活必需而出售自己的時間。」</div>
-                            <div class="quote-source">—— 定義自由</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                很多人誤以為財富自由就是「有很多錢」。李笑來定義得很精準：重點是將時間的所有權贖回。之後你還是可以工作，但那是為了「成長」或「興趣」，而不是為了「生存」。
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            {
-                id: 5,
-                title: "雪球：巴菲特傳",
-                content: `
-                    <h1 class="book-title">雪球：巴菲特傳</h1>
-                    
-                    <h3>📖 5 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 內部計分卡 vs 外部計分卡</strong> 你是為了別人的掌聲而活（外部），還是為了自己內心的標準而活（內部）？巴菲特穿舊西裝、住老房子，因為他只在乎內部計分卡。</li>
-                        <li><strong>2. 專注 (Focus)</strong> 巴菲特和比爾蓋茲第一次見面時，蓋茲的父親讓大家寫下成功的一個詞，兩人都寫了「Focus」。巴菲特一生只專注於一件事：資本配置。</li>
-                        <li><strong>3. 卵巢樂透 (Ovarian Lottery)</strong> 巴菲特承認自己的成功很大程度是因為運氣：生在美國、生在資本主義黃金時代、生為白人男性。這讓他對社會保持感恩與回饋之心。</li>
-                        <li><strong>4. 能力圈 (Circle of Competence)</strong> 你的能力圈有多大不重要，重要的是你知道它的「邊界」在哪裡。絕不要跨出邊界去投資你不懂的東西（如早期的科技股）。</li>
-                        <li><strong>5. 選擇配偶</strong> 巴菲特認為人生最重要的決定不是投資哪檔股票，而是跟誰結婚。好的伴侶會讓你情緒穩定，支持你的事業。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Life is like a snowball. The important thing is finding wet snow and a really long hill."</div>
-                            <div class="quote-source">—— 書名由來</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                這解釋了複利的本質。「濕雪」是指資金和資源（因為濕雪才能黏住更多雪），「長坡」是指時間。你要儘早開始（延長坡道），並確保你的核心資產（濕雪）具有吸附力。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Be fearful when others are greedy and greedy when others are fearful."</div>
-                            <div class="quote-source">—— 關於市場情緒</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                這句話說來簡單做來難。當股市崩盤、新聞全是壞消息時，大部分人的本能是逃跑（恐懼）。巴菲特之所以是股神，是因為他能克服這種生物本能，在別人恐慌拋售時進場撿便宜。
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            {
-                id: 6,
-                title: "富爸爸，窮爸爸",
-                content: `
-                    <h1 class="book-title">富爸爸，窮爸爸</h1>
-                    
-                    <h3>📖 6 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 窮人為錢工作，富人讓錢為他工作</strong> 這是全書最核心的概念。不要只是努力工作（爬梯子），要思考如何擁有那把梯子。</li>
-                        <li><strong>2. 分清「資產」與「負債」</strong> 很簡單的定義：把錢放進口袋的是資產（股票、出租房、版稅）；把錢從口袋拿走的是負債（自用車、自用豪宅、奢侈品）。</li>
-                        <li><strong>3. 先支付自己 (Pay Yourself First)</strong> 每月拿到薪水，先撥出一部分投資（給未來的自己），剩下的才拿去繳帳單和消費。這會逼迫你用剩下的錢過活，激發賺錢的創意。</li>
-                        <li><strong>4. 學校不教財商</strong> 學校教你如何成為好員工，但沒教你如何處理金錢。你必須自我教育：會計、投資、市場行銷、法律。</li>
-                        <li><strong>5. 學習銷售</strong> 羅勃特清崎去全錄當業務員不是為了薪水，是為了克服「被拒絕的恐懼」。銷售能力是創業和人生的基礎技能。</li>
-                        <li><strong>6. 克服五大障礙</strong> 即使有財商，人還是無法致富，因為：恐懼、憤世嫉俗、懶惰、壞習慣、傲慢。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Don't say 'I can't afford it'. Ask 'How can I afford it?'"</div>
-                            <div class="quote-source">—— 關於思維模式</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                窮爸爸說「我買不起」，這句話讓大腦停止運作。富爸爸說「我該如何才買得起？」，這句話強迫大腦尋找解決方案。語言會形塑現實，要把陳述句變成疑問句。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"In the real world, the smartest people are people who make mistakes and learn. In school, the smartest people don't make mistakes."</div>
-                            <div class="quote-source">—— 關於失敗</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                學校教育懲罰錯誤，導致大家害怕犯錯。但現實世界中，所有的進步（騎腳踏車、學走路、投資）都來自於試錯。害怕失敗的人，通常也害怕成功。
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            {
-                id: 7,
-                title: "猶太人賺錢術 (藤田田)",
-                content: `
-                    <h1 class="book-title">猶太人賺錢術</h1>
-                    
-                    <h3>📖 5 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 78:22 宇宙法則</strong> 空氣中氮氣佔78%氧氣22%，人體水分佔78%其他22%。商業上，要專注服務那擁有 78% 財富的 22% 富人，這才是賺大錢的捷徑。</li>
-                        <li><strong>2. 瞄準「女人」與「嘴巴」</strong> 
-                            <br>- 男人賺錢，女人花錢。鑽石、珠寶、服飾，賺女人的錢最快。
-                            <br>- 嘴巴是唯一「只進不出」的器官。食品、餐飲是永遠的剛需（這也是作者引進麥當勞的原因）。</li>
-                        <li><strong>3. 契約就是神</strong> 猶太人一旦簽訂合約，就算賠錢也要執行到底。但在簽約前，他們會極度計較每一個字。沒有契約精神，就無法在商業世界立足。</li>
-                        <li><strong>4. 數字不會騙人</strong> 不要用「大概」、「差不多」這種模糊字眼。猶太商人對數字極度敏感，精確到小數點後幾位。感覺會騙人，數字不會。</li>
-                        <li><strong>5. 逆風也要張滿帆</strong> 當局勢不好時，也是競爭對手最少時。如果你有把握，在逆境中加碼投入，未來的回報是巨大的。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">「厚利適銷。」</div>
-                            <div class="quote-source">—— 關於定價策略</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                傳統觀念是「薄利多銷」。但藤田田認為，薄利多銷太累且風險高。猶太商法傾向「厚利適銷」，賣給有錢人高品質、高利潤的商品，服務好少數人，利潤反而更穩定。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">「把商品賣給富人，因為他們手裡有錢。」</div>
-                            <div class="quote-source">—— 關於目標客群</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                這聽起來很勢利，卻是商業真理。試圖從窮人口袋賺錢很難，因為他們本來就沒錢。富人不在乎價格，只在乎品質與服務。專注於服務金字塔頂端，是效率最高的做法。
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            {
-                id: 8,
-                title: "與成功有約的7個好習慣 (兒童篇)",
-                content: `
-                    <h1 class="book-title">與成功有約的7個好習慣 (兒童篇)</h1>
-                    
-                    <h3>📖 7 個好習慣 (適合教導晴晴與菲菲)</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 主動積極 (Be Proactive)</strong> 
-                            <br>口訣：我做主。
-                            <br>教導：心情不好不是因為別人，是我自己選擇生氣的。我可以選擇快樂。我自己穿鞋、自己收書包。</li>
-                        <li><strong>2. 以終為始 (Begin with the End in Mind)</strong>
-                            <br>口訣：有計畫。
-                            <br>教導：做事情前先想結果。想要週末去露營（結果），那現在要先做完功課（計畫）。</li>
-                        <li><strong>3. 要事第一 (Put First Things First)</strong>
-                            <br>口訣：先工作，後玩樂。
-                            <br>教導：先把重要的事情（吃蔬菜、寫作業）做完，剩下的時間就可以盡情玩，而且玩得更安心。</li>
-                        <li><strong>4. 雙贏思維 (Think Win-Win)</strong>
-                            <br>口訣：大家贏。
-                            <br>教導：搶玩具時，不是我搶到就是你沒有。我們可以輪流玩，或者一起發明新玩法，讓兩個人都開心。</li>
-                        <li><strong>5. 知彼解己 (Seek First to Understand)</strong>
-                            <br>口訣：先聽人，後開口。
-                            <br>教導：你有兩隻耳朵一張嘴，所以要多聽少說。聽懂妹妹為什麼哭，再告訴她你的想法。</li>
-                        <li><strong>6. 統合綜效 (Synergize)</strong>
-                            <br>口訣：合作力量大。
-                            <br>教導：一個人收玩具很慢，兩個人一起收很快。1+1 可以大於 2。</li>
-                        <li><strong>7. 不斷更新 (Sharpen the Saw)</strong>
-                            <br>口訣：身心平衡。
-                            <br>教導：休息是為了走更長的路。吃得健康、睡得飽、多運動、看好書，讓自己隨時保持在最佳狀態。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"I am the captain of my own ship."</div>
-                            <div class="quote-source">—— 關於責任感</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                這是「主動積極」的核心。當孩子說「是他害我生氣的」時候，提醒他：你是你這艘船的船長，沒有人可以強迫你轉彎，是你自己決定要生氣的。把遙控器拿回自己手上。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Listen with your eyes and your heart, not just your ears."</div>
-                            <div class="quote-source">—— 關於傾聽</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                書中提到，有時候嘴巴說的話不是心裡的意思。要教導孩子觀察對方的表情（用眼睛）和感受對方的情緒（用心），這才是真正的溝通。
-                            </div>
-                        </div>
-                    </div>
-                `
-            },
-            {
-                id: 9,
-                title: "讓可愛的錢繼續滾進來",
-                content: `
-                    <h1 class="book-title">讓可愛的錢繼續滾進來</h1>
-                    
-                    <h3>📖 6 個核心觀念</h3>
-                    <ul class="concept-list">
-                        <li><strong>1. 被動收入不是「不勞而獲」</strong> 很多人誤解被動收入。其實前期需要投入大量的「預付時間」和努力（寫書、存錢買房），後期才能享受維護成本極低的收入。</li>
-                        <li><strong>2. 收入的四種型態</strong> 
-                            <br>- 投資組合收入：股息、利息。
-                            <br>- 版稅收入：書籍、線上課程、照片授權。
-                            <br>- 硬資產租金：房地產、出租車位、倉儲。
-                            <br>- 投幣式收入：自動販賣機、自助洗衣店。</li>
-                        <li><strong>3. 永遠不要殺死金鵝</strong> 你的本金（能生蛋的鵝）是神聖的。只花費金蛋（利息），永遠不動用本金。</li>
-                        <li><strong>4. 解決問題就是商機</strong> 如果你覺得某件事很麻煩（例如：報稅很難、整理家裡很累），這就是一個潛在的被動收入來源（製作報稅教學、整理檢核表）。</li>
-                        <li><strong>5. 委外 (Outsourcing)</strong> 要讓收入「被動化」，關鍵在於你不可以事必躬親。請物業管理公司管房子、請助理回信。雖然會少賺一點，但你買到了自由。</li>
-                        <li><strong>6. 現在就開始</strong> 完美主義是拖延的藉口。你不需要等到寫出一本完美的小說才出版，先寫一篇短文、先買一股股票。行動 > 計畫。</li>
-                    </ul>
-
-                    <h3>💡 智慧金句 (Hover 查看詳解)</h3>
-                    <div class="quote-grid">
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"Passive income is money you earn while you sleep."</div>
-                            <div class="quote-source">—— 關於睡後收入</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                只要你必須「出席」才能賺到的錢，都是主動收入。真正的財務自由，是你去海邊度假一個月，回來後帳戶裡的錢比出發前還多。這應該是所有人的終極目標。
-                            </div>
-                        </div>
-                        <div class="quote-box">
-                            <div class="hover-hint">🖱️ 移至上方查看上下文</div>
-                            <div class="quote-main">"You don't have to be a genius to build wealth, you just have to be consistent."</div>
-                            <div class="quote-source">—— 關於持之以恆</div>
-                            <div class="quote-context">
-                                <strong>上下文回顧：</strong><br>
-                                很多人以為創造被動收入需要絕頂聰明。作者瑞秋指出，其實大部分的方法（如股息投資）都很無聊且簡單，難的是「持續做」。每個月堅持存錢、每天堅持寫作，時間會獎勵堅持的人。
-                            </div>
-                        </div>
-                    </div>
-                `
+            methods: {
+                selectBook(index) {
+                    this.currentIndex = index;
+                    this.mobileShowDetail = true; // 在手機模式下，點選後切換到內容頁
+                    window.scrollTo(0, 0); // 捲動到頂部
+                },
+                backToList() {
+                    this.mobileShowDetail = false; // 手機模式下，返回列表頁
+                }
             }
-        ];
-
-        // --- 程式邏輯區 (這部分不用動) ---
-        const bookList = document.getElementById('book-list');
-        const displayZone = document.getElementById('display-zone');
-
-        function renderList() {
-            bookList.innerHTML = '';
-            booksData.forEach((book, index) => {
-                const div = document.createElement('div');
-                div.className = 'book-item';
-                div.textContent = book.title;
-                div.onclick = () => loadBook(index);
-                bookList.appendChild(div);
-            });
-        }
-
-        function loadBook(index) {
-            document.querySelectorAll('.book-item').forEach(item => item.classList.remove('active'));
-            document.querySelectorAll('.book-item')[index].classList.add('active');
-            displayZone.innerHTML = booksData[index].content;
-        }
-
-        // 預設載入第一本書 (如果有書的話)
-        if(booksData.length > 0) {
-             renderList();
-             loadBook(0);
-        } else {
-            renderList();
-        }
+        }).mount('#app');
     </script>
 </body>
 </html>

@@ -1,0 +1,413 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>家庭集點 - 健身成長紀錄</title>
+    <!-- Tailwind CSS CDN -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Vue 3 CDN (必須放在最前面載入) -->
+    <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <!-- Ionicons for icons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <style>
+        body { font-family: 'Inter', 'Noto Sans TC', sans-serif; }
+        .fade-enter-active, .fade-leave-active { transition: opacity 0.3s ease; }
+        .fade-enter-from, .fade-leave-to { opacity: 0; }
+        .slide-enter-active, .slide-leave-active { transition: transform 0.3s ease; }
+        .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
+        .icon-button { transition: background-color 0.2s; }
+        .icon-button:hover { background-color: #374151; }
+    </style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+
+    <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
+        
+        <!-- Side Menu Overlay -->
+        <transition name="fade">
+            <div v-if="isMenuOpen" @click="toggleMenu" class="fixed inset-0 bg-black bg-opacity-60 z-40"></div>
+        </transition>
+
+        <!-- Side Menu -->
+        <transition name="slide">
+            <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-xl z-50 p-6">
+                <h2 class="text-2xl font-bold mb-6 text-white">功能選單</h2>
+                <nav>
+                    <ul class="space-y-2">
+                        <li>
+                            <a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                                親子集點
+                            </a>
+                        </li>
+                        <li>
+                            <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                                投資紀錄
+                            </a>
+                        </li>
+                        <li>
+                            <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                                體重管理
+                            </a>
+                        </li>
+                        <li>
+                            <a href="fitness.html" class="flex items-center gap-3 text-lg text-blue-400 font-semibold py-2">
+                                <ion-icon name="barbell-outline" class="text-2xl"></ion-icon>
+                                健身紀錄
+                            </a>
+                        </li>
+                        <li>
+                            <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                                匯率換算
+                            </a>
+                        </li>
+                        <li>
+                            <a href="book_list.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                                <ion-icon name="book-outline" class="text-2xl"></ion-icon>
+                                閱讀書單
+                            </a>
+                        </li>
+                    </ul>
+                </nav>
+            </div>
+        </transition>
+
+        <!-- Auth Guard -->
+        <div v-if="!currentUser && !loading" class="text-center py-20">
+            <h1 class="text-3xl font-bold text-white mb-4">請先登入</h1>
+            <p class="text-gray-400 mb-6">您需要登入才能存取您的健身成長紀錄。</p>
+            <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">返回主頁登入</a>
+        </div>
+        
+        <div v-if="loading" class="text-center py-20">
+            <p class="text-xl text-gray-400">載入中，請稍候...</p>
+        </div>
+
+        <main v-if="currentUser && !loading">
+            <header class="mb-8 flex items-center gap-4">
+                <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
+                     <ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon>
+                </button>
+                <div>
+                    <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">💪 健身成長紀錄</h1>
+                    <p class="text-gray-400 mt-2">追蹤家庭成員的訓練與體態數據</p>
+                </div>
+            </header>
+
+            <!-- Chart Section -->
+            <div class="bg-gray-800 p-4 sm:p-6 rounded-2xl shadow-lg mb-8">
+                <div class="flex flex-wrap justify-between items-center mb-4 gap-4">
+                    <!-- 成員選擇下拉選單 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-300">選擇成員：</label>
+                        <select v-model="selectedMember" class="bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <option v-if="allMemberNames.length === 0" value="">-- 尚無成員 --</option>
+                            <option v-for="name in allMemberNames" :key="name" :value="name">{{ name }}</option>
+                        </select>
+                    </div>
+                    <!-- 訓練項目選擇下拉選單 -->
+                    <div class="flex items-center gap-2">
+                        <label class="text-sm font-medium text-gray-300">選擇項目：</label>
+                        <select v-model="selectedItem" class="bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <option v-for="item in allAvailableItems" :key="item.name" :value="item.name">{{ item.name }}</option>
+                        </select>
+                    </div>
+                </div>
+                <div class="relative" style="height: 380px;">
+                    <canvas id="fitnessChart"></canvas>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                <!-- 新增紀錄表單 -->
+                <div class="lg:col-span-1 bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">新增紀錄</h2>
+                    <form @submit.prevent="addRecord" class="space-y-4">
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">姓名</label>
+                            <input type="text" list="memberNames" v-model="form.name" required placeholder="輸入或選擇姓名" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
+                            <datalist id="memberNames">
+                                <option v-for="name in allMemberNames" :key="name" :value="name"></option>
+                            </datalist>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">日期</label>
+                            <input type="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">訓練項目</label>
+                            <select v-model="form.item" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
+                                <option v-for="item in allAvailableItems" :key="item.name" :value="item.name">{{ item.name }} ({{ item.unit }})</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-300">數值</label>
+                            <input type="number" step="0.1" v-model.number="form.value" required placeholder="例如: 15" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
+                        </div>
+                        <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
+                            儲存紀錄
+                        </button>
+                    </form>
+                    <button @click="addNewCustomItem" class="mt-4 w-full bg-gray-700 hover:bg-gray-600 text-blue-400 font-medium py-2 px-4 rounded-lg transition text-sm">
+                        + 自定義新項目
+                    </button>
+                </div>
+
+                <!-- 歷史紀錄列表 -->
+                <div class="lg:col-span-2 bg-gray-800 p-6 rounded-2xl shadow-lg">
+                    <h2 class="text-2xl font-semibold mb-4 text-white">歷史紀錄 - {{ selectedMember || '全部成員' }}</h2>
+                    <div class="overflow-auto max-h-[600px]">
+                        <table class="min-w-full divide-y divide-gray-700">
+                            <thead class="bg-gray-700 sticky top-0">
+                                <tr>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-300">日期</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-300">成員</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-300">項目</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-300">數值</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium uppercase text-gray-300">操作</th>
+                                </tr>
+                            </thead>
+                            <tbody class="bg-gray-800 divide-y divide-gray-700">
+                                <tr v-if="filteredRecords.length === 0">
+                                    <td colspan="5" class="text-center py-10 text-gray-400">目前沒有符合的健身紀錄</td>
+                                </tr>
+                                <tr v-for="record in filteredRecords" :key="record.id">
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ record.date }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm font-semibold text-white">{{ record.name }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ record.item }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right font-extrabold text-emerald-400">{{ record.value }} {{ record.unit || '' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                        <button @click="deleteRecord(record.id)" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded">刪除</button>
+                                    </td>
+                                </tr>
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Firebase SDK & App Logic -->
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
+
+        const app = createApp({
+            setup() {
+                const loading = ref(true);
+                const currentUser = ref(null);
+                const isMenuOpen = ref(false);
+                const allRecords = ref([]);
+                const selectedMember = ref('');
+                const selectedItem = ref('手臂粗度');
+
+                const form = reactive({
+                    name: '',
+                    date: dayjs().format('YYYY-MM-DD'),
+                    item: '手臂粗度',
+                    value: null
+                });
+
+                const defaultItems = [
+                    { name: "手臂粗度", unit: "cm" },
+                    { name: "腰圍粗度", unit: "cm" },
+                    { name: "Pull up (引體向上)", unit: "下" },
+                    { name: "Chin up (反手引體向上)", unit: "下" },
+                    { name: "L-sit (V字支撐)", unit: "秒" },
+                    { name: "Dead hang (懸掛)", unit: "秒" },
+                    { name: "握力", unit: "kg" }
+                ];
+
+                const customItems = ref(JSON.parse(localStorage.getItem('fitness_custom_items')) || []);
+                const allAvailableItems = computed(() => [...defaultItems, ...customItems.value]);
+
+                let db, auth;
+                let fitnessChart;
+                let unsubscribe = null;
+
+                const allMemberNames = computed(() => [...new Set(allRecords.value.map(r => r.name))]);
+
+                const filteredRecords = computed(() => {
+                    let data = allRecords.value;
+                    if (selectedMember.value) {
+                        data = data.filter(r => r.name === selectedMember.value);
+                    }
+                    return data.sort((a, b) => new Date(b.date) - new Date(a.date));
+                });
+
+                const chartDataList = computed(() => {
+                    if (!selectedMember.value) return [];
+                    return allRecords.value
+                        .filter(r => r.name === selectedMember.value && r.item === selectedItem.value)
+                        .sort((a, b) => new Date(a.date) - new Date(b.date));
+                });
+
+                watch([chartDataList, selectedItem], () => {
+                    renderChart();
+                });
+
+                watch(allMemberNames, (newNames) => {
+                    if (newNames.length > 0 && !selectedMember.value) {
+                        selectedMember.value = newNames[0];
+                    }
+                });
+
+                const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
+
+                function addNewCustomItem() {
+                    const name = prompt('請輸入自定義健身項目名稱 (例如：深蹲重量)：');
+                    if (!name) return;
+                    const unit = prompt('請輸入單位 (例如：kg、下、秒)：', 'kg');
+                    if (!unit) return;
+
+                    customItems.value.push({ name, unit });
+                    localStorage.setItem('fitness_custom_items', JSON.stringify(customItems.value));
+                    form.item = name;
+                    selectedItem.value = name;
+                    alert(`成功新增項目：${name} (${unit})`);
+                }
+
+                function renderChart() {
+                    const ctx = document.getElementById('fitnessChart');
+                    if (!ctx) return;
+                    if (fitnessChart) fitnessChart.destroy();
+
+                    const data = chartDataList.value;
+                    if (data.length === 0) return;
+
+                    const unitFound = allAvailableItems.value.find(i => i.name === selectedItem.value);
+                    const unitLabel = unitFound ? unitFound.unit : '';
+
+                    fitnessChart = new Chart(ctx.getContext('2d'), {
+                        type: 'line',
+                        data: {
+                            labels: data.map(d => d.date),
+                            datasets: [{
+                                label: `${selectedItem.value} (${unitLabel})`,
+                                data: data.map(d => d.value),
+                                borderColor: '#3b82f6',
+                                backgroundColor: 'rgba(59, 130, 246, 0.1)',
+                                tension: 0.1,
+                                fill: true,
+                                borderWidth: 3,
+                                pointRadius: 4,
+                                pointBackgroundColor: '#3b82f6'
+                            }]
+                        },
+                        options: {
+                            responsive: true, maintainAspectRatio: false,
+                            scales: {
+                                x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } },
+                                y: { ticks: { color: '#60a5fa' }, grid: { color: '#374151' } }
+                            },
+                            plugins: { legend: { labels: { color: '#d1d5db' } } }
+                        }
+                    });
+                }
+
+                async function addRecord() {
+                    if (!form.name || !form.date || !form.item || form.value === null) {
+                        alert('請填寫所有必填欄位！');
+                        return;
+                    }
+
+                    const found = allAvailableItems.value.find(i => i.name === form.item);
+                    const unit = found ? found.unit : '';
+
+                    const newRecord = {
+                        name: form.name.trim(),
+                        date: form.date,
+                        item: form.item,
+                        value: Number(form.value),
+                        unit,
+                        createdAt: new Date()
+                    };
+
+                    try {
+                        const collRef = collection(db, `users/${currentUser.value.uid}/fitnessRecords`);
+                        await addDoc(collRef, newRecord);
+                        form.value = null;
+                        form.date = dayjs().format('YYYY-MM-DD');
+                    } catch (error) {
+                        console.error("Error adding document: ", error);
+                        alert('新增紀錄失敗，請稍後再試。');
+                    }
+                }
+
+                async function deleteRecord(id) {
+                    if (confirm('確定要刪除這筆紀錄嗎？')) {
+                        try {
+                            const docRef = doc(db, `users/${currentUser.value.uid}/fitnessRecords`, id);
+                            await deleteDoc(docRef);
+                        } catch (error) {
+                            console.error("Error deleting document: ", error);
+                            alert('刪除失敗。');
+                        }
+                    }
+                }
+
+                function setupListeners(userId) {
+                    if (unsubscribe) unsubscribe();
+                    const collRef = collection(db, `users/${userId}/fitnessRecords`);
+                    const q = query(collRef, orderBy("date", "asc"));
+                    unsubscribe = onSnapshot(q, (snapshot) => {
+                        const data = [];
+                        snapshot.forEach(docSnap => {
+                            data.push({ id: docSnap.id, ...docSnap.data() });
+                        });
+                        allRecords.value = data;
+                        if (!selectedMember.value && allMemberNames.value.length > 0) {
+                            selectedMember.value = allMemberNames.value[0];
+                        }
+                    });
+                }
+
+                onMounted(() => {
+                    const firebaseConfig = {
+                        apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
+                        authDomain: "points-collection-cff99.firebaseapp.com",
+                        projectId: "points-collection-cff99",
+                        storageBucket: "points-collection-cff99.firebasestorage.app",
+                        messagingSenderId: "794494861925",
+                        appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
+                    };
+                    const firebaseApp = initializeApp(firebaseConfig);
+                    db = getFirestore(firebaseApp);
+                    auth = getAuth(firebaseApp);
+
+                    onAuthStateChanged(auth, (user) => {
+                        if (user) {
+                            currentUser.value = user;
+                            setupListeners(user.uid);
+                        } else {
+                            currentUser.value = null;
+                            if (unsubscribe) unsubscribe();
+                            allRecords.value = [];
+                        }
+                        loading.value = false;
+                    });
+                });
+
+                return {
+                    loading, currentUser, isMenuOpen, toggleMenu,
+                    form, allRecords, selectedMember, selectedItem,
+                    allMemberNames, allAvailableItems, filteredRecords,
+                    addRecord, deleteRecord, addNewCustomItem
+                };
+            }
+        });
+        app.mount('#app');
+    </script>
+</body>
+</html>

@@ -1,13 +1,13 @@
 {
-  "name": "家庭集點與生活紀錄",
-  "short_name": "家庭集點",
+  "name": "生活紀錄",
+  "short_name": "生活紀錄",
   "start_url": "index.html",
   "display": "standalone",
   "background_color": "#111827",
   "theme_color": "#111827",
   "icons": [
     {
-      "src": "icon.png",
+      "src": "icon2.png",
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "any maskable"

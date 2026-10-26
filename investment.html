@@ -153,19 +153,19 @@
                     <form @submit.prevent="handleAddRecord" class="space-y-4">
                         <div>
                             <label for="date" class="block text-sm font-medium text-gray-300">日期</label>
-                            <input type="date" id="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="date" id="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white p-2">
                         </div>
                         <div>
                             <label for="marketValue" class="block text-sm font-medium text-gray-300">市值</label>
-                            <input type="number" id="marketValue" v-model.number="form.marketValue" required placeholder="例如: 10000000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="number" id="marketValue" v-model.number="form.marketValue" required placeholder="例如: 10000000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white p-2">
                         </div>
                         <div>
                             <label for="profitLoss" class="block text-sm font-medium text-gray-300">損益</label>
-                            <input type="number" id="profitLoss" v-model.number="form.profitLoss" required placeholder="例如: 50000 或 -20000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="number" id="profitLoss" v-model.number="form.profitLoss" required placeholder="例如: 50000 或 -20000" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white p-2">
                         </div>
                         <div>
                             <label for="buySell" class="block text-sm font-medium text-gray-300">買賣 (萬)</label>
-                            <input type="number" step="0.1" id="buySell" v-model.number="form.buySell" placeholder="負數為買超, 正數為賣超" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 text-white p-2">
+                            <input type="number" step="0.1" id="buySell" v-model.number="form.buySell" placeholder="負數為買超, 正數為賣超" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md shadow-sm text-white p-2">
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                             新增紀錄
@@ -184,17 +184,21 @@
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">市值</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">損益</th>
                                     <th scope="col" class="px-6 py-3 text-right text-xs font-medium text-gray-300 uppercase tracking-wider">買賣 (萬)</th>
+                                    <th scope="col" class="px-6 py-3 text-center text-xs font-medium text-gray-300 uppercase tracking-wider">操作</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-gray-800 divide-y divide-gray-700">
                                 <tr v-if="filteredInvestmentData.length === 0">
-                                     <td colspan="4" class="text-center py-10 text-gray-400">此區間無資料</td>
+                                     <td colspan="5" class="text-center py-10 text-gray-400">此區間無資料</td>
                                 </tr>
                                 <tr v-for="record in reversedFilteredData" :key="record.id">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ record.date }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ formatNumber(record.marketValue) }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right" :class="record.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'">{{ formatNumber(record.profitLoss) }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ record.buySell !== 0 ? record.buySell : '-' }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                        <button @click="deleteInvestmentRecord(record.id)" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded">刪除</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -208,7 +212,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, writeBatch, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, writeBatch, doc, deleteDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
@@ -264,7 +268,6 @@
                     const totalBuySell = data.reduce((acc, cur) => acc + (cur.buySell || 0), 0);
                     const latestRecord = data[data.length - 1];
 
-                    // --- Return Rate Calculation ---
                     let returnRate = '-';
                     let returnRateClass = 'text-white';
                     const firstDateInRange = data[0].date;
@@ -385,6 +388,18 @@
                     }
                 }
 
+                async function deleteInvestmentRecord(id) {
+                    if (confirm('確定要刪除這筆投資紀錄嗎？')) {
+                        try {
+                            const docRef = doc(db, `users/${currentUser.value.uid}/investmentRecords`, id);
+                            await deleteDoc(docRef);
+                        } catch (error) {
+                            console.error("Error deleting document: ", error);
+                            alert('刪除失敗。');
+                        }
+                    }
+                }
+
                 function setupListeners(userId, userEmail) {
                     if (unsubscribeInvestmentData) unsubscribeInvestmentData();
 
@@ -403,26 +418,26 @@
                         }
 
                         const data = [];
-                        snapshot.forEach(doc => {
-                            data.push({ id: doc.id, ...doc.data() });
+                        snapshot.forEach(docSnap => {
+                            data.push({ id: docSnap.id, ...docSnap.data() });
                         });
                         investmentData.value = data;
                         if (activeRange.value === 'All') {
                            setRange('All');
                         }
-                    }, (error) => {
-                        console.error("Error listening to investment data:", error);
                     });
                 }
-                
+
+                const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
+
                 onMounted(() => {
                     const firebaseConfig = {
-                      apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
-                      authDomain: "points-collection-cff99.firebaseapp.com",
-                      projectId: "points-collection-cff99",
-                      storageBucket: "points-collection-cff99.appspot.com",
-                      messagingSenderId: "794494861925",
-                      appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
+                        apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
+                        authDomain: "points-collection-cff99.firebaseapp.com",
+                        projectId: "points-collection-cff99",
+                        storageBucket: "points-collection-cff99.firebasestorage.app",
+                        messagingSenderId: "794494861925",
+                        appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
                     };
                     const firebaseApp = initializeApp(firebaseConfig);
                     db = getFirestore(firebaseApp);
@@ -442,10 +457,10 @@
                 });
 
                 return {
-                    loading, currentUser, isMenuOpen, toggleMenu: () => { isMenuOpen.value = !isMenuOpen.value; },
-                    investmentData, reversedFilteredData, filteredInvestmentData,
-                    form, summary, handleAddRecord, formatNumber,
-                    activeRange, customStartDate, customEndDate, setRange, setCustomRange,
+                    loading, currentUser, isMenuOpen, toggleMenu,
+                    form, summary, activeRange, customStartDate, customEndDate,
+                    filteredInvestmentData, reversedFilteredData,
+                    handleAddRecord, deleteInvestmentRecord, setRange, setCustomRange, formatNumber
                 };
             }
         });

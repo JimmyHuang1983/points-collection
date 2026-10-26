@@ -68,7 +68,6 @@
                                 健身紀錄
                             </a>
                         </li>
-                        
                         <li>
                             <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
                                 <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
@@ -160,26 +159,26 @@
                     <form @submit.prevent="addRecord" class="space-y-4">
                         <div>
                             <label for="memberName" class="block text-sm font-medium text-gray-300">姓名</label>
-                            <input type="text" list="memberNames" v-model="form.name" required placeholder="輸入或選擇姓名" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <input type="text" list="memberNames" v-model="form.name" required placeholder="輸入或選擇姓名" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
                             <datalist id="memberNames">
                                 <option v-for="name in allMemberNames" :key="name" :value="name"></option>
                             </datalist>
                         </div>
                         <div>
                             <label for="date" class="block text-sm font-medium text-gray-300">日期</label>
-                            <input type="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <input type="date" v-model="form.date" required class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
                         </div>
                         <div>
                             <label for="weight" class="block text-sm font-medium text-gray-300">體重 (kg)</label>
-                            <input type="number" step="0.1" v-model.number="form.weight" required placeholder="例如: 70.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <input type="number" step="0.1" v-model.number="form.weight" required placeholder="例如: 70.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
                         </div>
                         <div>
                             <label for="bodyFat" class="block text-sm font-medium text-gray-300">體脂率 (%)</label>
-                            <input type="number" step="0.1" v-model.number="form.bodyFat" required placeholder="例如: 22.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <input type="number" step="0.1" v-model.number="form.bodyFat" required placeholder="例如: 22.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
                         </div>
                         <div v-if="currentTab === 'child'">
                             <label for="height" class="block text-sm font-medium text-gray-300">身高 (cm)</label>
-                            <input type="number" step="0.1" v-model.number="form.height" required placeholder="例如: 130.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2">
+                            <input type="number" step="0.1" v-model.number="form.height" required placeholder="例如: 130.5" class="mt-1 block w-full bg-gray-700 border-gray-600 rounded-md p-2 text-white">
                         </div>
                         <button type="submit" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded-lg transition duration-300">
                             儲存紀錄
@@ -194,21 +193,25 @@
                         <table class="min-w-full divide-y divide-gray-700">
                             <thead class="bg-gray-700 sticky top-0">
                                 <tr>
-                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase">日期</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase">體重</th>
-                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase">體脂率</th>
-                                    <th v-if="currentTab === 'child'" class="px-6 py-3 text-right text-xs font-medium uppercase">身高</th>
+                                    <th class="px-6 py-3 text-left text-xs font-medium uppercase text-gray-300">日期</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-300">體重</th>
+                                    <th class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-300">體脂率</th>
+                                    <th v-if="currentTab === 'child'" class="px-6 py-3 text-right text-xs font-medium uppercase text-gray-300">身高</th>
+                                    <th class="px-6 py-3 text-center text-xs font-medium uppercase text-gray-300">操作</th>
                                 </tr>
                             </thead>
                             <tbody class="bg-gray-800 divide-y divide-gray-700">
                                 <tr v-if="selectedMemberData.length === 0">
-                                    <td :colspan="currentTab === 'child' ? 4 : 3" class="text-center py-10 text-gray-400">這位成員還沒有紀錄</td>
+                                    <td :colspan="currentTab === 'child' ? 5 : 4" class="text-center py-10 text-gray-400">這位成員還沒有紀錄</td>
                                 </tr>
                                 <tr v-for="record in selectedMemberData" :key="record.id">
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm">{{ record.date }}</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.weight }} kg</td>
-                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.bodyFat }} %</td>
-                                    <td v-if="currentTab === 'child'" class="px-6 py-4 whitespace-nowrap text-sm text-right">{{ record.height }} cm</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ record.date }}</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ record.weight }} kg</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ record.bodyFat }} %</td>
+                                    <td v-if="currentTab === 'child'" class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ record.height }} cm</td>
+                                    <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
+                                        <button @click="deleteRecord(record.id)" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded">刪除</button>
+                                    </td>
                                 </tr>
                             </tbody>
                         </table>
@@ -222,7 +225,7 @@
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
         import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+        import { getFirestore, collection, query, orderBy, onSnapshot, addDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
 
         const { createApp, ref, reactive, computed, onMounted, watch } = Vue;
 
@@ -247,7 +250,6 @@
                 let healthChart;
                 let unsubscribe = null;
 
-                // --- Computed Properties ---
                 const currentRecords = computed(() => allRecords.value.filter(r => r.type === currentTab.value));
                 const currentMembers = computed(() => [...new Set(currentRecords.value.map(r => r.name))]);
                 const allMemberNames = computed(() => [...new Set(allRecords.value.map(r => r.name))]);
@@ -279,7 +281,6 @@
                     };
                 });
 
-                // --- Watchers ---
                 watch(selectedMemberData, () => {
                     renderChart();
                 });
@@ -290,7 +291,6 @@
                     }
                 });
 
-                // --- Methods ---
                 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
 
                 function changeTab(tab) {
@@ -306,7 +306,6 @@
                     if (healthChart) healthChart.destroy();
                     
                     const chartData = [...selectedMemberData.value].reverse();
-                    
                     if(chartData.length === 0) return;
 
                     const datasets = [
@@ -374,6 +373,18 @@
                     }
                 }
 
+                async function deleteRecord(id) {
+                    if (confirm('確定要刪除這筆體重紀錄嗎？')) {
+                        try {
+                            const docRef = doc(db, `users/${currentUser.value.uid}/healthRecords`, id);
+                            await deleteDoc(docRef);
+                        } catch (error) {
+                            console.error("Error deleting document: ", error);
+                            alert('刪除失敗。');
+                        }
+                    }
+                }
+
                 function setupListeners(userId) {
                     if (unsubscribe) unsubscribe();
                     const collRef = collection(db, `users/${userId}/healthRecords`);
@@ -394,7 +405,7 @@
                         apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A",
                         authDomain: "points-collection-cff99.firebaseapp.com",
                         projectId: "points-collection-cff99",
-                        storageBucket: "points-collection-cff99.appspot.com",
+                        storageBucket: "points-collection-cff99.firebasestorage.app",
                         messagingSenderId: "794494861925",
                         appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c"
                     };
@@ -416,7 +427,7 @@
                 });
 
                 return {
-                    loading, currentUser, currentTab, form, addRecord, changeTab,
+                    loading, currentUser, currentTab, form, addRecord, deleteRecord, changeTab,
                     currentMembers, allMemberNames, selectedMember, selectedMemberData,
                     isMenuOpen, toggleMenu, summaryMetrics
                 };
@@ -424,8 +435,5 @@
         });
         app.mount('#app');
     </script>
-
 </body>
 </html>
-
-

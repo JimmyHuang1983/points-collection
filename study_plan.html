@@ -1,0 +1,460 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>段考複習計畫</title>
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+<script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+<script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+<style>
+body{font-family:'Inter','Noto Sans TC',sans-serif}
+.fade-enter-active,.fade-leave-active{transition:opacity .3s ease}
+.fade-enter-from,.fade-leave-to{opacity:0}
+.slide-enter-active,.slide-leave-active{transition:transform .3s ease}
+.slide-enter-from,.slide-leave-to{transform:translateX(-100%)}
+.icon-button{transition:background-color .2s}.icon-button:hover{background-color:#374151}
+.inp{background:#374151;border:1px solid #4b5563;border-radius:.375rem;color:#fff;padding:.25rem .5rem;font-size:.875rem}
+.card{background:#1f2937;border-radius:1rem;padding:1rem;box-shadow:0 4px 12px rgba(0,0,0,.3)}
+.btn{background:#2563eb;color:#fff;border-radius:.5rem;padding:.35rem .9rem;font-size:.875rem}.btn:hover{background:#1d4ed8}
+.btn2{background:#374151;color:#e5e7eb;border-radius:.375rem;padding:.2rem .6rem;font-size:.8rem}.btn2:hover{background:#4b5563}
+</style>
+</head>
+<body class="bg-gray-900 text-gray-200">
+<div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-6xl">
+
+  <transition name="fade"><div v-if="isMenuOpen" @click="isMenuOpen=false" class="fixed inset-0 bg-black bg-opacity-60 z-40"></div></transition>
+  <transition name="slide">
+    <div v-if="isMenuOpen" class="fixed top-0 left-0 h-full w-64 bg-gray-800 shadow-xl z-50 p-6">
+      <h2 class="text-2xl font-bold mb-6 text-white">功能選單</h2>
+      <ul class="space-y-2">
+        <li v-for="m in menu" :key="m.href"><a :href="m.href" :class="m.href==='study_plan.html'?'text-blue-400 font-semibold':'text-gray-300 hover:text-white'" class="flex items-center gap-3 text-lg py-2"><ion-icon :name="m.icon" class="text-2xl"></ion-icon>{{ m.label }}</a></li>
+      </ul>
+    </div>
+  </transition>
+
+  <div v-if="!currentUser && !loading" class="text-center py-20">
+    <h1 class="text-3xl font-bold text-white mb-4">請先登入</h1>
+    <p class="text-gray-400 mb-6">您需要登入才能使用段考複習計畫。</p>
+    <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg">返回主頁登入</a>
+  </div>
+  <div v-if="loading" class="text-center py-20"><p class="text-xl text-gray-400">載入中，請稍候...</p></div>
+
+  <main v-if="currentUser && !loading">
+    <header class="mb-6 flex flex-wrap items-center gap-3">
+      <button @click="isMenuOpen=true" class="p-2 rounded-full icon-button -ml-2"><ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon></button>
+      <div class="mr-auto">
+        <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">段考複習計畫</h1>
+        <p v-if="exam" class="text-gray-400 mt-1">{{ exam.name }} 距離第一科考試還有 {{ daysLeft }} 天</p>
+      </div>
+      <select v-model="curStudent" class="inp"><option v-for="st in students" :value="st.id">{{ st.name }}</option></select>
+      <button class="btn2" @click="renameStudent">改名</button>
+      <button class="btn2" @click="addStudent">新增學生</button>
+      <select v-if="examsOfStudent.length" v-model="curId" class="inp"><option v-for="e in examsOfStudent" :value="e.id">{{ e.name }}</option></select>
+      <button class="btn" @click="openCreate">建立段考</button>
+      <button v-if="exam" class="btn2" @click="removeExam">刪除此段考</button>
+    </header>
+    <p v-if="!exam" class="card text-center text-gray-400">這位學生還沒有段考。按「建立段考」，選年級、學期和各科版本就能開始。</p>
+    <template v-if="exam">
+
+    <nav class="flex flex-wrap gap-2 mb-6 bg-gray-800 p-2 rounded-lg">
+      <button v-for="t in tabs" :key="t.k" @click="tab=t.k" :class="tab===t.k?'bg-blue-600':'bg-gray-700 hover:bg-gray-600'" class="px-4 py-1.5 text-sm rounded-md transition">{{ t.n }}</button>
+    </nav>
+
+    <!-- 1. 範圍 -->
+    <section v-if="tab==='scope'" class="space-y-4">
+      <div class="card grid sm:grid-cols-3 gap-3">
+        <label class="sm:col-span-3 text-sm text-gray-300">段考名稱<input v-model="exam.name" class="inp w-full mt-1"></label>
+        <label v-for="s in SUBJECTS" :key="s.k" class="text-sm text-gray-300">{{ s.n }}考試日期<input type="date" v-model="exam.examDates[s.k]" class="inp w-full mt-1"></label>
+        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，請依學校公布的內容修改。勾選的項目就是這次段考的範圍。</p>
+      </div>
+      <div v-for="s in SUBJECTS" :key="s.k" class="card">
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <h3 class="text-lg font-semibold" :style="{color:s.c}">{{ s.n }}</h3>
+          <select v-model="exam.versions[s.k]" class="inp text-xs"><option v-for="v in VERS" :value="v">{{ v }}</option></select>
+          <span class="text-sm text-gray-400 mr-auto">範圍 {{ scoped(s.k).length }} / {{ itemsOf(s.k).length }} 項</span>
+          <button class="btn2" @click="setAll(s.k,true)">全選</button>
+          <button class="btn2" @click="setAll(s.k,false)">全不選</button>
+          <button class="btn2" @click="addItem(s.k)">新增項目</button>
+        </div>
+        <div class="flex flex-wrap items-center gap-2 mb-2">
+          <select v-model="pick[s.k]" class="inp"><option value="">從範本載入…</option><option v-for="k in tplOptions(s.k)" :value="k">{{ keyLabel(k) }}</option></select>
+          <button class="btn2" @click="loadFrom(s.k)">載入</button>
+          <button class="btn2" @click="pasteOpen[s.k]=!pasteOpen[s.k]">貼上目錄</button>
+          <button class="btn2" @click="saveTpl(s.k)">存為範本</button>
+        </div>
+        <div v-if="pasteOpen[s.k]" class="mb-2"><textarea v-model="pasteText[s.k]" rows="5" placeholder="一行一個章節（行尾加 * 表示預設不納入範圍）" class="inp w-full"></textarea><button class="btn2 mt-1" @click="pasteAdd(s.k)">加入清單</button></div>
+        <div v-for="it in itemsOf(s.k)" :key="it.id" class="flex items-center gap-2 py-1">
+          <input type="checkbox" v-model="it.inScope" class="h-4 w-4">
+          <input v-model="it.title" class="inp flex-1 min-w-0">
+          <input type="number" min="5" step="5" v-model.number="it.minutes" class="inp w-16 text-right"><span class="text-xs text-gray-400">分</span>
+          <button @click="delItem(it.id)" class="text-red-400 hover:text-red-300 px-1">✕</button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 2. 排程 -->
+    <section v-if="tab==='plan'" class="space-y-4">
+      <div class="card grid sm:grid-cols-4 gap-3 items-end">
+        <label class="text-sm text-gray-300">平日可複習（分鐘）<input type="number" v-model.number="exam.weekdayMin" class="inp w-full mt-1"></label>
+        <label class="text-sm text-gray-300">假日可複習（分鐘）<input type="number" v-model.number="exam.weekendMin" class="inp w-full mt-1"></label>
+        <label class="text-sm text-gray-300 sm:col-span-2">不能讀書的日期（例：2026-11-21, 2026-11-28）<input v-model="exam.offDays" class="inp w-full mt-1"></label>
+        <div class="sm:col-span-4 flex flex-wrap items-center gap-3">
+          <button class="btn" @click="autoSchedule">自動排程（會重排未完成項目）</button>
+          <span class="text-sm text-gray-400">範圍共 {{ scopedAll.length }} 項，約 {{ totalMin }} 分鐘</span>
+          <span v-if="overflow>0" class="text-sm text-yellow-400">有 {{ overflow }} 項超過考試截止日，請增加每日時間或提早複習範圍</span>
+        </div>
+      </div>
+      <p v-if="!planDays.length" class="card text-center text-gray-400">還沒有排程。確認範圍後，按「自動排程」。</p>
+      <div v-for="d in planDays" :key="d.date" class="card" :class="d.date===today?'ring-2 ring-blue-500':''">
+        <h3 class="font-semibold mb-1">{{ fmt(d.date) }}<span v-if="d.date===today" class="text-blue-400 text-sm ml-2">今天</span><span class="text-sm text-gray-400 ml-3">{{ d.min }} 分鐘</span></h3>
+        <div v-for="it in d.items" :key="it.id" class="flex items-center gap-2 py-1 text-sm">
+          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-4 w-4">
+          <span :style="{color:sub(it.subject).c}" class="w-10">{{ sub(it.subject).n }}</span>
+          <span class="flex-1" :class="it.done?'line-through text-gray-500':''">{{ it.title }}</span>
+          <span class="text-gray-400">{{ it.minutes }}分</span>
+          <input type="date" v-model="it.plannedDate" class="inp">
+        </div>
+      </div>
+    </section>
+
+    <!-- 3. 複習 -->
+    <section v-if="tab==='today'" class="space-y-4">
+      <div class="card">
+        <h3 class="text-lg font-semibold mb-2">今天（{{ fmt(today) }}）</h3>
+        <p v-if="!todayItems.length" class="text-gray-400 text-sm">今天沒有排定的項目。</p>
+        <label v-for="it in todayItems" :key="it.id" class="flex items-center gap-3 py-2 border-b border-gray-700 last:border-0">
+          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-5 w-5">
+          <span :style="{color:sub(it.subject).c}" class="w-10">{{ sub(it.subject).n }}</span>
+          <span class="flex-1" :class="it.done?'line-through text-gray-500':''">{{ it.title }}</span>
+          <span class="text-sm text-gray-400">{{ it.minutes }}分</span>
+        </label>
+      </div>
+      <div class="card" v-if="overdueItems.length">
+        <h3 class="text-lg font-semibold mb-2 text-red-400">逾期未完成（{{ overdueItems.length }}）</h3>
+        <label v-for="it in overdueItems" :key="it.id" class="flex items-center gap-3 py-2 border-b border-gray-700 last:border-0">
+          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-5 w-5">
+          <span :style="{color:sub(it.subject).c}" class="w-10">{{ sub(it.subject).n }}</span>
+          <span class="flex-1">{{ it.title }}</span>
+          <span class="text-sm text-gray-400">原訂 {{ fmt(it.plannedDate) }}</span>
+        </label>
+        <button class="btn mt-3" @click="autoSchedule">把逾期項目重新排程</button>
+      </div>
+    </section>
+
+    <!-- 4. 評量 -->
+    <section v-if="tab==='scores'" class="space-y-4">
+      <form @submit.prevent="addScore" class="card grid grid-cols-2 sm:grid-cols-6 gap-2 items-end">
+        <label class="text-sm text-gray-300">科目<select v-model="sf.subject" class="inp w-full mt-1"><option v-for="s in SUBJECTS" :value="s.k">{{ s.n }}</option></select></label>
+        <label class="text-sm text-gray-300 sm:col-span-2">評量名稱<input v-model="sf.name" required placeholder="例：第二次模擬卷" class="inp w-full mt-1"></label>
+        <label class="text-sm text-gray-300">日期<input type="date" v-model="sf.date" required class="inp w-full mt-1"></label>
+        <label class="text-sm text-gray-300">分數<input type="number" step="0.1" v-model.number="sf.score" required class="inp w-full mt-1"></label>
+        <label class="text-sm text-gray-300">滿分<input type="number" v-model.number="sf.max" required class="inp w-full mt-1"></label>
+        <button class="btn col-span-2 sm:col-span-6">新增評量</button>
+      </form>
+      <div v-for="s in SUBJECTS" :key="s.k" class="card">
+        <div class="flex items-center gap-3 mb-1"><h3 class="text-lg font-semibold" :style="{color:s.c}">{{ s.n }}</h3>
+          <span class="text-sm text-gray-400">{{ avgText(s.k) }}</span></div>
+        <p v-if="!scoresOf(s.k).length" class="text-sm text-gray-500">還沒有評量紀錄。</p>
+        <div v-for="sc in scoresOf(s.k)" :key="sc.id" class="flex items-center gap-3 py-1 text-sm">
+          <span class="text-gray-400 w-24">{{ sc.date }}</span><span class="flex-1">{{ sc.name }}</span>
+          <span class="font-semibold">{{ sc.score }} / {{ sc.max }}</span>
+          <span class="text-gray-400 w-16 text-right">{{ pct(sc).toFixed(1) }}%</span>
+          <button @click="delScore(sc.id)" class="text-red-400 hover:text-red-300">✕</button>
+        </div>
+      </div>
+      <div class="card"><h3 class="font-semibold mb-2">各次段考平均成績趨勢（%）</h3><div class="relative" style="height:260px"><canvas id="trendChart"></canvas></div></div>
+      <p class="text-xs text-gray-500">平均是把每次分數換算成百分比後再平均，滿分不同也能比較。</p>
+    </section>
+
+    <!-- 5. 進度 -->
+    <section v-if="tab==='progress'" class="space-y-4">
+      <div class="grid grid-cols-2 sm:grid-cols-4 gap-4 text-center">
+        <div class="card"><h3 class="text-sm text-gray-400">整體完成率</h3><p class="text-2xl font-semibold mt-1">{{ overallPct }}%</p></div>
+        <div class="card"><h3 class="text-sm text-gray-400">已複習 / 範圍</h3><p class="text-2xl font-semibold mt-1">{{ scopedAll.filter(i=>i.done).length }} / {{ scopedAll.length }}</p></div>
+        <div class="card"><h3 class="text-sm text-gray-400">逾期項目</h3><p class="text-2xl font-semibold mt-1" :class="overdueItems.length?'text-red-400':'text-green-400'">{{ overdueItems.length }}</p></div>
+        <div class="card"><h3 class="text-sm text-gray-400">距離段考</h3><p class="text-2xl font-semibold mt-1">{{ daysLeft }} 天</p></div>
+      </div>
+      <div class="card space-y-3">
+        <div v-for="s in SUBJECTS" :key="s.k">
+          <div class="flex justify-between text-sm mb-1"><span :style="{color:s.c}">{{ s.n }} 考試 {{ fmt(exam.examDates[s.k]) }}</span>
+            <span class="text-gray-400">{{ scoped(s.k).filter(i=>i.done).length }} / {{ scoped(s.k).length }} {{ avgText(s.k) }}</span></div>
+          <div class="h-3 bg-gray-700 rounded-full overflow-hidden"><div class="h-full rounded-full transition-all" :style="{width:subPct(s.k)+'%',background:s.c}"></div></div>
+        </div>
+      </div>
+      <div class="card"><div class="relative" style="height:320px"><canvas id="progressChart"></canvas></div></div>
+    </section>
+    </template>
+  </main>
+
+  <div v-if="showCreate" class="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center z-50 p-4">
+    <form @submit.prevent="createExam" class="card w-full max-w-lg space-y-3">
+      <h3 class="text-xl font-bold text-white">建立段考</h3>
+      <div class="grid grid-cols-2 gap-3 text-sm text-gray-300">
+        <label>學生<select v-model="cf.studentId" class="inp w-full mt-1"><option v-for="st in students" :value="st.id">{{ st.name }}</option></select></label>
+        <label>學年度<input type="number" v-model.number="cf.schoolYear" class="inp w-full mt-1"></label>
+        <label>年級<select v-model.number="cf.grade" class="inp w-full mt-1"><option :value="7">七年級</option><option :value="8">八年級</option><option :value="9">九年級</option></select></label>
+        <label>學期<select v-model.number="cf.semester" class="inp w-full mt-1"><option :value="1">上學期</option><option :value="2">下學期</option></select></label>
+        <label>第幾次段考<select v-model.number="cf.examNo" class="inp w-full mt-1"><option :value="1">第一次</option><option :value="2">第二次</option><option :value="3">第三次</option></select></label>
+      </div>
+      <p class="text-sm text-gray-300">各科版本（右側是找到的範本章節數）</p>
+      <div v-for="s in SUBJECTS" :key="s.k" class="flex items-center gap-3 text-sm">
+        <span class="w-10" :style="{color:s.c}">{{ s.n }}</span>
+        <select v-model="cf.versions[s.k]" class="inp"><option v-for="v in VERS" :value="v">{{ v }}</option></select>
+        <span class="text-gray-400">{{ tplCount(s.k) ? tplCount(s.k) + ' 項範本' : '無範本（建立後可貼上目錄）' }}</span>
+      </div>
+      <div class="flex justify-end gap-2"><button type="button" class="btn2" @click="showCreate=false">取消</button><button class="btn">建立</button></div>
+    </form>
+  </div>
+</div>
+
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+import { getFirestore, collection, getDocs, setDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+const { createApp, ref, reactive, computed, onMounted, watch, nextTick } = Vue;
+
+const SUBJECTS = [
+  { k:'chinese', n:'國文', c:'#f87171' }, { k:'math', n:'數學', c:'#60a5fa' },
+  { k:'english', n:'英語', c:'#34d399' }, { k:'science', n:'自然', c:'#fbbf24' }, { k:'social', n:'社會', c:'#a78bfa' }
+];
+const DEFAULTS = {
+  chinese:['一、小詩選','二、古體詩選','三、土芭樂的生存之道','語文天地一：語法（上）詞類','四、五柳先生傳','五、田園之秋選','六、不要放棄你的夢想','語文天地二：語法（下）句型','七、愛蓮說','八、鳥','九、我在圖書館的一天','十、拆牆','自學一：世說新語選*','自學二：定伯賣鬼*','自學三：買春聯*'],
+  math:['第1章 乘法公式與多項式','第2章 平方根與畢氏定理','第3章 因式分解','第4章 一元二次方程式（暫）','第5章 統計資料處理（暫）'],
+  english:['Unit 1 How Was the Weather in Australia?','Unit 2 You Can Learn About Game Design After You Join the Club','Review 1','Unit 3 Mom Was Doing the Dishes at Half past Twelve','Unit 4 What Do You Want to Be in the Future?','Review 2','Unit 5 How Do We Go to the Hotel?','Unit 6 I’ll Take Two Pairs of Gloves','Review 3'],
+  science:['第1章 基本測量','第2章 物質的組成與分離（暫）','第3章 波動（暫）','第4章 光（暫）','第5章 溫度與熱（暫）'],
+  social:['地理：中國的自然環境','地理：中國的人文與產業（暫）','地理：東北亞（暫）','歷史：商周至隋唐（暫）','歷史 : 宋元明清（暫）','公民：國家與民主治理','公民：憲法與人權（暫）','公民：中央與地方政府（暫）','公民：政治參與與選舉（暫）']
+};
+const uid = () => Math.random().toString(36).slice(2, 9);
+const D = d => dayjs(d).format('YYYY-MM-DD');
+
+const VERS = ['康軒', '翰林', '南一', '其他'];
+const BUILT = { '8-1': { chinese:'康軒', math:'康軒', english:'翰林', science:'翰林', social:'翰林' } };
+const GN = { 7:'七', 8:'八', 9:'九' };
+const tplKey = (g, se, sub, v) => `${g}-${se}-${sub}-${v}`;
+const tplLines = (tpls, g, se, sub, v) => tpls[tplKey(g, se, sub, v)] || (BUILT[`${g}-${se}`]?.[sub] === v ? DEFAULTS[sub] : []);
+const mkItem = (sub, t) => ({ id: uid(), subject: sub, title: t.replace(/\*$/, ''), inScope: !t.endsWith('*'), minutes: 30, plannedDate: '', done: false, doneAt: '' });
+function newExamData(f, tpls) {
+  const items = [];
+  SUBJECTS.forEach(s => tplLines(tpls, f.grade, f.semester, s.k, f.versions[s.k]).forEach(t => items.push(mkItem(s.k, t))));
+  const d = D(dayjs().add(14, 'day'));
+  return { id: 'e' + Date.now(), name: `${f.schoolYear}${f.semester == 1 ? '上' : '下'} ${GN[f.grade]}年級 第${f.examNo}次段考`,
+    studentId: f.studentId, schoolYear: f.schoolYear, grade: f.grade, semester: f.semester, examNo: f.examNo, versions: { ...f.versions },
+    startDate: D(dayjs()), examDates: Object.fromEntries(SUBJECTS.map(s => [s.k, d])),
+    weekdayMin: 90, weekendMin: 180, offDays: '', items, scores: [] };
+}
+const fixLegacy = (e, sid) => Object.assign(e, { studentId: e.studentId || sid, schoolYear: e.schoolYear || 115, grade: e.grade || 8, semester: e.semester || 1, examNo: e.examNo || 2, versions: e.versions || { ...BUILT['8-1'] } });
+
+createApp({
+  setup() {
+    const loading = ref(true), currentUser = ref(null), isMenuOpen = ref(false);
+    const exams = ref([]), curId = ref(''), tab = ref('scope'), overflow = ref(0);
+    const students = ref([]), curStudent = ref(''), tpls = ref({}), showCreate = ref(false);
+    const pick = reactive({}), pasteOpen = reactive({}), pasteText = reactive({});
+    const cf = reactive({ studentId: '', schoolYear: 115, grade: 8, semester: 1, examNo: 2, versions: { ...BUILT['8-1'] } });
+    const today = D(dayjs());
+    const sf = reactive({ subject:'chinese', name:'', date: today, score:null, max:100 });
+    const tabs = [{k:'scope',n:'1 範圍'},{k:'plan',n:'2 排程'},{k:'today',n:'3 今日複習'},{k:'scores',n:'4 評量'},{k:'progress',n:'5 進度'}];
+    const menu = [
+      {href:'index.html',icon:'star-outline',label:'親子集點'},{href:'investment.html',icon:'analytics-outline',label:'投資紀錄'},
+      {href:'study_plan.html',icon:'school-outline',label:'段考複習'},{href:'weight.html',icon:'body-outline',label:'體重管理'},
+      {href:'fitness.html',icon:'barbell-outline',label:'健身紀錄'},{href:'currency.html',icon:'cash-outline',label:'匯率換算'},{href:'book_list.html',icon:'book-outline',label:'閱讀書單'}];
+    let db, auth, chart, tchart, saveTimer, metaTimer, loaded = false;
+
+    const exam = computed(() => exams.value.find(e => e.id === curId.value));
+    const examsOfStudent = computed(() => exams.value.filter(e => e.studentId === curStudent.value));
+    watch(curStudent, () => { curId.value = examsOfStudent.value.slice(-1)[0]?.id || ''; });
+    const sub = k => SUBJECTS.find(s => s.k === k);
+    const itemsOf = k => exam.value.items.filter(i => i.subject === k);
+    const scoped = k => itemsOf(k).filter(i => i.inScope);
+    const scopedAll = computed(() => exam.value.items.filter(i => i.inScope));
+    const totalMin = computed(() => scopedAll.value.reduce((a, i) => a + (i.minutes || 0), 0));
+    const deadline = k => D(dayjs(exam.value.examDates[k]).subtract(1, 'day'));
+    const daysLeft = computed(() => Math.max(0, Math.min(...SUBJECTS.map(s => dayjs(exam.value.examDates[s.k]).diff(dayjs(today), 'day')))));
+    const fmt = d => d ? dayjs(d).format('MM/DD') + '（週' + '日一二三四五六'[dayjs(d).day()] + '）' : '';
+    const markDone = it => { it.doneAt = it.done ? today : ''; };
+
+    const todayItems = computed(() => scopedAll.value.filter(i => i.plannedDate === today));
+    const overdueItems = computed(() => scopedAll.value.filter(i => !i.done && i.plannedDate && i.plannedDate < today));
+    const planDays = computed(() => {
+      const m = {};
+      scopedAll.value.filter(i => i.plannedDate).forEach(i => (m[i.plannedDate] = m[i.plannedDate] || []).push(i));
+      return Object.keys(m).sort().map(d => ({ date: d, items: m[d], min: m[d].reduce((a, i) => a + (i.minutes || 0), 0) }));
+    });
+    const overallPct = computed(() => scopedAll.value.length ? Math.round(scopedAll.value.filter(i => i.done).length / scopedAll.value.length * 100) : 0);
+    const subPct = k => scoped(k).length ? Math.round(scoped(k).filter(i => i.done).length / scoped(k).length * 100) : 0;
+
+    const setAll = (k, v) => itemsOf(k).forEach(i => i.inScope = v);
+    const addItem = k => exam.value.items.push({ id: uid(), subject: k, title: '新項目', inScope: true, minutes: 30, plannedDate: '', done: false, doneAt: '' });
+    const delItem = id => { if (confirm('刪除這個項目？')) exam.value.items = exam.value.items.filter(i => i.id !== id); };
+
+    // ---- 徹底修復後的強效自動排程演算法 ----
+    function autoSchedule() {
+      const e = exam.value;
+      const off = new Set((e.offDays || '').split(/[\s,，]+/).filter(Boolean));
+      e.items.forEach(i => { if (!i.inScope) i.plannedDate = ''; });
+
+      // 收集所有在範圍內的未完成項目
+      const unassignedItems = e.items.filter(i => i.inScope && !i.done);
+      if (unassignedItems.length === 0) return;
+
+      // 建立從今天開始到所有科目中最晚考試日期的天數清單
+      const maxDeadline = SUBJECTS.map(s => deadline(s.k)).sort().pop();
+      const days = [];
+      let curr = dayjs(today);
+      const endDay = dayjs(maxDeadline);
+
+      while (!curr.isAfter(endDay)) {
+        const s = D(curr);
+        if (!off.has(s)) {
+          const isWeekend = [0, 6].includes(curr.day());
+          const cap = isWeekend ? (e.weekendMin || 180) : (e.weekdayMin || 90);
+          days.push({ s, capacity: cap, used: 0 });
+        }
+        curr = curr.add(1, 'day');
+      }
+
+      if (days.length === 0) {
+        alert('沒有可用的複習日（請檢查考試日期或排除休假設定）！');
+        return;
+      }
+
+      let overCount = 0;
+
+      // 依序將每一個未排程項目塞入符合截止日且還有剩餘時間的「最早天數」中
+      unassignedItems.forEach(item => {
+        const itemSubjDeadline = deadline(item.subject);
+        // 尋找在該科考試截止日之前、且容量還沒被塞滿的日子
+        let targetDay = days.find(d => d.s <= itemSubjDeadline && (d.capacity - d.used) >= (item.minutes || 30));
+
+        if (!targetDay) {
+          // 如果截止日前都滿了，退而求其次找任何還有空位或最靠近的日子
+          targetDay = days.find(d => (d.capacity - d.used) >= (item.minutes || 30)) || days[days.length - 1];
+          overCount++;
+        }
+
+        item.plannedDate = targetDay.s;
+        targetDay.used += (item.minutes || 30);
+      });
+
+      overflow.value = overCount;
+      tab.value = 'plan';
+    }
+
+    const scoresOf = k => exam.value.scores.filter(s => s.subject === k).sort((a, b) => a.date.localeCompare(b.date));
+    const pct = s => s.max ? s.score / s.max * 100 : 0;
+    const avgText = k => { const l = scoresOf(k); return l.length ? `${l.length} 次評量，平均 ${(l.reduce((a, s) => a + pct(s), 0) / l.length).toFixed(1)}%` : '尚無評量'; };
+    const addScore = () => { exam.value.scores.push({ id: uid(), subject: sf.subject, name: sf.name, date: sf.date, score: sf.score, max: sf.max }); sf.name = ''; sf.score = null; };
+    const delScore = id => { exam.value.scores = exam.value.scores.filter(s => s.id !== id); };
+
+    function renderChart() {
+      const el = document.getElementById('progressChart'); if (!el || !exam.value) return;
+      if (chart) chart.destroy();
+      const e = exam.value, labels = [], end = dayjs(SUBJECTS.map(s => deadline(s.k)).sort().pop());
+      for (let d = dayjs(e.startDate); !d.isAfter(end); d = d.add(1, 'day')) labels.push(D(d));
+      const sc = scopedAll.value;
+      chart = new Chart(el.getContext('2d'), { type: 'line', data: { labels, datasets: [
+        { label: '預計累積完成', data: labels.map(d => sc.filter(i => i.plannedDate && i.plannedDate <= d).length), borderColor: '#60a5fa', borderDash: [6, 4], pointRadius: 0, tension: .1 },
+        { label: '實際累積完成', data: labels.map(d => d <= today ? sc.filter(i => i.done && i.doneAt && i.doneAt <= d).length : null), borderColor: '#34d399', backgroundColor: 'rgba(52,211,153,.15)', fill: true, pointRadius: 0, tension: .1 }] },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }, y: { beginAtZero: true, ticks: { color: '#9ca3af', precision: 0 }, grid: { color: '#374151' } } }, plugins: { legend: { labels: { color: '#d1d5db' } } } } });
+    }
+    function renderTrend() {
+      const el = document.getElementById('trendChart'); if (!el || !exam.value) return;
+      if (tchart) tchart.destroy();
+      const es = examsOfStudent.value.filter(e => e.scores.length);
+      tchart = new Chart(el.getContext('2d'), { type: 'line', data: { labels: es.map(e => e.name), datasets: SUBJECTS.map(s => ({ label: s.n, borderColor: s.c, tension: .1, spanGaps: true,
+        data: es.map(e => { const l = e.scores.filter(x => x.subject === s.k); return l.length ? +(l.reduce((a, x) => a + pct(x), 0) / l.length).toFixed(1) : null; }) })) },
+        options: { responsive: true, maintainAspectRatio: false, scales: { x: { ticks: { color: '#9ca3af' }, grid: { color: '#374151' } }, y: { min: 0, max: 100, ticks: { color: '#9ca3af' }, grid: { color: '#374151' } } }, plugins: { legend: { labels: { color: '#d1d5db' } } } } });
+    }
+    watch(tab, t => { if (t === 'progress') nextTick(renderChart); if (t === 'scores') nextTick(renderTrend); });
+    watch(() => exam.value?.scores.length, () => { if (tab.value === 'scores') nextTick(renderTrend); });
+
+    const path = () => `users/${currentUser.value.uid}/studyPlans`;
+    watch(exams, () => {
+      if (!loaded) return;
+      clearTimeout(saveTimer);
+      saveTimer = setTimeout(() => exams.value.forEach(e => setDoc(doc(db, path(), e.id), JSON.parse(JSON.stringify(e))).catch(err => console.error('儲存失敗', err))), 800);
+    }, { deep: true });
+    watch([students, tpls], () => {
+      if (!loaded) return;
+      clearTimeout(metaTimer);
+      metaTimer = setTimeout(() => {
+        setDoc(doc(db, path(), '_meta'), { students: JSON.parse(JSON.stringify(students.value)) }).catch(e => console.error(e));
+        setDoc(doc(db, path(), '_tpl'), { templates: JSON.parse(JSON.stringify(tpls.value)) }).catch(e => console.error(e));
+      }, 800);
+    }, { deep: true });
+    async function load() {
+      loaded = false;
+      const snap = await getDocs(collection(db, path()));
+      const list = []; let meta = null, tp = null;
+      snap.forEach(d => { const x = d.data();
+        if (d.id === '_meta') meta = x; else if (d.id === '_tpl') tp = x;
+        else if (x && x.id && Array.isArray(x.items) && x.examDates) list.push(x); });
+      students.value = meta?.students?.length ? meta.students : [{ id: 's1', name: '大女兒' }, { id: 's2', name: '小女兒' }];
+      tpls.value = tp?.templates || {};
+      list.forEach(e => fixLegacy(e, students.value[0].id));
+      list.sort((a, b) => a.id.localeCompare(b.id));
+      exams.value = list;
+      curStudent.value = students.value[0].id;
+      curId.value = examsOfStudent.value.slice(-1)[0]?.id || '';
+      await nextTick(); loaded = true;
+      exams.value = [...exams.value]; students.value = [...students.value];
+    }
+    const addStudent = () => { const n = prompt('學生名稱'); if (!n) return; const st = { id: 's' + Date.now(), name: n }; students.value.push(st); curStudent.value = st.id; };
+    const renameStudent = () => { const st = students.value.find(x => x.id === curStudent.value); const n = st && prompt('改名為', st.name); if (n) st.name = n; };
+    const openCreate = () => { cf.studentId = curStudent.value; showCreate.value = true; };
+    const tplCount = k => tplLines(tpls.value, cf.grade, cf.semester, k, cf.versions[k]).length;
+    function createExam() {
+      const e = newExamData(cf, tpls.value); exams.value.push(e);
+      curStudent.value = cf.studentId; curId.value = e.id; tab.value = 'scope'; showCreate.value = false;
+    }
+    const keyOf = k => tplKey(exam.value.grade, exam.value.semester, k, exam.value.versions[k]);
+    const keyLabel = key => { const [g, se, , v] = key.split('-'); return `${GN[g]}年級${se == 1 ? '上' : '下'}學期 ${v}`; };
+    const tplOptions = k => { const set = new Set(Object.keys(tpls.value).filter(x => x.split('-')[2] === k)); set.add(`8-1-${k}-${BUILT['8-1'][k]}`); return [...set]; };
+    const linesOf = (key, k) => tpls.value[key] || (key === `8-1-${k}-${BUILT['8-1'][k]}` ? DEFAULTS[k] : []);
+    function loadFrom(k) {
+      const key = pick[k]; if (!key) return alert('請先選擇要載入的範本。');
+      const lines = linesOf(key, k); if (!lines.length) return alert('這個範本是空的。');
+      if (!confirm(`用「${keyLabel(key)}」的 ${lines.length} 個項目取代目前的${sub(k).n}清單？`)) return;
+      exam.value.items = exam.value.items.filter(i => i.subject !== k).concat(lines.map(t => mkItem(k, t)));
+    }
+    function saveTpl(k) {
+      tpls.value[keyOf(k)] = itemsOf(k).map(i => i.title + (i.inScope ? '' : '*'));
+      alert(`已存為範本：${keyLabel(keyOf(key))}（${sub(k).n}）。之後同年級、學期、版本的段考會自動帶入。`);
+    }
+    function pasteAdd(k) {
+      (pasteText[k] || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(t => exam.value.items.push(mkItem(k, t)));
+      pasteText[k] = ''; pasteOpen[k] = false;
+    }
+    async function removeExam() {
+      if (!confirm(`確定刪除「${exam.value.name}」？所有紀錄都會消失。`)) return;
+      const id = curId.value; exams.value = exams.value.filter(e => e.id !== id);
+      curId.value = examsOfStudent.value.slice(-1)[0]?.id || '';
+      await deleteDoc(doc(db, path(), id));
+    }
+
+    onMounted(() => {
+      const app = initializeApp({
+        apiKey: "AIzaSyCENfkCWSncwwRxahq4ryCoie4ecVOkG6A", authDomain: "points-collection-cff99.firebaseapp.com",
+        projectId: "points-collection-cff99", storageBucket: "points-collection-cff99.firebasestorage.app",
+        messagingSenderId: "794494861925", appId: "1:794494861925:web:44ed7f07b8870e7b43fc8c" });
+      db = getFirestore(app); auth = getAuth(app);
+      onAuthStateChanged(auth, async user => {
+        currentUser.value = user || null;
+        if (user) { try { await load(); } catch (e) { console.error(e); alert('讀取資料失敗，請重新整理。'); } }
+        loading.value = false;
+      });
+    });
+
+    return { SUBJECTS, loading, currentUser, isMenuOpen, menu, tabs, tab, exams, curId, exam, sub, today, sf,
+      itemsOf, scoped, scopedAll, totalMin, daysLeft, fmt, markDone, todayItems, overdueItems, planDays, overflow, overallPct, subPct,
+      setAll, addItem, delItem, autoSchedule, scoresOf, pct, avgText, addScore, delScore, students, curStudent, examsOfStudent, showCreate, cf, VERS, pick, pasteOpen, pasteText,
+      addStudent, renameStudent, openCreate, createExam, tplCount, tplOptions, keyLabel, loadFrom, saveTpl, pasteAdd, removeExam };
+  }
+}).mount('#app');
+</script>
+</body>
+</html>

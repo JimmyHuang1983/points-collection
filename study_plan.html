@@ -68,7 +68,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <div class="card grid sm:grid-cols-3 gap-3">
         <label class="sm:col-span-3 text-sm text-gray-300">段考名稱<input v-model="exam.name" class="inp w-full mt-1"></label>
         <label v-for="s in SUBJECTS" :key="s.k" class="text-sm text-gray-300">{{ s.n }}考試日期<input type="date" v-model="exam.examDates[s.k]" class="inp w-full mt-1"></label>
-        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，請依學校公布的內容修改。勾選的項目就是這次段考的範圍。</p>
+        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，請依學校公布的內容修改。勾選的項目就是這次段考的範圍，可拖拉左側「☰」或點擊上下箭頭調整順序。</p>
       </div>
       <div v-for="s in SUBJECTS" :key="s.k" class="card">
         <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -86,11 +86,25 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
           <button class="btn2" @click="saveTpl(s.k)">存為範本</button>
         </div>
         <div v-if="pasteOpen[s.k]" class="mb-2"><textarea v-model="pasteText[s.k]" rows="5" placeholder="一行一個章節（行尾加 * 表示預設不納入範圍）" class="inp w-full"></textarea><button class="btn2 mt-1" @click="pasteAdd(s.k)">加入清單</button></div>
-        <div v-for="it in itemsOf(s.k)" :key="it.id" class="flex items-center gap-2 py-1">
-          <input type="checkbox" v-model="it.inScope" class="h-4 w-4">
+        
+        <!-- 支援拖拉與上下移動排序的章節清單 -->
+        <div v-for="(it, index) in itemsOf(s.k)" :key="it.id"
+             draggable="true"
+             @dragstart="onDragStart($event, s.k, index)"
+             @dragover.prevent="onDragOver($event, s.k, index)"
+             @dragleave="onDragLeave"
+             @drop="onDrop($event, s.k, index)"
+             :class="dragOverKey === `${s.k}-${index}` ? 'border-blue-500 bg-gray-700' : 'border-transparent hover:border-gray-700'"
+             class="flex items-center gap-1.5 sm:gap-2 py-1.5 px-2 rounded transition border">
+          <span class="text-gray-500 hover:text-gray-300 cursor-grab active:cursor-grabbing select-none px-1" title="按住上下拖拉排序">☰</span>
+          <input type="checkbox" v-model="it.inScope" class="h-4 w-4 shrink-0">
           <input v-model="it.title" class="inp flex-1 min-w-0">
-          <input type="number" min="5" step="5" v-model.number="it.minutes" class="inp w-16 text-right"><span class="text-xs text-gray-400">分</span>
-          <button @click="delItem(it.id)" class="text-red-400 hover:text-red-300 px-1">✕</button>
+          <input type="number" min="5" step="5" v-model.number="it.minutes" class="inp w-14 sm:w-16 text-right shrink-0"><span class="text-xs text-gray-400 shrink-0">分</span>
+          <div class="flex items-center shrink-0">
+            <button type="button" @click="moveItem(s.k, index, -1)" :disabled="index === 0" class="text-gray-400 hover:text-white disabled:opacity-25 px-1 text-xs" title="上移">▲</button>
+            <button type="button" @click="moveItem(s.k, index, 1)" :disabled="index === itemsOf(s.k).length - 1" class="text-gray-400 hover:text-white disabled:opacity-25 px-1 text-xs" title="下移">▼</button>
+          </div>
+          <button @click="delItem(it.id)" class="text-red-400 hover:text-red-300 px-1 shrink-0" title="刪除">✕</button>
         </div>
       </div>
     </section>
@@ -291,17 +305,67 @@ createApp({
     const addItem = k => exam.value.items.push({ id: uid(), subject: k, title: '新項目', inScope: true, minutes: 30, plannedDate: '', done: false, doneAt: '' });
     const delItem = id => { if (confirm('刪除這個項目？')) exam.value.items = exam.value.items.filter(i => i.id !== id); };
 
-    // ---- 徹底修復後的強效自動排程演算法 ----
+    // ---- 拖拉與按鈕排序邏輯 ----
+    let draggedIndex = null;
+    let draggedSubject = null;
+    const dragOverKey = ref('');
+
+    const onDragStart = (event, subjectKey, index) => {
+      draggedSubject = subjectKey;
+      draggedIndex = index;
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', `${subjectKey}:${index}`);
+      }
+    };
+
+    const onDragOver = (event, subjectKey, index) => {
+      if (draggedSubject === subjectKey && draggedIndex !== index) {
+        dragOverKey.value = `${subjectKey}-${index}`;
+      }
+    };
+
+    const onDragLeave = () => {
+      dragOverKey.value = '';
+    };
+
+    const reorderSubjectItems = (subjectKey, fromIndex, toIndex) => {
+      const subItems = exam.value.items.filter(i => i.subject === subjectKey);
+      if (fromIndex < 0 || fromIndex >= subItems.length || toIndex < 0 || toIndex >= subItems.length) return;
+      
+      const itemToMove = subItems[fromIndex];
+      const targetItem = subItems[toIndex];
+
+      const originalGlobalIndex = exam.value.items.findIndex(i => i.id === itemToMove.id);
+      exam.value.items.splice(originalGlobalIndex, 1);
+
+      const newTargetGlobalIndex = exam.value.items.findIndex(i => i.id === targetItem.id);
+      const insertIndex = fromIndex < toIndex ? newTargetGlobalIndex + 1 : newTargetGlobalIndex;
+      exam.value.items.splice(insertIndex, 0, itemToMove);
+    };
+
+    const onDrop = (event, subjectKey, targetIndex) => {
+      event.preventDefault();
+      dragOverKey.value = '';
+      if (draggedSubject !== subjectKey || draggedIndex === null || draggedIndex === targetIndex) return;
+      reorderSubjectItems(subjectKey, draggedIndex, targetIndex);
+      draggedIndex = null;
+      draggedSubject = null;
+    };
+
+    const moveItem = (subjectKey, index, direction) => {
+      reorderSubjectItems(subjectKey, index, index + direction);
+    };
+
+    // ---- 修復後的自動排程演算法 ----
     function autoSchedule() {
       const e = exam.value;
       const off = new Set((e.offDays || '').split(/[\s,，]+/).filter(Boolean));
       e.items.forEach(i => { if (!i.inScope) i.plannedDate = ''; });
 
-      // 收集所有在範圍內的未完成項目
       const unassignedItems = e.items.filter(i => i.inScope && !i.done);
       if (unassignedItems.length === 0) return;
 
-      // 建立從今天開始到所有科目中最晚考試日期的天數清單
       const maxDeadline = SUBJECTS.map(s => deadline(s.k)).sort().pop();
       const days = [];
       let curr = dayjs(today);
@@ -324,14 +388,11 @@ createApp({
 
       let overCount = 0;
 
-      // 依序將每一個未排程項目塞入符合截止日且還有剩餘時間的「最早天數」中
       unassignedItems.forEach(item => {
         const itemSubjDeadline = deadline(item.subject);
-        // 尋找在該科考試截止日之前、且容量還沒被塞滿的日子
         let targetDay = days.find(d => d.s <= itemSubjDeadline && (d.capacity - d.used) >= (item.minutes || 30));
 
         if (!targetDay) {
-          // 如果截止日前都滿了，退而求其次找任何還有空位或最靠近的日子
           targetDay = days.find(d => (d.capacity - d.used) >= (item.minutes || 30)) || days[days.length - 1];
           overCount++;
         }
@@ -451,7 +512,8 @@ createApp({
 
     return { SUBJECTS, loading, currentUser, isMenuOpen, menu, tabs, tab, exams, curId, exam, sub, today, sf,
       itemsOf, scoped, scopedAll, totalMin, daysLeft, fmt, markDone, todayItems, overdueItems, planDays, overflow, overallPct, subPct,
-      setAll, addItem, delItem, autoSchedule, scoresOf, pct, avgText, addScore, delScore, students, curStudent, examsOfStudent, showCreate, cf, VERS, pick, pasteOpen, pasteText,
+      setAll, addItem, delItem, dragOverKey, onDragStart, onDragOver, onDragLeave, onDrop, moveItem,
+      autoSchedule, scoresOf, pct, avgText, addScore, delScore, students, curStudent, examsOfStudent, showCreate, cf, VERS, pick, pasteOpen, pasteText,
       addStudent, renameStudent, openCreate, createExam, tplCount, tplOptions, keyLabel, loadFrom, saveTpl, pasteAdd, removeExam };
   }
 }).mount('#app');

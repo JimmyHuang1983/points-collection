@@ -70,7 +70,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <div class="card grid sm:grid-cols-3 gap-3">
         <label class="sm:col-span-3 text-sm text-gray-300">段考名稱<input v-model="exam.name" class="inp w-full mt-1"></label>
         <label v-for="s in SUBJECTS" :key="s.k" class="text-sm text-gray-300">{{ s.n }}考試日期<input type="date" v-model="exam.examDates[s.k]" class="inp w-full mt-1"></label>
-        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「拍照掃描目錄」自動辨識文字，或手動拖拉「☰」與上下箭頭調整順序。</p>
+        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「選擇/拍攝目錄照片」自動智慧過濾辨識大綱，或手動調整順序。</p>
       </div>
       <div v-for="s in SUBJECTS" :key="s.k" class="card">
         <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -85,16 +85,16 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
           <select v-model="pick[s.k]" class="inp"><option value="">從範本載入…</option><option v-for="k in tplOptions(s.k)" :value="k">{{ keyLabel(k) }}</option></select>
           <button class="btn2" @click="loadFrom(s.k)">載入</button>
           <button class="btn2" @click="pasteOpen[s.k]=!pasteOpen[s.k]">貼上目錄</button>
-          <!-- 拍照掃描目錄按鈕 -->
+          <!-- 拍照或選取檔案掃描目錄按鈕 (支援手機相機或相簿選擇) -->
           <button class="btn2 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1" @click="triggerOcr(s.k)" :disabled="ocrScanning === s.k">
-            <ion-icon name="camera-outline"></ion-icon>
-            {{ ocrScanning === s.k ? '辨識中...' : '拍照掃描目錄' }}
+            <ion-icon name="image-outline"></ion-icon>
+            {{ ocrScanning === s.k ? '智慧辨識中...' : '選擇/拍攝目錄照片' }}
           </button>
-          <input type="file" accept="image/*" capture="environment" class="hidden" :ref="el => ocrInputs[s.k] = el" @change="handleOcrScan($event, s.k)">
+          <input type="file" accept="image/*" class="hidden" :ref="el => ocrInputs[s.k] = el" @change="handleOcrScan($event, s.k)">
           <button class="btn2" @click="saveTpl(s.k)">存為範本</button>
         </div>
         <div v-if="pasteOpen[s.k]" class="mb-2">
-          <textarea v-model="pasteText[s.k]" rows="5" placeholder="一行一個章節（行尾加 * 表示預設不納入範圍，拍照辨識的文字也會自動填到這裡）" class="inp w-full"></textarea>
+          <textarea v-model="pasteText[s.k]" rows="5" placeholder="一行一個章節（行尾加 * 表示預設不納入範圍，OCR辨識已自動過濾雜訊）" class="inp w-full"></textarea>
           <button class="btn2 mt-1" @click="pasteAdd(s.k)">加入清單</button>
         </div>
         
@@ -120,7 +120,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       </div>
     </section>
 
-    <!-- 2. 排程 (支援跨日卡片拖拉調整日期) -->
+    <!-- 2. 排程 -->
     <section v-if="tab==='plan'" class="space-y-4">
       <div class="card grid sm:grid-cols-4 gap-3 items-end">
         <label class="text-sm text-gray-300">平日可複習（分鐘）<input type="number" v-model.number="exam.weekdayMin" class="inp w-full mt-1"></label>
@@ -135,7 +135,6 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <p class="text-xs text-gray-400 text-center">💡 提示：您可以直接按住排程項目，拖拉到其他日期的卡片上放手，就能快速跨日調整複習日期！</p>
       <p v-if="!planDays.length" class="card text-center text-gray-400">還沒有排程。確認範圍後，按「自動排程」。</p>
       
-      <!-- 每日排程卡片 (作為 Drop 接收目標) -->
       <div v-for="d in planDays" :key="d.date" 
            @dragover.prevent
            @drop="onPlanCardDrop($event, d.date)"
@@ -147,7 +146,6 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
         </h3>
         <div class="space-y-1 mt-2 min-h-[40px]">
           <p v-if="!d.items.length" class="text-xs text-gray-500 py-1">（可將其他日期的項目拖拉至此）</p>
-          <!-- 支援拖拉的排程項目卡片 -->
           <div v-for="it in d.items" :key="it.id"
                draggable="true"
                @dragstart="onPlanItemDragStart($event, it)"
@@ -266,7 +264,7 @@ const SUBJECTS = [
 ];
 const DEFAULTS = {
   chinese:['一、小詩選','二、古體詩選','三、土芭樂的生存之道','語文天地一：語法（上）詞類','四、五柳先生傳','五、田園之秋選','六、不要放棄你的夢想','語文天地二：語法（下）句型','七、愛蓮說','八、鳥','九、我在圖書館的一天','十、拆牆','自學一：世說新語選*','自學二：定伯賣鬼*','自學三：買春聯*'],
-  math:['第1章 乘法公式與多項式','第2章 平方根與畢氏定理','第3章 因式分解','第4章 一元二次方程式（暫）','第5章 統計資料處理（暫）'],
+  math:['第1章 乘法公式與多項式','第2章 平方根與畢險定理','第3章 因式分解','第4章 一元二次方程式（暫）','第5章 統計資料處理（暫）'],
   english:['Unit 1 How Was the Weather in Australia?','Unit 2 You Can Learn About Game Design After You Join the Club','Review 1','Unit 3 Mom Was Doing the Dishes at Half past Twelve','Unit 4 What Do You Want to Be in the Future?','Review 2','Unit 5 How Do We Go to the Hotel?','Unit 6 I’ll Take Two Pairs of Gloves','Review 3'],
   science:['第1章 基本測量','第2章 物質的組成與分離（暫）','第3章 波動（暫）','第4章 光（暫）','第5章 溫度與熱（暫）'],
   social:['地理：中國的自然環境','地理：中國的人文與產業（暫）','地理：東北亞（暫）','歷史：商周至隋唐（暫）','歷史 : 宋元明清（暫）','公民：國家與民主治理','公民：憲法與人權（暫）','公民：中央與地方政府（暫）','公民：政治參與與選舉（暫）']
@@ -386,7 +384,7 @@ createApp({
       reorderSubjectItems(subjectKey, index, index + direction);
     };
 
-    // ---- 拍照掃描目錄 (OCR) 邏輯 ----
+    // ---- 智慧 OCR 掃描與過濾清洗邏輯 ----
     const ocrInputs = reactive({});
     const ocrScanning = ref(null);
 
@@ -402,30 +400,49 @@ createApp({
 
       ocrScanning.value = subjectKey;
       try {
-        // 使用 Tesseract.js 辨識繁體中文與英文
         const { data: { text } } = await Tesseract.recognize(file, 'chi_tra+eng', {
           logger: m => console.log(m)
         });
 
-        // 處理辨識出的文字，按行分割並過濾空白
-        const lines = text.split('\n')
-          .map(l => l.trim())
-          .filter(l => l.length > 1); // 過濾掉太短的雜訊
+        // 智慧過濾與清洗亂碼、頁碼、雜訊
+        const rawLines = text.split('\n').map(l => l.trim()).filter(Boolean);
+        const filteredLines = [];
 
-        if (lines.length > 0) {
-          const scannedText = lines.join('\n');
+        for (let line of rawLines) {
+          // 1. 清除常見的 OCR 誤判雜訊符號
+          let cleaned = line.replace(/[|\[\]{}_\\/~`@#$%^&*+=<>]/g, '').trim();
+
+          // 2. 過濾掉太短的字串或純數字（通常是頁碼）
+          if (cleaned.length < 2) continue;
+          if (/^\d+$/.test(cleaned)) continue;
+
+          // 3. 啟發式過濾：只保留符合章節特徵（如：第X章、單元、Unit、一、二、三...等）或長度適當的標題
+          const hasChapterKeyword = /(第.*[章課]|單元|Unit|Review|主題|[一二三四五六七八九十百]+[、．.])/i.test(cleaned);
+          const isLikelyTitle = cleaned.length >= 3 && cleaned.length <= 40 && /[\u4e00-\u9fa5a-zA-Z]/.test(cleaned);
+
+          if (hasChapterKeyword || isLikelyTitle) {
+            filteredLines.push(cleaned);
+          }
+        }
+
+        if (filteredLines.length > 0) {
+          const scannedText = filteredLines.join('\n');
           pasteText[subjectKey] = (pasteText[subjectKey] ? pasteText[subjectKey] + '\n' : '') + scannedText;
           pasteOpen[subjectKey] = true;
-          alert(`🎉 成功辨識出 ${lines.length} 行文字！已自動填入「貼上目錄」方框中，請預覽確認後點擊「加入清單」。`);
+          alert(`🎉 智慧過濾完成！已過濾雜訊，抓出 ${filteredLines.length} 個標題，填入「貼上目錄」方框中。`);
         } else {
-          alert('⚠️ 未能辨識出清晰的文字，請嘗試靠近課本目錄重新拍照。');
+          // 如果過濾太嚴格沒抓到，退而求其次保留基本清洗後的文字
+          const fallbackText = rawLines.filter(l => l.length > 2 && !/^\d+$/.test(l)).join('\n');
+          pasteText[subjectKey] = fallbackText;
+          pasteOpen[subjectKey] = true;
+          alert('⚠️ 未能自動精準匹配大綱關鍵字，已將初步清洗的文字填入方框，請手動確認。');
         }
       } catch (err) {
         console.error('OCR Error:', err);
-        alert('❌ OCR 辨識過程發生錯誤，請稍後再試。');
+        alert('❌ OCR 辨識發生錯誤，請稍後再試。');
       } finally {
         ocrScanning.value = null;
-        event.target.value = ''; // 清空檔案以便重複選取同一張
+        event.target.value = '';
       }
     };
 

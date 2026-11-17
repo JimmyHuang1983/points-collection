@@ -70,7 +70,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <div class="card grid sm:grid-cols-3 gap-3">
         <label class="sm:col-span-3 text-sm text-gray-300">段考名稱<input v-model="exam.name" class="inp w-full mt-1"></label>
         <label v-for="s in SUBJECTS" :key="s.k" class="text-sm text-gray-300">{{ s.n }}考試日期<input type="date" v-model="exam.examDates[s.k]" class="inp w-full mt-1"></label>
-        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「選擇照片/拍照」自動智慧過濾辨識大綱，或手動調整順序。</p>
+        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「拍照辨識」或「選照片」自動智慧過濾辨識大綱，或手動調整順序。</p>
       </div>
       <div v-for="s in SUBJECTS" :key="s.k" class="card">
         <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -85,12 +85,24 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
           <select v-model="pick[s.k]" class="inp"><option value="">從範本載入…</option><option v-for="k in tplOptions(s.k)" :value="k">{{ keyLabel(k) }}</option></select>
           <button class="btn2" @click="loadFrom(s.k)">載入</button>
           <button class="btn2" @click="pasteOpen[s.k]=!pasteOpen[s.k]">貼上目錄</button>
-          <!-- 選擇照片或拍照按鈕 (無 capture 限制，點擊後由手機系統彈出選單：拍照或從相簿選擇) -->
-          <button class="btn2 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1" @click="triggerOcr(s.k)" :disabled="ocrScanning === s.k">
+          <!-- 拍照辨識（強制開啟後置相機） -->
+          <label :class="ocrScanning ? 'opacity-50 pointer-events-none' : 'cursor-pointer'"
+                 class="relative overflow-hidden btn2 bg-indigo-600 hover:bg-indigo-700 text-white inline-flex items-center gap-1 select-none">
             <ion-icon name="camera-outline"></ion-icon>
-            {{ ocrScanning === s.k ? '智慧辨識中...' : '選擇照片/拍照' }}
-          </button>
-          <input type="file" accept="image/*" class="hidden" :ref="el => ocrInputs[s.k] = el" @change="handleOcrScan($event, s.k)">
+            <span>{{ ocrScanning === s.k ? '智慧辨識中...' : '拍照辨識' }}</span>
+            <input type="file" accept="image/*" capture="environment" class="sr-only"
+                   :disabled="!!ocrScanning"
+                   @change="handleOcrScan($event, s.k)">
+          </label>
+          <!-- 選取照片辨識（開啟相簿/檔案挑選器） -->
+          <label :class="ocrScanning ? 'opacity-50 pointer-events-none' : 'cursor-pointer'"
+                 class="relative overflow-hidden btn2 bg-teal-600 hover:bg-teal-700 text-white inline-flex items-center gap-1 select-none">
+            <ion-icon name="image-outline"></ion-icon>
+            <span>{{ ocrScanning === s.k ? '智慧辨識中...' : '選照片' }}</span>
+            <input type="file" accept="image/*" class="sr-only"
+                   :disabled="!!ocrScanning"
+                   @change="handleOcrScan($event, s.k)">
+          </label>
           <button class="btn2" @click="saveTpl(s.k)">存為範本</button>
         </div>
         <div v-if="pasteOpen[s.k]" class="mb-2">
@@ -167,7 +179,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
         <h3 class="text-lg font-semibold mb-2">今天（{{ fmt(today) }}）</h3>
         <p v-if="!todayItems.length" class="text-gray-400 text-sm">今天沒有排定的項目。</p>
         <label v-for="it in todayItems" :key="it.id" class="flex items-center gap-3 py-2 border-b border-gray-700 last:border-0">
-          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-5 v-5">
+          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-5 w-5">
           <span :style="{color:sub(it.subject).c}" class="w-10">{{ sub(it.subject).n }}</span>
           <span class="flex-1" :class="it.done?'line-through text-gray-500':''">{{ it.title }}</span>
           <span class="text-sm text-gray-400">{{ it.minutes }}分</span>
@@ -176,7 +188,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <div class="card" v-if="overdueItems.length">
         <h3 class="text-lg font-semibold mb-2 text-red-400">逾期未完成（{{ overdueItems.length }}）</h3>
         <label v-for="it in overdueItems" :key="it.id" class="flex items-center gap-3 py-2 border-b border-gray-700 last:border-0">
-          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-5 v-5">
+          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-5 w-5">
           <span :style="{color:sub(it.subject).c}" class="w-10">{{ sub(it.subject).n }}</span>
           <span class="flex-1">{{ it.title }}</span>
           <span class="text-sm text-gray-400">原訂 {{ fmt(it.plannedDate) }}</span>
@@ -385,17 +397,11 @@ createApp({
     };
 
     // ---- 智慧 OCR 掃描與過濾清洗邏輯 ----
-    const ocrInputs = reactive({});
     const ocrScanning = ref(null);
 
-    const triggerOcr = (subjectKey) => {
-      if (ocrInputs[subjectKey]) {
-        ocrInputs[subjectKey].click();
-      }
-    };
-
     const handleOcrScan = async (event, subjectKey) => {
-      const file = event.target.files[0];
+      const input = event.target;
+      const file = input.files?.[0];
       if (!file) return;
 
       ocrScanning.value = subjectKey;
@@ -438,7 +444,7 @@ createApp({
         alert('❌ OCR 辨識發生錯誤，請稍後再試。');
       } finally {
         ocrScanning.value = null;
-        event.target.value = '';
+        input.value = '';
       }
     };
 
@@ -590,7 +596,7 @@ createApp({
     }
     function saveTpl(k) {
       tpls.value[keyOf(k)] = itemsOf(k).map(i => i.title + (i.inScope ? '' : '*'));
-      alert(`已存為範本：${keyLabel(keyOf(key))}（${sub(k).n}）。之後同年級、學期、版本的段考會自動帶入。`);
+      alert(`已存為範本：${keyLabel(keyOf(k))}（${sub(k).n}）。之後同年級、學期、版本的段考會自動帶入。`);
     }
     function pasteAdd(k) {
       (pasteText[k] || '').split('\n').map(x => x.trim()).filter(Boolean).forEach(t => exam.value.items.push(mkItem(k, t)));
@@ -619,7 +625,7 @@ createApp({
     return { SUBJECTS, loading, currentUser, isMenuOpen, menu, tabs, tab, exams, curId, exam, sub, today, sf,
       itemsOf, scoped, scopedAll, totalMin, daysLeft, fmt, markDone, todayItems, overdueItems, planDays, overflow, overallPct, subPct,
       setAll, addItem, delItem, dragOverKey, onDragStart, onDragOver, onDragLeave, onDrop, moveItem,
-      ocrInputs, ocrScanning, triggerOcr, handleOcrScan,
+      ocrScanning, handleOcrScan,
       onPlanItemDragStart, onPlanCardDrop, planDragOverDate,
       autoSchedule, scoresOf, pct, avgText, addScore, delScore, students, curStudent, examsOfStudent, showCreate, cf, VERS, pick, pasteOpen, pasteText,
       addStudent, renameStudent, openCreate, createExam, tplCount, tplOptions, keyLabel, loadFrom, saveTpl, pasteAdd, removeExam };

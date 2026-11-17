@@ -70,7 +70,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <div class="card grid sm:grid-cols-3 gap-3">
         <label class="sm:col-span-3 text-sm text-gray-300">段考名稱<input v-model="exam.name" class="inp w-full mt-1"></label>
         <label v-for="s in SUBJECTS" :key="s.k" class="text-sm text-gray-300">{{ s.n }}考試日期<input type="date" v-model="exam.examDates[s.k]" class="inp w-full mt-1"></label>
-        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「拍照/選取目錄」自動智慧過濾辨識大綱，或手動調整順序。</p>
+        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「選擇照片/拍照」自動智慧過濾辨識大綱，或手動調整順序。</p>
       </div>
       <div v-for="s in SUBJECTS" :key="s.k" class="card">
         <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -85,12 +85,12 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
           <select v-model="pick[s.k]" class="inp"><option value="">從範本載入…</option><option v-for="k in tplOptions(s.k)" :value="k">{{ keyLabel(k) }}</option></select>
           <button class="btn2" @click="loadFrom(s.k)">載入</button>
           <button class="btn2" @click="pasteOpen[s.k]=!pasteOpen[s.k]">貼上目錄</button>
-          <!-- 拍照或選取目錄照片按鈕 (同時支援直接拍照與從相簿選擇) -->
+          <!-- 選擇照片或拍照按鈕 (無 capture 限制，點擊後由手機系統彈出選單：拍照或從相簿選擇) -->
           <button class="btn2 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1" @click="triggerOcr(s.k)" :disabled="ocrScanning === s.k">
             <ion-icon name="camera-outline"></ion-icon>
-            {{ ocrScanning === s.k ? '智慧辨識中...' : '拍照/選取目錄照片' }}
+            {{ ocrScanning === s.k ? '智慧辨識中...' : '選擇照片/拍照' }}
           </button>
-          <input type="file" accept="image/*" capture="environment" class="hidden" :ref="el => ocrInputs[s.k] = el" @change="handleOcrScan($event, s.k)">
+          <input type="file" accept="image/*" class="hidden" :ref="el => ocrInputs[s.k] = el" @change="handleOcrScan($event, s.k)">
           <button class="btn2" @click="saveTpl(s.k)">存為範本</button>
         </div>
         <div v-if="pasteOpen[s.k]" class="mb-2">

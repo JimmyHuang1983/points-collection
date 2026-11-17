@@ -7,6 +7,8 @@
 <script src="https://cdn.tailwindcss.com"></script>
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+<!-- Tesseract.js OCR 引擎 -->
+<script src="https://cdn.jsdelivr.net/npm/tesseract.js@5/dist/tesseract.min.js"></script>
 <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
 <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
 <style>
@@ -68,7 +70,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       <div class="card grid sm:grid-cols-3 gap-3">
         <label class="sm:col-span-3 text-sm text-gray-300">段考名稱<input v-model="exam.name" class="inp w-full mt-1"></label>
         <label v-for="s in SUBJECTS" :key="s.k" class="text-sm text-gray-300">{{ s.n }}考試日期<input type="date" v-model="exam.examDates[s.k]" class="inp w-full mt-1"></label>
-        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，請依學校公布的內容修改。勾選的項目就是這次段考的範圍，可拖拉左側「☰」或點擊上下箭頭調整順序。</p>
+        <p class="sm:col-span-3 text-xs text-gray-500">考試日期、章節、時間都是暫定值，可使用「拍照掃描目錄」自動辨識文字，或手動拖拉「☰」與上下箭頭調整順序。</p>
       </div>
       <div v-for="s in SUBJECTS" :key="s.k" class="card">
         <div class="flex flex-wrap items-center gap-2 mb-2">
@@ -83,11 +85,20 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
           <select v-model="pick[s.k]" class="inp"><option value="">從範本載入…</option><option v-for="k in tplOptions(s.k)" :value="k">{{ keyLabel(k) }}</option></select>
           <button class="btn2" @click="loadFrom(s.k)">載入</button>
           <button class="btn2" @click="pasteOpen[s.k]=!pasteOpen[s.k]">貼上目錄</button>
+          <!-- 拍照掃描目錄按鈕 -->
+          <button class="btn2 bg-indigo-600 hover:bg-indigo-700 text-white flex items-center gap-1" @click="triggerOcr(s.k)" :disabled="ocrScanning === s.k">
+            <ion-icon name="camera-outline"></ion-icon>
+            {{ ocrScanning === s.k ? '辨識中...' : '拍照掃描目錄' }}
+          </button>
+          <input type="file" accept="image/*" capture="environment" class="hidden" :ref="el => ocrInputs[s.k] = el" @change="handleOcrScan($event, s.k)">
           <button class="btn2" @click="saveTpl(s.k)">存為範本</button>
         </div>
-        <div v-if="pasteOpen[s.k]" class="mb-2"><textarea v-model="pasteText[s.k]" rows="5" placeholder="一行一個章節（行尾加 * 表示預設不納入範圍）" class="inp w-full"></textarea><button class="btn2 mt-1" @click="pasteAdd(s.k)">加入清單</button></div>
+        <div v-if="pasteOpen[s.k]" class="mb-2">
+          <textarea v-model="pasteText[s.k]" rows="5" placeholder="一行一個章節（行尾加 * 表示預設不納入範圍，拍照辨識的文字也會自動填到這裡）" class="inp w-full"></textarea>
+          <button class="btn2 mt-1" @click="pasteAdd(s.k)">加入清單</button>
+        </div>
         
-        <!-- 支援拖拉與上下移動排序的章節清單 -->
+        <!-- 章節清單 (支援拖拉與上下移動排序) -->
         <div v-for="(it, index) in itemsOf(s.k)" :key="it.id"
              draggable="true"
              @dragstart="onDragStart($event, s.k, index)"
@@ -109,7 +120,7 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
       </div>
     </section>
 
-    <!-- 2. 排程 -->
+    <!-- 2. 排程 (支援跨日卡片拖拉調整日期) -->
     <section v-if="tab==='plan'" class="space-y-4">
       <div class="card grid sm:grid-cols-4 gap-3 items-end">
         <label class="text-sm text-gray-300">平日可複習（分鐘）<input type="number" v-model.number="exam.weekdayMin" class="inp w-full mt-1"></label>
@@ -121,15 +132,33 @@ body{font-family:'Inter','Noto Sans TC',sans-serif}
           <span v-if="overflow>0" class="text-sm text-yellow-400">有 {{ overflow }} 項超過考試截止日，請增加每日時間或提早複習範圍</span>
         </div>
       </div>
+      <p class="text-xs text-gray-400 text-center">💡 提示：您可以直接按住排程項目，拖拉到其他日期的卡片上放手，就能快速跨日調整複習日期！</p>
       <p v-if="!planDays.length" class="card text-center text-gray-400">還沒有排程。確認範圍後，按「自動排程」。</p>
-      <div v-for="d in planDays" :key="d.date" class="card" :class="d.date===today?'ring-2 ring-blue-500':''">
-        <h3 class="font-semibold mb-1">{{ fmt(d.date) }}<span v-if="d.date===today" class="text-blue-400 text-sm ml-2">今天</span><span class="text-sm text-gray-400 ml-3">{{ d.min }} 分鐘</span></h3>
-        <div v-for="it in d.items" :key="it.id" class="flex items-center gap-2 py-1 text-sm">
-          <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-4 w-4">
-          <span :style="{color:sub(it.subject).c}" class="w-10">{{ sub(it.subject).n }}</span>
-          <span class="flex-1" :class="it.done?'line-through text-gray-500':''">{{ it.title }}</span>
-          <span class="text-gray-400">{{ it.minutes }}分</span>
-          <input type="date" v-model="it.plannedDate" class="inp">
+      
+      <!-- 每日排程卡片 (作為 Drop 接收目標) -->
+      <div v-for="d in planDays" :key="d.date" 
+           @dragover.prevent
+           @drop="onPlanCardDrop($event, d.date)"
+           class="card transition border-2"
+           :class="[d.date === today ? 'ring-2 ring-blue-500' : '', planDragOverDate === d.date ? 'border-blue-400 bg-gray-750' : 'border-transparent']">
+        <h3 class="font-semibold mb-1 flex items-center justify-between">
+          <span>{{ fmt(d.date) }} <span v-if="d.date===today" class="text-blue-400 text-sm ml-2">今天</span></span>
+          <span class="text-sm text-gray-400">{{ d.min }} 分鐘</span>
+        </h3>
+        <div class="space-y-1 mt-2 min-h-[40px]">
+          <p v-if="!d.items.length" class="text-xs text-gray-500 py-1">（可將其他日期的項目拖拉至此）</p>
+          <!-- 支援拖拉的排程項目卡片 -->
+          <div v-for="it in d.items" :key="it.id"
+               draggable="true"
+               @dragstart="onPlanItemDragStart($event, it)"
+               class="flex items-center gap-2 py-1.5 px-2 bg-gray-800 hover:bg-gray-700 rounded text-sm cursor-grab active:cursor-grabbing border border-gray-700">
+            <span class="text-gray-500 select-none">☰</span>
+            <input type="checkbox" v-model="it.done" @change="markDone(it)" class="h-4 w-4 shrink-0">
+            <span :style="{color:sub(it.subject).c}" class="w-10 shrink-0 font-medium">{{ sub(it.subject).n }}</span>
+            <span class="flex-1 truncate" :class="it.done?'line-through text-gray-500':''">{{ it.title }}</span>
+            <span class="text-xs text-gray-400 shrink-0">{{ it.minutes }}分</span>
+            <input type="date" v-model="it.plannedDate" class="inp text-xs py-0.5 px-1 w-28 shrink-0">
+          </div>
         </div>
       </div>
     </section>
@@ -305,7 +334,7 @@ createApp({
     const addItem = k => exam.value.items.push({ id: uid(), subject: k, title: '新項目', inScope: true, minutes: 30, plannedDate: '', done: false, doneAt: '' });
     const delItem = id => { if (confirm('刪除這個項目？')) exam.value.items = exam.value.items.filter(i => i.id !== id); };
 
-    // ---- 拖拉與按鈕排序邏輯 ----
+    // ---- 範圍清單排序邏輯 (拖拉與上下按鈕) ----
     let draggedIndex = null;
     let draggedSubject = null;
     const dragOverKey = ref('');
@@ -357,7 +386,71 @@ createApp({
       reorderSubjectItems(subjectKey, index, index + direction);
     };
 
-    // ---- 修復後的自動排程演算法 ----
+    // ---- 拍照掃描目錄 (OCR) 邏輯 ----
+    const ocrInputs = reactive({});
+    const ocrScanning = ref(null);
+
+    const triggerOcr = (subjectKey) => {
+      if (ocrInputs[subjectKey]) {
+        ocrInputs[subjectKey].click();
+      }
+    };
+
+    const handleOcrScan = async (event, subjectKey) => {
+      const file = event.target.files[0];
+      if (!file) return;
+
+      ocrScanning.value = subjectKey;
+      try {
+        // 使用 Tesseract.js 辨識繁體中文與英文
+        const { data: { text } } = await Tesseract.recognize(file, 'chi_tra+eng', {
+          logger: m => console.log(m)
+        });
+
+        // 處理辨識出的文字，按行分割並過濾空白
+        const lines = text.split('\n')
+          .map(l => l.trim())
+          .filter(l => l.length > 1); // 過濾掉太短的雜訊
+
+        if (lines.length > 0) {
+          const scannedText = lines.join('\n');
+          pasteText[subjectKey] = (pasteText[subjectKey] ? pasteText[subjectKey] + '\n' : '') + scannedText;
+          pasteOpen[subjectKey] = true;
+          alert(`🎉 成功辨識出 ${lines.length} 行文字！已自動填入「貼上目錄」方框中，請預覽確認後點擊「加入清單」。`);
+        } else {
+          alert('⚠️ 未能辨識出清晰的文字，請嘗試靠近課本目錄重新拍照。');
+        }
+      } catch (err) {
+        console.error('OCR Error:', err);
+        alert('❌ OCR 辨識過程發生錯誤，請稍後再試。');
+      } finally {
+        ocrScanning.value = null;
+        event.target.value = ''; // 清空檔案以便重複選取同一張
+      }
+    };
+
+    // ---- 排程頁跨日拖拉調整邏輯 ----
+    let draggedPlanItem = null;
+    const planDragOverDate = ref('');
+
+    const onPlanItemDragStart = (event, item) => {
+      draggedPlanItem = item;
+      if (event.dataTransfer) {
+        event.dataTransfer.effectAllowed = 'move';
+        event.dataTransfer.setData('text/plain', item.id);
+      }
+    };
+
+    const onPlanCardDrop = (event, targetDate) => {
+      event.preventDefault();
+      planDragOverDate.value = '';
+      if (draggedPlanItem) {
+        draggedPlanItem.plannedDate = targetDate;
+        draggedPlanItem = null;
+      }
+    };
+
+    // ---- 自動排程演算法 ----
     function autoSchedule() {
       const e = exam.value;
       const off = new Set((e.offDays || '').split(/[\s,，]+/).filter(Boolean));
@@ -513,6 +606,8 @@ createApp({
     return { SUBJECTS, loading, currentUser, isMenuOpen, menu, tabs, tab, exams, curId, exam, sub, today, sf,
       itemsOf, scoped, scopedAll, totalMin, daysLeft, fmt, markDone, todayItems, overdueItems, planDays, overflow, overallPct, subPct,
       setAll, addItem, delItem, dragOverKey, onDragStart, onDragOver, onDragLeave, onDrop, moveItem,
+      ocrInputs, ocrScanning, triggerOcr, handleOcrScan,
+      onPlanItemDragStart, onPlanCardDrop, planDragOverDate,
       autoSchedule, scoresOf, pct, avgText, addScore, delScore, students, curStudent, examsOfStudent, showCreate, cf, VERS, pick, pasteOpen, pasteText,
       addStudent, renameStudent, openCreate, createExam, tplCount, tplOptions, keyLabel, loadFrom, saveTpl, pasteAdd, removeExam };
   }

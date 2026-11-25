@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-Hant">
+<html lang="zh-Hant" class="dark">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
@@ -7,12 +7,28 @@
     <link rel="manifest" href="manifest.json">
     <meta name="theme-color" content="#111827">
     <title>股票投資儀表板</title>
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js & Day.js -->
     <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dayjs@1/dayjs.min.js"></script>
+    <!-- Google Fonts: Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet">
     <!-- Ionicons for icons -->
     <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
     <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
     <style>
         body {
             font-family: 'Inter', 'Noto Sans TC', sans-serif;
@@ -23,12 +39,31 @@
         .slide-enter-from, .slide-leave-to { transform: translateX(-100%); }
         .icon-button { transition: background-color 0.2s; }
         .icon-button:hover { background-color: #374151; }
+
+        /* 自訂捲軸樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
     </style>
 </head>
-<body class="bg-gray-900 text-gray-200">
+<body class="bg-gray-900 text-gray-200 min-h-screen">
 
+    <!-- ========================================================= -->
+    <!-- 視圖一：每日投資紀錄儀表板 (原 investment.html / Vue 3)     -->
+    <!-- ========================================================= -->
     <div id="app" class="container mx-auto p-4 sm:p-6 lg:p-8 max-w-7xl">
-        
+
         <!-- Side Menu Overlay -->
         <transition name="fade">
             <div v-if="isMenuOpen" @click="toggleMenu" class="fixed inset-0 bg-black bg-opacity-60 z-40"></div>
@@ -86,27 +121,35 @@
                 </nav>
             </div>
         </transition>
-        
+
         <!-- Auth Guard -->
         <div v-if="!currentUser && !loading" class="text-center py-20">
             <h1 class="text-3xl font-bold text-white mb-4">請先登入</h1>
             <p class="text-gray-400 mb-6">您需要登入才能存取您的投資儀表板。</p>
             <a href="index.html" class="bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-6 rounded-lg transition duration-300">返回主頁登入</a>
         </div>
-        
+
         <div v-if="loading" class="text-center py-20">
             <p class="text-xl text-gray-400">載入中，請稍候...</p>
         </div>
 
         <main v-if="currentUser && !loading">
-            <header class="mb-8 flex items-center gap-4">
-                <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2">
-                     <ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon>
-                </button>
-                <div>
-                    <h1 class="text-3xl sm:text-4xl font-bold text-white tracking-tight">股票投資儀表板</h1>
-                    <p class="text-gray-400 mt-2">屬於 {{ currentUser.email }} 的投資組合</p>
+            <header class="mb-8 flex items-center justify-between gap-3">
+                <div class="flex items-center gap-3 sm:gap-4 min-w-0">
+                    <button @click="toggleMenu" class="p-2 rounded-full icon-button -ml-2 shrink-0">
+                        <ion-icon name="menu-outline" class="text-2xl align-middle text-white"></ion-icon>
+                    </button>
+                    <div class="min-w-0">
+                        <h1 class="text-2xl sm:text-4xl font-bold text-white tracking-tight truncate">股票投資儀表板</h1>
+                        <p class="text-xs sm:text-base text-gray-400 mt-1 truncate">屬於 {{ currentUser.email }} 的投資組合</p>
+                    </div>
                 </div>
+
+                <!-- 跳轉至持股總覽 (Investment Summary) 按鈕 -->
+                <button @click="openSummaryView" class="inline-flex items-center gap-1.5 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-xl bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white text-xs sm:text-sm font-semibold shadow-lg shadow-emerald-600/25 transition shrink-0 cursor-pointer" title="查看資產與持股明細">
+                    <ion-icon name="pie-chart-outline" class="text-lg sm:text-xl"></ion-icon>
+                    <span>持股總覽</span>
+                </button>
             </header>
 
             <!-- Summary Metrics -->
@@ -115,7 +158,7 @@
                     <h3 class="text-sm font-medium text-gray-400">區間損益</h3>
                     <p :class="summary.totalProfitLossClass" class="text-2xl font-semibold mt-1">{{ summary.totalProfitLoss }}</p>
                 </div>
-                 <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
+                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
                     <h3 class="text-sm font-medium text-gray-400">區間報酬率</h3>
                     <p :class="summary.returnRateClass" class="text-2xl font-semibold mt-1">{{ summary.returnRate }}</p>
                 </div>
@@ -141,7 +184,7 @@
                 <button @click="setRange('YTD')" :class="activeRange === 'YTD' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">今年以來</button>
                 <button @click="setRange('1Y')" :class="activeRange === '1Y' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">1年</button>
                 <button @click="setRange('All')" :class="activeRange === 'All' ? 'bg-blue-600' : 'bg-gray-700 hover:bg-gray-600'" class="px-3 py-1 text-sm rounded-md transition">全部</button>
-                <div class="flex items-center gap-2 ml-4">
+                <div class="flex items-center gap-2 sm:ml-4">
                     <input type="date" v-model="customStartDate" @change="setCustomRange" class="bg-gray-700 border-gray-600 rounded-md text-sm p-1 text-white">
                     <span class="text-gray-400">-</span>
                     <input type="date" v-model="customEndDate" @change="setCustomRange" class="bg-gray-700 border-gray-600 rounded-md text-sm p-1 text-white">
@@ -198,7 +241,7 @@
                             </thead>
                             <tbody class="bg-gray-800 divide-y divide-gray-700">
                                 <tr v-if="filteredInvestmentData.length === 0">
-                                     <td colspan="5" class="text-center py-10 text-gray-400">此區間無資料</td>
+                                    <td colspan="5" class="text-center py-10 text-gray-400">此區間無資料</td>
                                 </tr>
                                 <tr v-for="record in reversedFilteredData" :key="record.id">
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-gray-300">{{ record.date }}</td>
@@ -206,7 +249,7 @@
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right" :class="record.profitLoss >= 0 ? 'text-green-400' : 'text-red-400'">{{ formatNumber(record.profitLoss) }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-right text-gray-300">{{ record.buySell !== 0 ? record.buySell : '-' }}</td>
                                     <td class="px-6 py-4 whitespace-nowrap text-sm text-center">
-                                        <button @click="deleteInvestmentRecord(record.id)" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded">刪除</button>
+                                        <button @click="requestDeleteRecord(record.id)" class="text-red-400 hover:text-red-300 text-sm px-2 py-1 rounded">刪除</button>
                                     </td>
                                 </tr>
                             </tbody>
@@ -215,8 +258,1032 @@
                 </div>
             </div>
         </main>
+
+        <!-- 自訂刪除確認視窗 (取代原生 confirm) -->
+        <div v-if="pendingDeleteId" class="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm">
+            <div class="bg-gray-800 border border-gray-700 rounded-2xl max-w-sm w-full p-6 shadow-2xl">
+                <h3 class="text-lg font-bold text-white mb-2">確認刪除紀錄</h3>
+                <p class="text-sm text-gray-300 mb-6">確定要刪除這筆投資紀錄嗎？此操作無法復原。</p>
+                <div class="flex justify-end gap-3">
+                    <button @click="pendingDeleteId = null" class="px-4 py-2 rounded-xl text-sm font-medium bg-gray-700 hover:bg-gray-600 text-gray-200 transition">取消</button>
+                    <button @click="confirmDeleteRecord" class="px-4 py-2 rounded-xl text-sm font-semibold bg-red-600 hover:bg-red-500 text-white transition">確定刪除</button>
+                </div>
+            </div>
+        </div>
     </div>
 
+    <!-- ========================================================= -->
+    <!-- 視圖二：資產與持股監控儀表板 (原 investment summary.html)  -->
+    <!-- ========================================================= -->
+    <div id="summary-view" class="hidden bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 min-h-screen">
+
+        <!-- 頂部導覽列 -->
+        <header class="sticky top-0 z-30 backdrop-blur-md bg-white/80 dark:bg-slate-900/80 border-b border-slate-200 dark:border-slate-800">
+            <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
+                <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                    <!-- 返回投資紀錄按鈕 -->
+                    <button onclick="switchView('records')" class="inline-flex items-center gap-1 px-2.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition shrink-0 cursor-pointer" title="返回每日投資紀錄">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7" />
+                        </svg>
+                        <span>返回</span>
+                    </button>
+
+                    <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hidden sm:flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-500/20 shrink-0">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 7h8m0 0v8m0-8l-8 8-4-4-6 6" />
+                        </svg>
+                    </div>
+                    <div class="min-w-0">
+                        <h1 class="text-sm sm:text-lg font-bold tracking-tight truncate">資產與持股監控儀表板</h1>
+                        <p class="text-xs text-slate-500 dark:text-slate-400 hidden sm:block truncate" id="lastSyncLabel">資料狀態：已載入最新持股明細</p>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-1.5 sm:gap-3 shrink-0">
+                    <!-- 雲端一鍵同步快捷鍵 (若有設定 URL 則直接可用) -->
+                    <button onclick="quickCloudSync()" id="quickSyncBtn" class="hidden inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="一鍵雲端同步">
+                        <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                        </svg>
+                        <span class="hidden md:inline">一鍵雲端同步</span>
+                    </button>
+
+                    <!-- 開啟同步與資料設定視窗 -->
+                    <button onclick="openSyncModal()" class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition cursor-pointer">
+                        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                        </svg>
+                        <span>同步資料</span>
+                    </button>
+
+                    <!-- 深淺色模式切換 -->
+                    <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer" title="切換深淺主題">
+                        <svg id="sunIcon" class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                        </svg>
+                        <svg id="moonIcon" class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </header>
+
+        <!-- 主內容區塊 -->
+        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+
+            <!-- 1. 核心 KPI 總覽卡片 -->
+            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <!-- 目前總市值 -->
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">目前總市值 (TWD)</span>
+                        <span class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white" id="kpiTotalMV">$12,944,199</div>
+                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">加總所有庫存部位現值</div>
+                </div>
+
+                <!-- 持有檔數 -->
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">目前持有個股/ETF</span>
+                        <span class="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="flex items-baseline gap-2">
+                        <span class="text-2xl sm:text-3xl font-bold tracking-tight" id="kpiHoldingsCount">27 檔</span>
+                        <span class="text-xs text-slate-400" id="kpiWatchlistCount">/ 觀察名單共 51 檔</span>
+                    </div>
+                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">依「庫存 > 0」自動統計</div>
+                </div>
+
+                <!-- 除權息共領 -->
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">預估年領除權息合計</span>
+                        <span class="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-bold tracking-tight text-amber-500 dark:text-amber-400" id="kpiTotalDiv">$497,141</div>
+                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" id="kpiDivBreakdown">除息 $481,961 ＋ 除權 $15,180</div>
+                </div>
+
+                <!-- 總體殖利率 -->
+                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                    <div class="flex items-center justify-between mb-2">
+                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">投資組合總體殖利率</span>
+                        <span class="p-1.5 rounded-lg bg-purple-500/10 text-purple-500">
+                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                            </svg>
+                        </span>
+                    </div>
+                    <div class="text-2xl sm:text-3xl font-bold tracking-tight text-purple-600 dark:text-purple-400" id="kpiYield">3.84%</div>
+                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">公式：除權息合計 ÷ 目前總市值</div>
+                </div>
+            </section>
+
+            <!-- 2. 圖表分析區 -->
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+                <!-- 類別佔比圓餅圖 -->
+                <div class="lg:col-span-5 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-sm font-bold">資產類別配置佔比</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">依持股「類別」動態加總市值比例</p>
+                        </div>
+                    </div>
+                    <div class="relative flex-1 min-h-[250px] flex items-center justify-center">
+                        <canvas id="categoryChart"></canvas>
+                    </div>
+                </div>
+
+                <!-- 前十大持股橫條圖 -->
+                <div class="lg:col-span-7 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-4">
+                        <div>
+                            <h2 class="text-sm font-bold">前 10 大核心持股排行</h2>
+                            <p class="text-xs text-slate-500 dark:text-slate-400">單一標的最大市值與投資組合佔比</p>
+                        </div>
+                        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium" id="top10WeightBadge">前十大佔比 --%</span>
+                    </div>
+                    <div class="relative flex-1 min-h-[250px]">
+                        <canvas id="topHoldingsChart"></canvas>
+                    </div>
+                </div>
+            </section>
+
+            <!-- 3. 篩選控制列與明細表格 -->
+            <section class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+                <!-- 控制工具列 -->
+                <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 space-y-4">
+                    <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+                        <!-- 顯示模式切換：只看持股 vs 全部觀察名單 -->
+                        <div class="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 self-start">
+                            <button onclick="setFilterMode('holdings')" id="btnModeHoldings" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">
+                                僅看目前持股 (<span id="countHoldingsTab">27</span>)
+                            </button>
+                            <button onclick="setFilterMode('all')" id="btnModeAll" class="px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">
+                                全部觀察名單 (<span id="countAllTab">51</span>)
+                            </button>
+                        </div>
+
+                        <!-- 搜尋框與估值狀態篩選 -->
+                        <div class="flex flex-wrap items-center gap-2">
+                            <select id="valFilter" onchange="renderTable()" class="px-3 py-2 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-emerald-500 text-slate-700 dark:text-slate-200">
+                                <option value="ALL">所有估值狀態</option>
+                                <option value="便宜價">🟢 便宜價</option>
+                                <option value="合理價">🔵 合理價</option>
+                                <option value="貴">⚪ 貴 / 觀察</option>
+                            </select>
+
+                            <div class="relative flex-1 sm:w-56">
+                                <input type="text" id="searchInput" oninput="renderTable()" placeholder="搜尋代號或股票名稱..." class="w-full pl-9 pr-3 py-2 rounded-xl text-xs sm:text-sm bg-slate-100 dark:bg-slate-800 border-none focus:ring-2 focus:ring-emerald-500 placeholder-slate-400" />
+                                <svg class="w-4 h-4 text-slate-400 absolute left-3 top-2.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+                                </svg>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 類別快速篩選標籤 -->
+                    <div class="flex items-center gap-1.5 overflow-x-auto pb-1" id="categoryPills">
+                        <!-- 由 JS 動態生成類別膠囊 -->
+                    </div>
+                </div>
+
+                <!-- 資料表格 -->
+                <div class="overflow-x-auto">
+                    <table class="w-full text-left border-collapse">
+                        <thead>
+                            <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                                <th class="py-3.5 px-4">代號 / 名稱</th>
+                                <th class="py-3.5 px-3">類別</th>
+                                <th class="py-3.5 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('price')">成交價 ↕</th>
+                                <th class="py-3.5 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('shares')">庫存(張) ↕</th>
+                                <th class="py-3.5 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('marketValue')">目前市值 ↕</th>
+                                <th class="py-3.5 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('weight')">佔比 ↕</th>
+                                <th class="py-3.5 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('totalDivAmount')">除權息領 ↕</th>
+                                <th class="py-3.5 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('totalYield')">殖利率 ↕</th>
+                                <th class="py-3.5 px-3 text-center">估值狀態</th>
+                                <th class="py-3.5 px-4 text-right cursor-pointer hover:text-emerald-500" onclick="sortBy('delta')">距高點 Delta ↕</th>
+                            </tr>
+                        </thead>
+                        <tbody id="portfolioTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/70 text-xs sm:text-sm">
+                            <!-- 由 JS 動態渲染列 -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+
+        <!-- 同步 Google Sheet 資料 Modal -->
+        <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+            <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+                <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
+                    <div>
+                        <h3 class="text-base sm:text-lg font-bold">同步 Google Sheet 持股資料</h3>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">支援自動辨識標題列欄位，買賣股票後可一鍵更新儀表板</p>
+                    </div>
+                    <button onclick="closeSyncModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                        <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                        </svg>
+                    </button>
+                </div>
+
+                <div class="p-5 space-y-6">
+                    <!-- 方式 1：直接貼上 Google Sheet A4:Z105 -->
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold text-emerald-600 dark:text-emerald-400">方式一：從 Google Sheet 複製貼上（最快速、免設定）</label>
+                            <span class="text-[11px] text-slate-400">支援 A4:Z105 整塊貼上</span>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">在你的 Google Sheet 選取 <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">A4:Z105</code>（建議包含標題列）按 <kbd class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">Ctrl+C</kbd>，貼到下方並點擊「解析並更新」。</p>
+                        <textarea id="pasteTsvArea" rows="5" placeholder="在此貼上從 Google Sheet 複製的儲存格內容..." class="w-full p-3 rounded-xl text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"></textarea>
+                        <div class="flex justify-end">
+                            <button onclick="importFromTSV()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition">
+                                解析貼上資料並更新儀表板
+                            </button>
+                        </div>
+                    </div>
+
+                    <hr class="border-slate-200 dark:border-slate-800" />
+
+                    <!-- 方式 2：Google Apps Script 自動雲端連線 -->
+                    <div class="space-y-2.5">
+                        <div class="flex items-center justify-between">
+                            <label class="text-sm font-bold text-blue-600 dark:text-blue-400">方式二：綁定 Google Apps Script 網址（真正全自動一鍵同步）</label>
+                        </div>
+                        <p class="text-xs text-slate-500 dark:text-slate-400">將部署好的 Apps Script 網頁應用程式網址貼在這裡（之後按右上角「一鍵雲端同步」即可自動抓最新資料）：</p>
+                        <div class="flex gap-2">
+                            <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/..../exec" class="flex-1 px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500" />
+                            <button onclick="saveAndFetchGas()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white whitespace-nowrap transition">
+                                儲存並立即同步
+                            </button>
+                        </div>
+                        <!-- Apps Script 程式碼參考折疊區 -->
+                        <details class="text-xs bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800">
+                            <summary class="cursor-pointer font-medium text-slate-600 dark:text-slate-300">查看 Google Apps Script 部署程式碼（點此展開與複製）</summary>
+                            <div class="mt-2 relative">
+                                <pre id="gasCodeBlock" class="p-3 rounded-lg bg-slate-900 text-slate-200 overflow-x-auto text-[11px] leading-relaxed">function doGet() {
+  // 建議將 "工作表1" 改為你實際的分頁名稱
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var values = sheet.getRange("A4:Z105").getDisplayValues();
+  return ContentService.createTextOutput(JSON.stringify(values))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+                                <button onclick="copyGasCode()" class="mt-2 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium">
+                                    複製程式碼
+                                </button>
+                            </div>
+                        </details>
+                    </div>
+
+                    <hr class="border-slate-200 dark:border-slate-800" />
+
+                    <!-- 方式 3：還原預設與備份 -->
+                    <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                        <button onclick="resetToDefaultData()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+                            還原為初始資料
+                        </button>
+                        <button onclick="exportJSON()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition">
+                            匯出目前資料 (JSON)
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全域提示訊息條 (兩邊視圖共用) -->
+    <div id="toastBanner" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-sm font-medium shadow-xl border border-slate-700 flex items-center gap-2.5">
+            <span id="toastIcon" class="text-emerald-400">✔</span>
+            <span id="toastText">已更新資料</span>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- Script 1: 視圖切換與持股總覽邏輯 (Global Scope)            -->
+    <!-- ========================================================= -->
+    <script>
+        // 內建完整初始資料 (源自 Google Sheet)
+        const DEFAULT_RAW_STOCKS = [
+            // 27 檔目前持股 (shares > 0)
+            { code: "1229", name: "聯華", category: "食品", price: 39.85, pe: 12.45, eps: 3.2, cashDiv: 0, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 36.123, high: 41.05 },
+            { code: "00935", name: "野村臺灣新科技50", category: "科技", price: 43.26, pe: null, eps: null, cashDiv: 3.03, stockDiv: 0, status: "合理價", fair: 60.6, cheap: 42.42, shares: 29, high: 55.20 },
+            { code: "2753", name: "八方雲集", category: "食品餐飲", price: 172, pe: 13.61, eps: 12.64, cashDiv: 5.2, stockDiv: 0, status: "貴", fair: 104, cheap: 72.8, shares: 7, high: 181.50 },
+            { code: "1210", name: "大成", category: "食品餐飲", price: 51.9, pe: 12.33, eps: 4.21, cashDiv: 3, stockDiv: 0, status: "合理價", fair: 60, cheap: 42, shares: 22.7, high: 52.00 },
+            { code: "009816", name: "凱基台灣TOP50", category: "市值型ETF", price: 13.32, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 80, high: 16.01 },
+            { code: "00981A", name: "主動統一台股增長", category: "主動ETF", price: 20.53, pe: null, eps: null, cashDiv: 1.67, stockDiv: 0, status: "便宜價", fair: 33.4, cheap: 23.38, shares: 37, high: 27.81 },
+            { code: "1268", name: "漢來美食", category: "食品餐飲", price: 167.5, pe: 12.72, eps: 13.17, cashDiv: 8, stockDiv: 0, status: "貴", fair: 160, cheap: 112, shares: 4, high: 180.00 },
+            { code: "00878", name: "國泰永續高股息", category: "高股息ETF", price: 28.6, pe: null, eps: null, cashDiv: 2.09, stockDiv: 0, status: "便宜價", fair: 41.8, cheap: 29.26, shares: 23, high: 35.30 },
+            { code: "2884", name: "玉山金", category: "金融", price: 38.95, pe: 16.16, eps: 2.41, cashDiv: 1.4, stockDiv: 0, status: "貴", fair: 28, cheap: 19.6, shares: 14.308, high: 49.05 },
+            { code: "QQQ", name: "QQQ", category: "美股ETF", price: 638.1, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "", fair: 0, cheap: 0, shares: 25.91779, high: 725.61, explicitMV: 547288 },
+            { code: "2892", name: "第一金", category: "金融", price: 36.95, pe: 17.27, eps: 2.14, cashDiv: 1.3, stockDiv: 0, status: "貴", fair: 26, cheap: 18.2, shares: 14.252, high: 44.60 },
+            { code: "6281", name: "全國電", category: "傳產", price: 48.5, pe: 12.80, eps: 3.79, cashDiv: 3.3, stockDiv: 0, status: "合理價", fair: 66, cheap: 46.2, shares: 10, high: 50.70 },
+            { code: "00409A", name: "主動復華全球50", category: "主動ETF", price: 6.41, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 55, high: 9.07 },
+            { code: "1537", name: "廣隆", category: "電池（傳產）", price: 108, pe: 12.68, eps: 8.52, cashDiv: 7.2, stockDiv: 0, status: "合理價", fair: 144, cheap: 100.8, shares: 3, high: 113.00 },
+            { code: "00991A", name: "主動復華未來50", category: "主動ETF", price: 11.67, pe: null, eps: null, cashDiv: 0.77, stockDiv: 0, status: "合理價", fair: 15.4, cheap: 10.78, shares: 26, high: 16.88 },
+            { code: "9910", name: "豐泰", category: "製鞋（傳產）", price: 55.7, pe: 13.36, eps: 4.17, cashDiv: 4.1, stockDiv: 0, status: "便宜價", fair: 82, cheap: 57.4, shares: 5, high: 70.20 },
+            { code: "00662", name: "富邦NASDAQ", category: "美股ETF", price: 21.86, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 10.45, high: 24.72 },
+            { code: "2330", name: "台積電", category: "半導體", price: 2150, pe: 21.88, eps: 98.25, cashDiv: 0, stockDiv: 0, status: "", fair: 0, cheap: 0, shares: 0.1, high: 2500.00 },
+            { code: "1231", name: "聯華食", category: "食品餐飲", price: 70.5, pe: 15.88, eps: 4.44, cashDiv: 1.5, stockDiv: 1, status: "貴", fair: 50, cheap: 35, shares: 2.42, high: 73.80, explicitStockDiv: 15180 },
+            { code: "VOO", name: "VOO", category: "美股ETF", price: 660.71, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "", fair: 0, cheap: 0, shares: 6.74224, high: 709.90, explicitMV: 147416 },
+            { code: "SMH", name: "SMH", category: "美股ETF", price: 426.75, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "", fair: 0, cheap: 0, shares: 8.99852, high: 567.67, explicitMV: 127079 },
+            { code: "VT", name: "VT", category: "美股ETF", price: 147.56, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "", fair: 0, cheap: 0, shares: 23.79094, high: 158.29, explicitMV: 116174 },
+            { code: "00755B", name: "群益投資級公用債", category: "債券ETF", price: 32.17, pe: null, eps: null, cashDiv: 1.334, stockDiv: 0, status: "貴", fair: 26.68, cheap: 18.676, shares: 3, high: 32.92 },
+            { code: "XLG", name: "XLG", category: "美股ETF", price: 57.83, pe: null, eps: null, cashDiv: 0, stockDiv: 0, status: "", fair: 0, cheap: 0, shares: 42.31352, high: 63.59, explicitMV: 80977 },
+            { code: "2891", name: "中信金", category: "金融", price: 65.9, pe: 15.33, eps: 4.3, cashDiv: 2.5, stockDiv: 0, status: "貴", fair: 50, cheap: 35, shares: 1, high: 79.30 },
+            { code: "00772B", name: "中信高評級公司債", category: "債券ETF", price: 32.93, pe: null, eps: null, cashDiv: 1.389, stockDiv: 0, status: "貴", fair: 27.78, cheap: 19.446, shares: 2, high: 33.34 },
+            { code: "2883B", name: "凱基金乙特", category: "金融", price: 8.2, pe: null, eps: null, cashDiv: 0.355, stockDiv: 0, status: "貴", fair: 7.1, cheap: 4.97, shares: 3.218, high: 8.69 },
+
+            // 精選觀察名單 (shares = 0)
+            { code: "2317", name: "鴻海", category: "科技", price: 206.5, pe: 12.58, eps: 16.42, cashDiv: 7.172, stockDiv: 0, status: "貴", fair: 143.44, cheap: 100.408, shares: 0, high: 251.00 },
+            { code: "5483", name: "中美晶", category: "半導體", price: 133.5, pe: 14.26, eps: 9.36, cashDiv: 3.5, stockDiv: 0, status: "貴", fair: 70, cheap: 49, shares: 0, high: 184.00 },
+            { code: "5880", name: "合庫金", category: "金融", price: 26.4, pe: 17.60, eps: 1.5, cashDiv: 0.8, stockDiv: 0.25, status: "貴", fair: 21, cheap: 14.7, shares: 0, high: 29.10 },
+            { code: "2834", name: "臺企銀", category: "金融", price: 16.4, pe: 12.52, eps: 1.31, cashDiv: 0.3, stockDiv: 0.7, status: "合理價", fair: 20, cheap: 14, shares: 0, high: 18.05 },
+            { code: "2887", name: "台新金", category: "金融", price: 34, pe: 12.32, eps: 2.76, cashDiv: 1, stockDiv: 0.1, status: "貴", fair: 22, cheap: 15.4, shares: 0, high: 42.40 },
+            { code: "2886", name: "兆豐金", category: "金融", price: 49.7, pe: 18.61, eps: 2.67, cashDiv: 1.75, stockDiv: 0, status: "貴", fair: 35, cheap: 24.5, shares: 0, high: 55.40 },
+            { code: "2883", name: "凱基金", category: "金融", price: 30.05, pe: 9.72, eps: 3.09, cashDiv: 1, stockDiv: 0, status: "貴", fair: 20, cheap: 14, shares: 0, high: 38.50 },
+            { code: "1215", name: "卜蜂", category: "食品", price: 102, pe: 12.88, eps: 7.92, cashDiv: 7, stockDiv: 0, status: "合理價", fair: 140, cheap: 98, shares: 0, high: 106.00 },
+            { code: "1580", name: "新麥", category: "食品", price: 92.6, pe: 8.07, eps: 11.47, cashDiv: 8.5, stockDiv: 0, status: "便宜價", fair: 0, cheap: 0, shares: 0, high: 96.70 },
+            { code: "1264", name: "德麥", category: "食品", price: 248, pe: 11.70, eps: 21.2, cashDiv: 15, stockDiv: 0, status: "合理價", fair: 0, cheap: 0, shares: 0, high: 250.00 },
+            { code: "1232", name: "大統益", category: "食品", price: 159, pe: 15.24, eps: 10.43, cashDiv: 7.2, stockDiv: 0, status: "貴", fair: 144, cheap: 100.8, shares: 0, high: 166.50 },
+            { code: "1216", name: "統一", category: "食品", price: 78.7, pe: 18.74, eps: 4.2, cashDiv: 3, stockDiv: 0, status: "貴", fair: 60, cheap: 42, shares: 0, high: 81.90 },
+            { code: "2412", name: "中華電", category: "電信", price: 163.5, pe: 30.06, eps: 5.44, cashDiv: 5.2, stockDiv: 0, status: "貴", fair: 104, cheap: 72.8, shares: 0, high: 169.00 },
+            { code: "4904", name: "遠傳", category: "電信", price: 103.5, pe: 24.82, eps: 4.17, cashDiv: 3.809, stockDiv: 0, status: "貴", fair: 76.18, cheap: 53.326, shares: 0, high: 116.50 },
+            { code: "3045", name: "台灣大", category: "電信", price: 123, pe: 22.69, eps: 5.42, cashDiv: 4.744, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 0, high: 135.50 },
+            { code: "0056", name: "元大高股息", category: "高股息ETF", price: 45.66, pe: null, eps: null, cashDiv: 4.936, stockDiv: 0, status: "便宜價", fair: 98.72, cheap: 69.104, shares: 0, high: 56.90 },
+            { code: "5522", name: "遠雄", category: "傳產", price: 61.5, pe: 5.91, eps: 10.4, cashDiv: 6.5, stockDiv: 0, status: "便宜價", fair: 130, cheap: 91, shares: 0, high: 63.60 },
+            { code: "2301", name: "光寶科", category: "科技", price: 189, pe: 19.42, eps: 9.73, cashDiv: 5.5, stockDiv: 0, status: "貴", fair: 110, cheap: 77, shares: 0, high: 252.00 },
+            { code: "2308", name: "台達電", category: "科技", price: 1055, pe: 31.73, eps: 33.25, cashDiv: 11.6, stockDiv: 0, status: "貴", fair: 232, cheap: 162.4, shares: 0, high: 1480.00 },
+            { code: "3130", name: "一零四", category: "其他", price: 204, pe: 11.84, eps: 17.23, cashDiv: 14.7, stockDiv: 0, status: "便宜價", fair: 294, cheap: 205.8, shares: 0, high: 207.00 },
+            { code: "2385", name: "群光", category: "科技", price: 89.5, pe: 11.15, eps: 8.03, cashDiv: 7.2, stockDiv: 0, status: "便宜價", fair: 144, cheap: 100.8, shares: 0, high: 99.60 },
+            { code: "00888", name: "永豐台灣ESG", category: "高股息ETF", price: 25.62, pe: null, eps: null, cashDiv: 4.813, stockDiv: 0, status: "便宜價", fair: 0, cheap: 0, shares: 0, high: 31.98 },
+            { code: "00929", name: "復華台灣科技優息", category: "高股息ETF", price: 22, pe: null, eps: null, cashDiv: 2.35, stockDiv: 0, status: "便宜價", fair: 47, cheap: 32.9, shares: 0, high: 28.58 },
+            { code: "6294", name: "智基", category: "其他", price: 22.8, pe: 8.54, eps: 2.67, cashDiv: 3, stockDiv: 0, status: "便宜價", fair: 60, cheap: 42, shares: 0, high: 27.50 }
+        ];
+
+        // 持股總覽全域狀態
+        let summaryInitialized = false;
+        let rawStocks = [];
+        let computedStocks = [];
+        let filterMode = "holdings"; // 'holdings' | 'all'
+        let selectedCategory = "ALL";
+        let sortField = "marketValue";
+        let sortAsc = false;
+        let categoryChartInstance = null;
+        let topHoldingsChartInstance = null;
+        let toastTimer = null;
+
+        // 切換「每日投資紀錄」與「持股總覽」視圖
+        function switchView(viewName) {
+            const appEl = document.getElementById("app");
+            const summaryEl = document.getElementById("summary-view");
+
+            if (viewName === "summary") {
+                appEl.classList.add("hidden");
+                summaryEl.classList.remove("hidden");
+                window.scrollTo(0, 0);
+
+                if (!summaryInitialized) {
+                    initSummaryData();
+                    summaryInitialized = true;
+                }
+                // 確保容器顯示後再重繪 Chart.js，避免寬高為 0
+                requestAnimationFrame(() => {
+                    recalculateAll();
+                });
+            } else {
+                summaryEl.classList.add("hidden");
+                appEl.classList.remove("hidden");
+                window.scrollTo(0, 0);
+                // 若有需要，通知主圖表重新計算尺寸
+                if (window.__resizeInvestmentChart) {
+                    requestAnimationFrame(() => window.__resizeInvestmentChart());
+                }
+            }
+        }
+
+        function initSummaryData() {
+            const savedData = localStorage.getItem("portfolio_stocks_data");
+            const savedSyncTime = localStorage.getItem("portfolio_last_sync");
+            const savedGasUrl = localStorage.getItem("portfolio_gas_url");
+
+            if (savedData) {
+                try {
+                    rawStocks = JSON.parse(savedData);
+                    if (savedSyncTime) {
+                        document.getElementById("lastSyncLabel").textContent = `資料狀態：已同步於 ${savedSyncTime}`;
+                    }
+                } catch {
+                    rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
+                }
+            } else {
+                rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
+            }
+
+            if (savedGasUrl) {
+                document.getElementById("quickSyncBtn").classList.remove("hidden");
+            }
+        }
+
+        // 核心公式重算引擎
+        function recalculateAll() {
+            let totalMV = 0;
+
+            const temp = rawStocks.map(item => {
+                const shares = Number(item.shares) || 0;
+                const price = Number(item.price) || 0;
+                const cashDiv = Number(item.cashDiv) || 0;
+                const stockDiv = Number(item.stockDiv) || 0;
+                const high = Number(item.high) || 0;
+
+                let marketValue = 0;
+                if (shares > 0) {
+                    if (item.explicitMV !== undefined && item.explicitMV !== null && item.explicitMV > 0) {
+                        marketValue = Math.round(item.explicitMV);
+                    } else {
+                        marketValue = Math.round(price * shares * 1000);
+                    }
+                }
+
+                let cashDivAmount = 0;
+                if (shares > 0) {
+                    if (item.explicitCashDiv !== undefined && item.explicitCashDiv !== null && item.explicitCashDiv > 0) {
+                        cashDivAmount = Math.round(item.explicitCashDiv);
+                    } else {
+                        cashDivAmount = Math.round(cashDiv * shares * 1000);
+                    }
+                }
+
+                let stockDivAmount = 0;
+                if (shares > 0) {
+                    if (item.explicitStockDiv !== undefined && item.explicitStockDiv !== null && item.explicitStockDiv > 0) {
+                        stockDivAmount = Math.round(item.explicitStockDiv);
+                    } else if (stockDiv > 0) {
+                        stockDivAmount = Math.round((stockDiv / 10) * shares * 1000 * price);
+                    }
+                }
+
+                const totalDivAmount = cashDivAmount + stockDivAmount;
+                const totalYield = price > 0 ? ((cashDiv + stockDiv) / price) * 100 : 0;
+                const delta = high > 0 ? ((price - high) / high) * 100 : 0;
+
+                totalMV += marketValue;
+
+                return {
+                    ...item,
+                    shares,
+                    price,
+                    marketValue,
+                    cashDivAmount,
+                    stockDivAmount,
+                    totalDivAmount,
+                    totalYield,
+                    delta
+                };
+            });
+
+            computedStocks = temp.map(item => ({
+                ...item,
+                weight: totalMV > 0 && item.marketValue > 0 ? (item.marketValue / totalMV) * 100 : 0
+            }));
+
+            updateDashboardUI(totalMV);
+        }
+
+        function updateDashboardUI(totalMV) {
+            const holdings = computedStocks.filter(s => s.shares > 0);
+            const totalCashDiv = holdings.reduce((acc, s) => acc + s.cashDivAmount, 0);
+            const totalStockDiv = holdings.reduce((acc, s) => acc + s.stockDivAmount, 0);
+            const totalDivAll = totalCashDiv + totalStockDiv;
+            const portfolioYield = totalMV > 0 ? (totalDivAll / totalMV) * 100 : 0;
+
+            document.getElementById("kpiTotalMV").textContent = `$${totalMV.toLocaleString()}`;
+            document.getElementById("kpiHoldingsCount").textContent = `${holdings.length} 檔`;
+            document.getElementById("kpiWatchlistCount").textContent = `/ 觀察名單共 ${computedStocks.length} 檔`;
+            document.getElementById("kpiTotalDiv").textContent = `$${totalDivAll.toLocaleString()}`;
+            document.getElementById("kpiDivBreakdown").textContent = `除息 $${totalCashDiv.toLocaleString()} ＋ 除權 $${totalStockDiv.toLocaleString()}`;
+            document.getElementById("kpiYield").textContent = `${portfolioYield.toFixed(2)}%`;
+
+            document.getElementById("countHoldingsTab").textContent = holdings.length;
+            document.getElementById("countAllTab").textContent = computedStocks.length;
+
+            renderCategoryPills();
+            renderCharts(holdings, totalMV);
+            renderTable();
+        }
+
+        function renderCategoryPills() {
+            const container = document.getElementById("categoryPills");
+            const source = filterMode === "holdings" ? computedStocks.filter(s => s.shares > 0) : computedStocks;
+            const categories = ["ALL", ...new Set(source.map(s => s.category || "未分類").filter(Boolean))];
+
+            container.innerHTML = categories.map(cat => {
+                const active = selectedCategory === cat;
+                const label = cat === "ALL" ? "全部類別" : cat;
+                return `
+                    <button onclick="setCategory('${cat}')" class="px-3 py-1 rounded-full text-xs font-medium whitespace-nowrap transition ${
+                        active
+                            ? "bg-emerald-600 text-white shadow-sm"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }">
+                        ${label}
+                    </button>
+                `;
+            }).join("");
+        }
+
+        function renderCharts(holdings, totalMV) {
+            const isDark = document.documentElement.classList.contains("dark");
+            const textColor = isDark ? "#cbd5e1" : "#475569";
+            const gridColor = isDark ? "rgba(148, 163, 184, 0.1)" : "rgba(148, 163, 184, 0.2)";
+
+            // 1. 類別配置甜甜圈圖
+            const catMap = {};
+            holdings.forEach(s => {
+                const c = s.category || "其他";
+                catMap[c] = (catMap[c] || 0) + s.marketValue;
+            });
+            const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
+
+            const palette = [
+                "#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899",
+                "#06b6d4", "#f97316", "#6366f1", "#14b8a6", "#84cc16"
+            ];
+
+            if (categoryChartInstance) categoryChartInstance.destroy();
+            const ctxCat = document.getElementById("categoryChart").getContext("2d");
+            categoryChartInstance = new Chart(ctxCat, {
+                type: "doughnut",
+                data: {
+                    labels: sortedCats.map(([cat, val]) => `${cat} (${totalMV > 0 ? ((val / totalMV) * 100).toFixed(1) : "0.0"}%)`),
+                    datasets: [{
+                        data: sortedCats.map(([, val]) => val),
+                        backgroundColor: palette,
+                        borderWidth: isDark ? 2 : 1,
+                        borderColor: isDark ? "#0f172a" : "#ffffff"
+                    }]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: "62%",
+                    plugins: {
+                        legend: {
+                            position: "right",
+                            labels: {
+                                color: textColor,
+                                font: { size: 11, family: "Inter, Noto Sans TC" },
+                                boxWidth: 12,
+                                padding: 10
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` $${Number(ctx.raw).toLocaleString()}`
+                            }
+                        }
+                    }
+                }
+            });
+
+            // 2. 前 10 大持股橫條圖
+            const top10 = [...holdings].sort((a, b) => b.marketValue - a.marketValue).slice(0, 10);
+            const top10Sum = top10.reduce((acc, s) => acc + s.marketValue, 0);
+            const top10Pct = totalMV > 0 ? ((top10Sum / totalMV) * 100).toFixed(1) : "0.0";
+            document.getElementById("top10WeightBadge").textContent = `前十大佔比 ${top10Pct}%`;
+
+            if (topHoldingsChartInstance) topHoldingsChartInstance.destroy();
+            const ctxTop = document.getElementById("topHoldingsChart").getContext("2d");
+            topHoldingsChartInstance = new Chart(ctxTop, {
+                type: "bar",
+                data: {
+                    labels: top10.map(s => `${s.name} (${s.weight.toFixed(1)}%)`),
+                    datasets: [{
+                        label: "目前市值 (TWD)",
+                        data: top10.map(s => s.marketValue),
+                        backgroundColor: "rgba(16, 185, 129, 0.85)",
+                        borderRadius: 6,
+                        barThickness: 16
+                    }]
+                },
+                options: {
+                    indexAxis: "y",
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    plugins: {
+                        legend: { display: false },
+                        tooltip: {
+                            callbacks: {
+                                label: (ctx) => ` 市值: $${Number(ctx.raw).toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 10 },
+                                callback: (val) => `${(val / 10000).toFixed(0)}萬`
+                            }
+                        },
+                        y: {
+                            grid: { display: false },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 11, family: "Inter, Noto Sans TC" }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById("portfolioTableBody");
+            const search = document.getElementById("searchInput").value.trim().toLowerCase();
+            const valFilter = document.getElementById("valFilter").value;
+
+            let list = computedStocks.filter(s => {
+                if (filterMode === "holdings" && s.shares <= 0) return false;
+                if (selectedCategory !== "ALL" && (s.category || "未分類") !== selectedCategory) return false;
+                if (valFilter !== "ALL" && s.status !== valFilter) return false;
+                if (search && !s.code.toLowerCase().includes(search) && !s.name.toLowerCase().includes(search)) return false;
+                return true;
+            });
+
+            list.sort((a, b) => {
+                const vA = a[sortField] ?? -999999;
+                const vB = b[sortField] ?? -999999;
+                return sortAsc ? vA - vB : vB - vA;
+            });
+
+            if (list.length === 0) {
+                tbody.innerHTML = `
+                    <tr>
+                        <td colspan="10" class="py-10 text-center text-slate-400">沒有符合目前篩選條件的標的</td>
+                    </tr>
+                `;
+                return;
+            }
+
+            tbody.innerHTML = list.map(s => {
+                let statusBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">觀察</span>`;
+                if (s.status === "便宜價") {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-emerald-500/15 text-emerald-600 dark:text-emerald-400">便宜價</span>`;
+                } else if (s.status === "合理價") {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-blue-500/15 text-blue-600 dark:text-blue-400">合理價</span>`;
+                } else if (s.status === "貴") {
+                    statusBadge = `<span class="px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">貴</span>`;
+                }
+
+                let deltaStyle = "";
+                if (s.delta <= -25) {
+                    deltaStyle = "bg-rose-500/30 text-rose-300 font-bold";
+                } else if (s.delta <= -15) {
+                    deltaStyle = "bg-rose-500/20 text-rose-400 font-semibold";
+                } else if (s.delta <= -5) {
+                    deltaStyle = "bg-rose-500/10 text-rose-500 dark:text-rose-400";
+                } else {
+                    deltaStyle = "text-slate-500 dark:text-slate-400";
+                }
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 whitespace-nowrap">
+                            <div class="font-bold text-slate-900 dark:text-white">${s.name}</div>
+                            <div class="text-[11px] text-slate-400 font-mono">${s.code || "美股"}</div>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded-md text-[11px] bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300">${s.category || "-"}</span>
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono">${s.price.toLocaleString()}</td>
+                        <td class="py-3 px-3 text-right font-mono ${s.shares > 0 ? "font-semibold text-slate-900 dark:text-slate-100" : "text-slate-400"}">
+                            ${s.shares > 0 ? s.shares.toLocaleString() : "-"}
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white">
+                            ${s.marketValue > 0 ? `$${s.marketValue.toLocaleString()}` : "-"}
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono">
+                            ${s.weight > 0 ? `<span class="text-emerald-600 dark:text-emerald-400 font-semibold">${s.weight.toFixed(2)}%</span>` : "0.0%"}
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono">
+                            ${s.totalDivAmount > 0 ? `<span class="text-amber-600 dark:text-amber-400">$${s.totalDivAmount.toLocaleString()}</span>` : "-"}
+                        </td>
+                        <td class="py-3 px-3 text-right font-mono">${s.totalYield > 0 ? `${s.totalYield.toFixed(1)}%` : "0.0%"}</td>
+                        <td class="py-3 px-3 text-center whitespace-nowrap">${statusBadge}</td>
+                        <td class="py-3 px-4 text-right font-mono whitespace-nowrap">
+                            <span class="px-2 py-0.5 rounded-md text-xs ${deltaStyle}">${s.delta.toFixed(2)}%</span>
+                        </td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        function setFilterMode(mode) {
+            filterMode = mode;
+            selectedCategory = "ALL";
+            const btnH = document.getElementById("btnModeHoldings");
+            const btnA = document.getElementById("btnModeAll");
+
+            if (mode === "holdings") {
+                btnH.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition";
+                btnA.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+            } else {
+                btnA.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition";
+                btnH.className = "px-3.5 py-1.5 rounded-lg text-xs sm:text-sm font-medium text-slate-600 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+            }
+            renderCategoryPills();
+            renderTable();
+        }
+
+        function setCategory(cat) {
+            selectedCategory = cat;
+            renderCategoryPills();
+            renderTable();
+        }
+
+        function sortBy(field) {
+            if (sortField === field) {
+                sortAsc = !sortAsc;
+            } else {
+                sortField = field;
+                sortAsc = false;
+            }
+            renderTable();
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle("dark");
+            const holdings = computedStocks.filter(s => s.shares > 0);
+            const totalMV = holdings.reduce((acc, s) => acc + s.marketValue, 0);
+            renderCharts(holdings, totalMV);
+        }
+
+        function openSyncModal() {
+            document.getElementById("syncModal").classList.remove("hidden");
+            document.getElementById("syncModal").classList.add("flex");
+            const savedUrl = localStorage.getItem("portfolio_gas_url") || "";
+            document.getElementById("gasUrlInput").value = savedUrl;
+        }
+
+        function closeSyncModal() {
+            document.getElementById("syncModal").classList.add("hidden");
+            document.getElementById("syncModal").classList.remove("flex");
+        }
+
+        function parseNumber(val) {
+            if (val === undefined || val === null) return 0;
+            const cleaned = String(val).replace(/[$,%\s,]/g, "").trim();
+            if (!cleaned || cleaned === "-" || cleaned === "#N/A" || cleaned === "#ERROR!" || cleaned === "#DIV/0!") return 0;
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : num;
+        }
+
+        // 解析二維陣列 (自動偵測標題列對應欄位)
+        function parseSheetRows(rows) {
+            if (!Array.isArray(rows) || rows.length === 0) return [];
+
+            let idx = {
+                code: 2,
+                name: 3,
+                price: 4,
+                pe: 5,
+                eps: 6,
+                cashDiv: 7,
+                stockDiv: 8,
+                status: 13,
+                fair: 14,
+                cheap: 15,
+                shares: 16,
+                cashDivAmt: 17,
+                stockDivAmt: 18,
+                category: 21,
+                high: 22,
+                sheetMV: 24
+            };
+
+            let startRow = 0;
+
+            for (let r = 0; r < Math.min(rows.length, 10); r++) {
+                const headers = (rows[r] || []).map(h => String(h || "").trim());
+                const priceIdx = headers.findIndex(h => h.includes("成交價"));
+                const sharesIdx = headers.findIndex(h => h === "庫存" || h.includes("庫存"));
+
+                if (priceIdx !== -1 && sharesIdx !== -1) {
+                    const codeIdx = headers.findIndex(h => h.includes("股票代號") || h === "代號");
+                    const nameIdx = headers.lastIndexOf("股票名稱");
+
+                    idx = {
+                        code: codeIdx !== -1 ? codeIdx : priceIdx - 2,
+                        name: nameIdx !== -1 ? nameIdx : priceIdx - 1,
+                        price: priceIdx,
+                        pe: headers.findIndex(h => h.includes("本益比")),
+                        eps: headers.findIndex(h => h.toUpperCase().includes("EPS")),
+                        cashDiv: headers.findIndex(h => h.includes("現金股利")),
+                        stockDiv: headers.findIndex(h => h.includes("股票股利")),
+                        status: headers.findIndex(h => h.includes("值得買")),
+                        fair: headers.findIndex(h => h.includes("合理價")),
+                        cheap: headers.findIndex(h => h.includes("便宜價")),
+                        shares: sharesIdx,
+                        cashDivAmt: headers.findIndex(h => h.includes("除息領")),
+                        stockDivAmt: headers.findIndex(h => h.includes("除權領")),
+                        category: headers.findIndex(h => h.includes("類別")),
+                        high: headers.findIndex(h => h.includes("最高價")),
+                        sheetMV: headers.findIndex(h => h === "市值" || h.includes("目前市值"))
+                    };
+                    startRow = r + 1;
+                    break;
+                }
+            }
+
+            const getVal = (cols, colIndex) => (colIndex >= 0 && colIndex < cols.length ? cols[colIndex] : "");
+            const parsed = [];
+
+            for (let i = startRow; i < rows.length; i++) {
+                const cols = rows[i];
+                if (!cols || cols.length < 3) continue;
+
+                const code = String(getVal(cols, idx.code) || "").trim();
+                const name = String(getVal(cols, idx.name) || "").trim();
+
+                if (!name || name === "股票名稱" || name === "總計" || name === "合計") continue;
+
+                const price = parseNumber(getVal(cols, idx.price));
+                if (price <= 0) continue;
+
+                const pe = parseNumber(getVal(cols, idx.pe)) || null;
+                const eps = parseNumber(getVal(cols, idx.eps)) || null;
+                const cashDiv = parseNumber(getVal(cols, idx.cashDiv));
+                const stockDiv = parseNumber(getVal(cols, idx.stockDiv));
+                const status = String(getVal(cols, idx.status) || "").trim();
+                const fair = parseNumber(getVal(cols, idx.fair));
+                const cheap = parseNumber(getVal(cols, idx.cheap));
+                const shares = parseNumber(getVal(cols, idx.shares));
+                const explicitCashDiv = parseNumber(getVal(cols, idx.cashDivAmt));
+                const explicitStockDiv = parseNumber(getVal(cols, idx.stockDivAmt));
+                const category = String(getVal(cols, idx.category) || "").trim() || "其他";
+                const high = parseNumber(getVal(cols, idx.high));
+                const sheetMV = parseNumber(getVal(cols, idx.sheetMV));
+
+                const isUS = !code || /^[A-Za-z]+$/.test(code) || ["VT", "VOO", "QQQ", "SMH", "XLG"].includes(name.toUpperCase());
+
+                parsed.push({
+                    code,
+                    name,
+                    category,
+                    price,
+                    pe,
+                    eps,
+                    cashDiv,
+                    stockDiv,
+                    status,
+                    fair,
+                    cheap,
+                    shares,
+                    high,
+                    explicitMV: isUS && sheetMV > 0 ? sheetMV : undefined,
+                    explicitCashDiv: explicitCashDiv > 0 ? explicitCashDiv : undefined,
+                    explicitStockDiv: explicitStockDiv > 0 ? explicitStockDiv : undefined
+                });
+            }
+            return parsed;
+        }
+
+        function importFromTSV() {
+            const rawText = document.getElementById("pasteTsvArea").value;
+            if (!rawText.trim()) {
+                showToast("請先貼上 Google Sheet 資料！", false);
+                return;
+            }
+            const rows = rawText.split(/\r?\n/).map(line => line.split("\t"));
+            const parsed = parseSheetRows(rows);
+
+            if (parsed.length === 0) {
+                showToast("無法解析有效資料，請確認複製範圍包含標題列、股票名稱與成交價", false);
+                return;
+            }
+
+            rawStocks = parsed;
+            localStorage.setItem("portfolio_stocks_data", JSON.stringify(rawStocks));
+            const nowStr = new Date().toLocaleString("zh-TW");
+            localStorage.setItem("portfolio_last_sync", nowStr);
+            document.getElementById("lastSyncLabel").textContent = `資料狀態：手動同步於 ${nowStr}`;
+
+            recalculateAll();
+            closeSyncModal();
+            const holdingCount = parsed.filter(s => s.shares > 0).length;
+            showToast(`成功匯入 ${parsed.length} 筆資料（含 ${holdingCount} 檔持股）！`);
+        }
+
+        async function saveAndFetchGas() {
+            const url = document.getElementById("gasUrlInput").value.trim();
+            if (!url) {
+                showToast("請輸入有效的 Google Apps Script 網址", false);
+                return;
+            }
+            localStorage.setItem("portfolio_gas_url", url);
+            document.getElementById("quickSyncBtn").classList.remove("hidden");
+            await quickCloudSync();
+            closeSyncModal();
+        }
+
+        async function quickCloudSync() {
+            const url = localStorage.getItem("portfolio_gas_url");
+            if (!url) {
+                openSyncModal();
+                return;
+            }
+            showToast("正在從 Google Sheet 雲端同步最新資料...");
+            try {
+                const res = await fetch(url);
+                const rows = await res.json();
+                const parsed = parseSheetRows(rows);
+                if (parsed.length > 0) {
+                    rawStocks = parsed;
+                    localStorage.setItem("portfolio_stocks_data", JSON.stringify(rawStocks));
+                    const nowStr = new Date().toLocaleString("zh-TW");
+                    localStorage.setItem("portfolio_last_sync", nowStr);
+                    document.getElementById("lastSyncLabel").textContent = `資料狀態：雲端同步於 ${nowStr}`;
+                    recalculateAll();
+                    const holdingCount = parsed.filter(s => s.shares > 0).length;
+                    showToast(`雲端同步成功！更新 ${parsed.length} 筆（目前持股 ${holdingCount} 檔）`);
+                } else {
+                    showToast("雲端回傳資料為空，請檢查工作表範圍", false);
+                }
+            } catch (err) {
+                console.error(err);
+                showToast("雲端同步失敗，請確認 Apps Script 權限是否設為「任何人」", false);
+            }
+        }
+
+        function copyGasCode() {
+            const code = document.getElementById("gasCodeBlock").innerText;
+            const textarea = document.createElement("textarea");
+            textarea.value = code;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            showToast("已複製 Apps Script 程式碼！");
+        }
+
+        function resetToDefaultData() {
+            localStorage.removeItem("portfolio_stocks_data");
+            localStorage.removeItem("portfolio_last_sync");
+            rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
+            document.getElementById("lastSyncLabel").textContent = "資料狀態：已載入初始資料";
+            recalculateAll();
+            closeSyncModal();
+            showToast("已還原為初始範例資料");
+        }
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(rawStocks, null, 2));
+            const dlAnchor = document.createElement("a");
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `portfolio_backup_${new Date().toISOString().slice(0,10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        function showToast(msg, success = true) {
+            const banner = document.getElementById("toastBanner");
+            const text = document.getElementById("toastText");
+            const icon = document.getElementById("toastIcon");
+            text.textContent = msg;
+            icon.textContent = success ? "✔" : "⚠";
+            icon.className = success ? "text-emerald-400" : "text-amber-400";
+
+            banner.classList.remove("translate-y-20", "opacity-0");
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                banner.classList.add("translate-y-20", "opacity-0");
+            }, 3200);
+        }
+    </script>
+
+    <!-- ========================================================= -->
+    <!-- Script 2: 每日投資紀錄邏輯 (Vue 3 + Firebase)              -->
+    <!-- ========================================================= -->
     <script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
     <script type="module">
         import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -231,6 +1298,7 @@
                 const currentUser = ref(null);
                 const isMenuOpen = ref(false);
                 const investmentData = ref([]); // Master data
+                const pendingDeleteId = ref(null);
                 const form = reactive({
                     date: dayjs().format('YYYY-MM-DD'),
                     marketValue: null,
@@ -242,7 +1310,7 @@
                 const activeRange = ref('All');
                 const customStartDate = ref('');
                 const customEndDate = ref('');
-                
+
                 let db, auth;
                 let investmentChart;
                 let unsubscribeInvestmentData = null;
@@ -261,7 +1329,7 @@
                                date.isBefore(dayjs(customEndDate.value).add(1, 'day'));
                     });
                 });
-                
+
                 function formatNumber(num) {
                     if (typeof num !== 'number') return '-';
                     return new Intl.NumberFormat('en-US').format(num);
@@ -272,7 +1340,7 @@
                     if (data.length === 0) {
                         return { totalProfitLoss: '-', totalBuySell: '-', latestMarketValue: '-', highestMarketValue: '-', returnRate: '-', returnRateClass: 'text-white', totalProfitLossClass: 'text-white', totalBuySellClass: 'text-white' };
                     }
-                    
+
                     const totalProfitLoss = data.reduce((acc, cur) => acc + cur.profitLoss, 0);
                     const totalBuySell = data.reduce((acc, cur) => acc + (cur.buySell || 0), 0);
                     const latestRecord = data[data.length - 1];
@@ -289,7 +1357,7 @@
                         const firstRecord = investmentData.value[0];
                         startingMarketValue = firstRecord.marketValue - firstRecord.profitLoss + (firstRecord.buySell * 10000);
                     }
-                    
+
                     if (startingMarketValue > 0) {
                         const rate = (totalProfitLoss / startingMarketValue) * 100;
                         returnRate = rate.toFixed(2) + '%';
@@ -315,7 +1383,7 @@
                     if (!ctx) return;
                     if (investmentChart) investmentChart.destroy();
                     if (filteredInvestmentData.value.length === 0) return;
-                    
+
                     const data = filteredInvestmentData.value;
                     const labels = data.map(d => d.date);
                     const marketValueData = data.map(d => d.marketValue);
@@ -343,7 +1411,12 @@
                         }
                     });
                 }
-                
+
+                // 供外部視圖切回時重新調整圖表尺寸
+                window.__resizeInvestmentChart = () => {
+                    if (investmentChart) investmentChart.resize();
+                };
+
                 watch(filteredInvestmentData, renderChart);
 
                 function setRange(range) {
@@ -355,7 +1428,7 @@
                     if (allData.length === 0 && range !== 'All') {
                         start = end;
                     } else {
-                         switch (range) {
+                        switch (range) {
                             case '1M': start = end.subtract(1, 'month'); break;
                             case '3M': start = end.subtract(3, 'months'); break;
                             case '6M': start = end.subtract(6, 'months'); break;
@@ -374,7 +1447,7 @@
 
                 async function handleAddRecord() {
                     if (!form.date || form.marketValue === null || form.profitLoss === null) {
-                        alert('請填寫所有必填欄位 (日期, 市值, 損益)');
+                        window.showToast('請填寫所有必填欄位 (日期, 市值, 損益)', false);
                         return;
                     }
                     const newRecord = {
@@ -391,21 +1464,28 @@
                         form.profitLoss = null;
                         form.buySell = null;
                         form.date = dayjs().format('YYYY-MM-DD');
+                        window.showToast('已新增投資紀錄');
                     } catch (error) {
                         console.error("Error adding document: ", error);
-                        alert('新增紀錄失敗，請稍後再試。');
+                        window.showToast('新增紀錄失敗，請稍後再試。', false);
                     }
                 }
 
-                async function deleteInvestmentRecord(id) {
-                    if (confirm('確定要刪除這筆投資紀錄嗎？')) {
-                        try {
-                            const docRef = doc(db, `users/${currentUser.value.uid}/investmentRecords`, id);
-                            await deleteDoc(docRef);
-                        } catch (error) {
-                            console.error("Error deleting document: ", error);
-                            alert('刪除失敗。');
-                        }
+                function requestDeleteRecord(id) {
+                    pendingDeleteId.value = id;
+                }
+
+                async function confirmDeleteRecord() {
+                    if (!pendingDeleteId.value) return;
+                    try {
+                        const docRef = doc(db, `users/${currentUser.value.uid}/investmentRecords`, pendingDeleteId.value);
+                        await deleteDoc(docRef);
+                        window.showToast('已刪除該筆投資紀錄');
+                    } catch (error) {
+                        console.error("Error deleting document: ", error);
+                        window.showToast('刪除失敗。', false);
+                    } finally {
+                        pendingDeleteId.value = null;
                     }
                 }
 
@@ -432,12 +1512,13 @@
                         });
                         investmentData.value = data;
                         if (activeRange.value === 'All') {
-                           setRange('All');
+                            setRange('All');
                         }
                     });
                 }
 
                 const toggleMenu = () => { isMenuOpen.value = !isMenuOpen.value; };
+                const openSummaryView = () => { window.switchView('summary'); };
 
                 onMounted(() => {
                     const firebaseConfig = {
@@ -466,10 +1547,11 @@
                 });
 
                 return {
-                    loading, currentUser, isMenuOpen, toggleMenu,
+                    loading, currentUser, isMenuOpen, toggleMenu, openSummaryView,
                     form, summary, activeRange, customStartDate, customEndDate,
-                    filteredInvestmentData, reversedFilteredData,
-                    handleAddRecord, deleteInvestmentRecord, setRange, setCustomRange, formatNumber
+                    filteredInvestmentData, reversedFilteredData, pendingDeleteId,
+                    handleAddRecord, requestDeleteRecord, confirmDeleteRecord,
+                    setRange, setCustomRange, formatNumber
                 };
             }
         });

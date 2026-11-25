@@ -397,15 +397,15 @@
 
             <!-- 2. 圖表分析區 -->
             <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
-                <!-- 類別佔比圓餅圖 -->
-                <div class="lg:col-span-5 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
+                <!-- 類別佔比圓餅圖 (FIRE 風格) -->
+                <div class="lg:col-span-5 p-5 rounded-2xl bg-white dark:bg-[#0B1930] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-3">
                         <div>
                             <h2 class="text-sm font-bold">資產類別配置佔比</h2>
                             <p class="text-xs text-slate-500 dark:text-slate-400">依持股「類別」動態加總市值比例</p>
                         </div>
                     </div>
-                    <div class="relative flex-1 min-h-[250px] flex items-center justify-center">
+                    <div class="relative flex-1 min-h-[320px] sm:min-h-[360px] flex items-center justify-center">
                         <canvas id="categoryChart"></canvas>
                     </div>
                 </div>
@@ -814,7 +814,7 @@
             const textColor = isDark ? "#cbd5e1" : "#475569";
             const gridColor = isDark ? "rgba(148, 163, 184, 0.1)" : "rgba(148, 163, 184, 0.2)";
 
-            // 1. 類別配置甜甜圈圖
+            // 1. 類別配置甜甜圈圖 (FIRE 範本風格：內嵌標籤 + 中央 FIRE 標誌)
             const catMap = {};
             holdings.forEach(s => {
                 const c = s.category || "其他";
@@ -822,10 +822,108 @@
             });
             const sortedCats = Object.entries(catMap).sort((a, b) => b[1] - a[1]);
 
+            // 參考範本的高對比鮮明配色（綠、橘、藍、金黃、青、紫...）
             const palette = [
-                "#10b981", "#3b82f6", "#f59e0b", "#8b5cf6", "#ec4899",
-                "#06b6d4", "#f97316", "#6366f1", "#14b8a6", "#84cc16"
+                "#22B14C", "#F97316", "#1D7DFA", "#EAB308", "#06B6D4",
+                "#8B5CF6", "#EC4899", "#14B8A6", "#6366F1", "#84CC16"
             ];
+
+            // 判斷背景色明暗，自動切換區塊內文字為深色或白色
+            const isLightColor = (hex) => {
+                const c = hex.replace("#", "");
+                const r = parseInt(c.substr(0, 2), 16);
+                const g = parseInt(c.substr(2, 2), 16);
+                const b = parseInt(c.substr(4, 2), 16);
+                return (r * 299 + g * 587 + b * 114) / 1000 > 165;
+            };
+
+            // 自訂 Chart.js 外掛：繪製中央 FIRE 內環與區塊內文字
+            const fireDoughnutPlugin = {
+                id: "fireDoughnutPlugin",
+                afterDatasetsDraw(chart) {
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data || meta.data.length === 0) return;
+
+                    const { ctx } = chart;
+                    const firstArc = meta.data[0];
+                    const centerX = firstArc.x;
+                    const centerY = firstArc.y;
+                    const innerRadius = firstArc.innerRadius;
+                    const outerRadius = firstArc.outerRadius;
+                    const ringThickness = outerRadius - innerRadius;
+
+                    ctx.save();
+
+                    // A. 繪製中央深藍底圓與橘色發光內環
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = "#0B1930";
+                    ctx.fill();
+
+                    const ringWidth = Math.max(2, innerRadius * 0.04);
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, Math.max(0, innerRadius - ringWidth / 2 - 1), 0, Math.PI * 2);
+                    ctx.strokeStyle = "#F59E0B";
+                    ctx.lineWidth = ringWidth;
+                    ctx.stroke();
+
+                    // B. 繪製中央漸層 "FIRE" 字樣與副標
+                    const fireSize = Math.max(18, Math.round(innerRadius * 0.56));
+                    const subSize = Math.max(8, Math.round(innerRadius * 0.135));
+
+                    const fireGrad = ctx.createLinearGradient(
+                        centerX, centerY - fireSize * 0.6,
+                        centerX, centerY + fireSize * 0.3
+                    );
+                    fireGrad.addColorStop(0, "#FDE047");
+                    fireGrad.addColorStop(0.5, "#FB923C");
+                    fireGrad.addColorStop(1, "#EA580C");
+
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.font = `800 ${fireSize}px 'Inter', sans-serif`;
+                    ctx.fillStyle = fireGrad;
+                    ctx.fillText("FIRE", centerX, centerY - innerRadius * 0.08);
+
+                    ctx.font = `500 ${subSize}px 'Inter', sans-serif`;
+                    ctx.fillStyle = "#93B4E8";
+                    ctx.fillText("Financial Independence", centerX, centerY + innerRadius * 0.30);
+                    ctx.fillText("Retire Early", centerX, centerY + innerRadius * 0.48);
+
+                    // C. 繪製各區塊內的類別名稱與佔比（小於 6.5% 的過小區塊略過不顯示）
+                    const nameSize = Math.max(10, Math.min(13, Math.round(ringThickness * 0.20)));
+                    const pctSize = Math.max(12, Math.min(17, Math.round(ringThickness * 0.27)));
+
+                    meta.data.forEach((arc, index) => {
+                        const [catName, val] = sortedCats[index];
+                        const pct = totalMV > 0 ? (val / totalMV) * 100 : 0;
+                        const angleSpan = arc.endAngle - arc.startAngle;
+
+                        // 格子太小（佔比低於 6.5% 或角度太窄）就不畫文字，避免擁擠重疊
+                        if (pct < 6.5 || angleSpan < 0.38) return;
+
+                        const midAngle = (arc.startAngle + arc.endAngle) / 2;
+                        const midRadius = innerRadius + ringThickness * 0.52;
+                        const x = centerX + Math.cos(midAngle) * midRadius;
+                        const y = centerY + Math.sin(midAngle) * midRadius;
+
+                        const bgHex = palette[index % palette.length];
+                        const labelColor = isLightColor(bgHex) ? "#1E293B" : "#FFFFFF";
+
+                        // 若類別名稱太長則略微精簡
+                        const displayName = catName.length > 6 ? catName.slice(0, 6) : catName;
+
+                        ctx.fillStyle = labelColor;
+                        ctx.font = `700 ${nameSize}px 'Noto Sans TC', 'Inter', sans-serif`;
+                        ctx.fillText(displayName, x, y - pctSize * 0.45);
+
+                        ctx.font = `800 ${pctSize}px 'Inter', sans-serif`;
+                        ctx.fillText(`${pct.toFixed(1)}%`, x, y + nameSize * 0.62);
+                    });
+
+                    ctx.restore();
+                }
+            };
 
             if (categoryChartInstance) categoryChartInstance.destroy();
             const ctxCat = document.getElementById("categoryChart").getContext("2d");
@@ -835,28 +933,38 @@
                     labels: sortedCats.map(([cat, val]) => `${cat} (${totalMV > 0 ? ((val / totalMV) * 100).toFixed(1) : "0.0"}%)`),
                     datasets: [{
                         data: sortedCats.map(([, val]) => val),
-                        backgroundColor: palette,
-                        borderWidth: isDark ? 2 : 1,
-                        borderColor: isDark ? "#0f172a" : "#ffffff"
+                        backgroundColor: sortedCats.map((_, idx) => palette[idx % palette.length]),
+                        borderWidth: 0,
+                        hoverOffset: 6
                     }]
                 },
+                plugins: [fireDoughnutPlugin],
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: "62%",
+                    cutout: "53%",
+                    layout: {
+                        padding: 6
+                    },
                     plugins: {
                         legend: {
-                            position: "right",
+                            position: "bottom",
                             labels: {
                                 color: textColor,
                                 font: { size: 11, family: "Inter, Noto Sans TC" },
-                                boxWidth: 12,
-                                padding: 10
+                                boxWidth: 10,
+                                padding: 10,
+                                usePointStyle: true,
+                                pointStyle: "circle"
                             }
                         },
                         tooltip: {
                             callbacks: {
-                                label: (ctx) => ` $${Number(ctx.raw).toLocaleString()}`
+                                label: (ctx) => {
+                                    const val = Number(ctx.raw);
+                                    const pct = totalMV > 0 ? ((val / totalMV) * 100).toFixed(1) : "0.0";
+                                    return ` $${val.toLocaleString()} (${pct}%)`;
+                                }
                             }
                         }
                     }

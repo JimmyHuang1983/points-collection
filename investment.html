@@ -683,6 +683,31 @@
                 }
             }
         }
+
+        // 初始化持股總覽資料（優先讀取本機快取，否則載入內建初始資料）
+        function initSummaryData() {
+            const savedData = localStorage.getItem("portfolio_stocks_data");
+            const savedSyncTime = localStorage.getItem("portfolio_last_sync");
+            const savedGasUrl = localStorage.getItem("portfolio_gas_url");
+
+            if (savedData) {
+                try {
+                    rawStocks = JSON.parse(savedData);
+                    if (savedSyncTime) {
+                        document.getElementById("lastSyncLabel").textContent = `資料狀態：已同步於 ${savedSyncTime}`;
+                    }
+                } catch {
+                    rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
+                }
+            } else {
+                rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
+            }
+
+            if (savedGasUrl) {
+                document.getElementById("quickSyncBtn").classList.remove("hidden");
+            }
+        }
+
         async function quickCloudSync(isAuto = false) {
             const url = localStorage.getItem("portfolio_gas_url");
             if (!url) {
@@ -1260,7 +1285,9 @@
                 if (!name || name === "股票名稱" || name === "總計" || name === "合計") continue;
 
                 const price = parseNumber(getVal(cols, idx.price));
-                if (price <= 0) continue;
+                const shares = parseNumber(getVal(cols, idx.shares));
+                // 只有在「沒有成交價」且「也沒有庫存」時才略過，避免有持股的標的因股價暫時 #N/A 而消失
+                if (price <= 0 && shares <= 0) continue;
 
                 const pe = parseNumber(getVal(cols, idx.pe)) || null;
                 const eps = parseNumber(getVal(cols, idx.eps)) || null;
@@ -1269,7 +1296,6 @@
                 const status = String(getVal(cols, idx.status) || "").trim();
                 const fair = parseNumber(getVal(cols, idx.fair));
                 const cheap = parseNumber(getVal(cols, idx.cheap));
-                const shares = parseNumber(getVal(cols, idx.shares));
                 const explicitCashDiv = parseNumber(getVal(cols, idx.cashDivAmt));
                 const explicitStockDiv = parseNumber(getVal(cols, idx.stockDivAmt));
                 const category = String(getVal(cols, idx.category) || "").trim() || "其他";
@@ -1292,7 +1318,7 @@
                     cheap,
                     shares,
                     high,
-                    explicitMV: isUS && sheetMV > 0 ? sheetMV : undefined,
+                    explicitMV: (isUS || price <= 0) && sheetMV > 0 ? sheetMV : undefined,
                     explicitCashDiv: explicitCashDiv > 0 ? explicitCashDiv : undefined,
                     explicitStockDiv: explicitStockDiv > 0 ? explicitStockDiv : undefined
                 });
@@ -1336,35 +1362,6 @@
             document.getElementById("quickSyncBtn").classList.remove("hidden");
             await quickCloudSync();
             closeSyncModal();
-        }
-
-        async function quickCloudSync() {
-            const url = localStorage.getItem("portfolio_gas_url");
-            if (!url) {
-                openSyncModal();
-                return;
-            }
-            showToast("正在從 Google Sheet 雲端同步最新資料...");
-            try {
-                const res = await fetch(url);
-                const rows = await res.json();
-                const parsed = parseSheetRows(rows);
-                if (parsed.length > 0) {
-                    rawStocks = parsed;
-                    localStorage.setItem("portfolio_stocks_data", JSON.stringify(rawStocks));
-                    const nowStr = new Date().toLocaleString("zh-TW");
-                    localStorage.setItem("portfolio_last_sync", nowStr);
-                    document.getElementById("lastSyncLabel").textContent = `資料狀態：雲端同步於 ${nowStr}`;
-                    recalculateAll();
-                    const holdingCount = parsed.filter(s => s.shares > 0).length;
-                    showToast(`雲端同步成功！更新 ${parsed.length} 筆（目前持股 ${holdingCount} 檔）`);
-                } else {
-                    showToast("雲端回傳資料為空，請檢查工作表範圍", false);
-                }
-            } catch (err) {
-                console.error(err);
-                showToast("雲端同步失敗，請確認 Apps Script 權限是否設為「任何人」", false);
-            }
         }
 
         function copyGasCode() {

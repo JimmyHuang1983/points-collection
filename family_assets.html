@@ -1,0 +1,1546 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA Manifest 與主畫面圖示設定 -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>家庭資產監控儀表板 | Family Assets</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Chart.js -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <!-- Google Fonts: Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        /* 側邊選單過渡動畫 */
+        #sideMenuOverlay {
+            transition: opacity 0.25s ease;
+        }
+        #sideMenuDrawer {
+            transition: transform 0.25s ease;
+        }
+        /* 自訂捲軸樣式 */
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 min-h-screen">
+
+    <!-- 側邊選單遮罩 -->
+    <div id="sideMenuOverlay" onclick="toggleSideMenu()" class="fixed inset-0 bg-black/60 z-40 hidden opacity-0"></div>
+
+    <!-- 側邊選單（與其他 PWA 頁面一致） -->
+    <aside id="sideMenuDrawer" class="fixed top-0 left-0 h-full w-64 bg-gray-800 text-gray-200 shadow-2xl z-50 p-6 -translate-x-full">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-white">功能選單</h2>
+            <button onclick="toggleSideMenu()" class="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition">
+                <ion-icon name="close-outline" class="text-2xl align-middle"></ion-icon>
+            </button>
+        </div>
+        <nav>
+            <ul class="space-y-2">
+                <li>
+                    <a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                        親子集點
+                    </a>
+                </li>
+                <li>
+                    <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                        投資紀錄
+                    </a>
+                </li>
+                <li>
+                    <a href="family_assets.html" class="flex items-center gap-3 text-lg text-emerald-400 font-semibold py-2">
+                        <ion-icon name="wallet-outline" class="text-2xl"></ion-icon>
+                        家庭資產
+                    </a>
+                </li>
+                <li>
+                    <a href="study_plan.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="school-outline" class="text-2xl"></ion-icon>
+                        段考複習
+                    </a>
+                </li>
+                <li>
+                    <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                        體重管理
+                    </a>
+                </li>
+                <li>
+                    <a href="fitness.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="barbell-outline" class="text-2xl"></ion-icon>
+                        健身紀錄
+                    </a>
+                </li>
+                <li>
+                    <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                        匯率換算
+                    </a>
+                </li>
+                <li>
+                    <a href="book_list.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="book-outline" class="text-2xl"></ion-icon>
+                        閱讀書單
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- 頂部導覽列 -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 h-16 flex items-center justify-between gap-2 sm:gap-3">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <!-- 漢堡選單按鈕 -->
+                <button onclick="toggleSideMenu()" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition shrink-0 cursor-pointer" title="開啟功能選單">
+                    <ion-icon name="menu-outline" class="text-2xl align-middle"></ion-icon>
+                </button>
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-cyan-600 hidden sm:flex items-center justify-center text-white font-bold shadow-lg shadow-emerald-500/20 shrink-0">
+                    <ion-icon name="wallet-outline" class="text-xl"></ion-icon>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-lg font-bold tracking-tight truncate">家庭資產監控儀表板</h1>
+                    <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400 hidden sm:block truncate" id="lastSyncLabel">資料狀態：已載入內建資產資料</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 sm:gap-2.5 shrink-0">
+                <!-- 一鍵雲端同步快捷鍵 -->
+                <button onclick="quickCloudSync(false)" id="quickSyncBtn" class="hidden inline-flex items-center gap-1.5 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer" title="一鍵雲端同步">
+                    <svg class="w-4 h-4 text-emerald-500" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                    </svg>
+                    <span class="hidden md:inline">一鍵雲端同步</span>
+                </button>
+
+                <!-- 同步資料按鈕 -->
+                <button onclick="openSyncModal()" class="inline-flex items-center gap-1.5 px-3 sm:px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition cursor-pointer">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12" />
+                    </svg>
+                    <span>同步資料</span>
+                </button>
+
+                <!-- 深淺色模式切換 -->
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer" title="切換深淺主題">
+                    <svg class="w-5 h-5 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <svg class="w-5 h-5 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區塊 -->
+    <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
+
+        <!-- 0. 成員多選器 & 月份回溯控制列 -->
+        <section class="p-3.5 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div class="space-y-1.5">
+                <div class="flex items-center gap-2">
+                    <span class="text-xs font-bold text-slate-600 dark:text-slate-300">選擇帳戶主人</span>
+                    <span class="text-[11px] text-slate-400">（可單選或多選任意組合）</span>
+                </div>
+                <div class="flex flex-wrap items-center gap-1.5 sm:gap-2" id="ownerFilterBar">
+                    <!-- 由 JS 動態生成：全家 + 各成員按鈕 -->
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between md:justify-end gap-2 pt-2 md:pt-0 border-t md:border-t-0 border-slate-100 dark:border-slate-800">
+                <label for="monthSelector" class="text-xs font-medium text-slate-500 dark:text-slate-400 whitespace-nowrap">檢視月份：</label>
+                <select id="monthSelector" onchange="onMonthChange()" class="px-3 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-slate-100 dark:bg-slate-800 text-slate-800 dark:text-slate-100 border-none focus:ring-2 focus:ring-emerald-500 cursor-pointer">
+                    <!-- 由 JS 動態生成 -->
+                </select>
+            </div>
+        </section>
+
+        <!-- 1. 核心 KPI 總覽卡片 (手機 2x2 緊湊排列 / 電腦 4 欄) -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <!-- 所選總資產 -->
+            <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate" id="kpiTotalLabel">全家總資產 (TWD)</span>
+                    <span class="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                        <ion-icon name="cash-outline" class="text-base sm:text-lg block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white truncate" id="kpiTotalAssets">-</div>
+                <div class="mt-1.5 space-y-0.5 text-[10px] sm:text-xs">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-slate-400 shrink-0">較上月</span>
+                        <span id="kpiMoM" class="font-semibold truncate">-</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-slate-400 shrink-0">較去年</span>
+                        <span id="kpiYoY" class="font-semibold truncate">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 可用現金（活錢） -->
+            <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">可用現金 (活錢)</span>
+                    <span class="p-1 sm:p-1.5 rounded-lg bg-cyan-500/10 text-cyan-500 shrink-0">
+                        <ion-icon name="water-outline" class="text-base sm:text-lg block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-cyan-600 dark:text-cyan-400 truncate" id="kpiCashTotal">-</div>
+                <div class="mt-1.5 space-y-0.5 text-[10px] sm:text-xs">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-slate-400 shrink-0">現金佔比</span>
+                        <span id="kpiCashRatio" class="font-semibold text-slate-600 dark:text-slate-300">-</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-slate-400 shrink-0">較上月</span>
+                        <span id="kpiCashMoM" class="font-semibold truncate">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 投資現值 -->
+            <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">投資現值 (市場部位)</span>
+                    <span class="p-1 sm:p-1.5 rounded-lg bg-orange-500/10 text-orange-500 shrink-0">
+                        <ion-icon name="trending-up-outline" class="text-base sm:text-lg block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-orange-500 dark:text-orange-400 truncate" id="kpiInvestTotal">-</div>
+                <div class="mt-1.5 space-y-0.5 text-[10px] sm:text-xs">
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-slate-400 shrink-0">較上月</span>
+                        <span id="kpiInvestMoM" class="font-semibold truncate">-</span>
+                    </div>
+                    <div class="flex items-center justify-between gap-1">
+                        <span class="text-slate-400 shrink-0">較去年</span>
+                        <span id="kpiInvestYoY" class="font-semibold truncate">-</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 投資佔比 -->
+            <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">投資佔比 (%)</span>
+                    <span class="p-1 sm:p-1.5 rounded-lg bg-purple-500/10 text-purple-500 shrink-0">
+                        <ion-icon name="pie-chart-outline" class="text-base sm:text-lg block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-purple-600 dark:text-purple-400 truncate" id="kpiInvestRatio">-</div>
+                <div class="mt-2 space-y-1">
+                    <div class="w-full h-2 rounded-full bg-cyan-500/30 overflow-hidden">
+                        <div id="kpiInvestBar" class="h-full bg-gradient-to-r from-orange-500 to-amber-400 rounded-full transition-all duration-300" style="width: 0%;"></div>
+                    </div>
+                    <div class="flex justify-between text-[10px] text-slate-400">
+                        <span>投資部位</span>
+                        <span>現金活錢</span>
+                    </div>
+                </div>
+            </div>
+        </section>
+
+        <!-- 2. 圖表分析區：左側 FIRE 風格圓環圖 + 右側長期資產趨勢圖 -->
+        <section class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
+            <!-- FIRE 風格資產配置圓環圖 -->
+            <div class="lg:col-span-5 p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-[#0B1930] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                <div class="flex flex-wrap items-center justify-between gap-2 mb-2 sm:mb-3">
+                    <div>
+                        <h2 class="text-sm font-bold">資產配置圓環圖</h2>
+                        <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400" id="pieSubtitle">依所選成員動態統計</p>
+                    </div>
+                    <!-- 一鍵切換圓餅圖維度 -->
+                    <div class="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800/90 text-[11px]">
+                        <button onclick="setPieMode('category')" id="btnPieCategory" class="px-2 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">現金/投資</button>
+                        <button onclick="setPieMode('owner')" id="btnPieOwner" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">成員</button>
+                        <button onclick="setPieMode('account')" id="btnPieAccount" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">帳戶</button>
+                    </div>
+                </div>
+                <div class="relative flex-1 min-h-[370px] sm:min-h-[410px] flex items-center justify-center">
+                    <canvas id="assetPieChart"></canvas>
+                </div>
+            </div>
+
+            <!-- 長期資產趨勢圖 -->
+            <div class="lg:col-span-7 p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 mb-3 sm:mb-4">
+                    <div>
+                        <h2 class="text-sm font-bold">長期資產成長趨勢</h2>
+                        <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400" id="trendSubtitle">追蹤現金與投資的長期累積軌跡</p>
+                    </div>
+                    <div class="flex flex-wrap items-center gap-1.5">
+                        <!-- 趨勢圖視角切換 -->
+                        <div class="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px]">
+                            <button onclick="setTrendMode('stacked')" id="btnTrendStacked" class="px-2 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">現金+投資</button>
+                            <button onclick="setTrendMode('owners')" id="btnTrendOwners" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">各成員</button>
+                            <button onclick="setTrendMode('total')" id="btnTrendTotal" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition">總資產</button>
+                        </div>
+                        <!-- 時間區間切換 -->
+                        <div class="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-[11px]">
+                            <button onclick="setTrendRange('1Y')" id="btnRange1Y" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 transition">1年</button>
+                            <button onclick="setTrendRange('3Y')" id="btnRange3Y" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 transition">3年</button>
+                            <button onclick="setTrendRange('5Y')" id="btnRange5Y" class="px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 transition">5年</button>
+                            <button onclick="setTrendRange('ALL')" id="btnRangeALL" class="px-2 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">全部</button>
+                        </div>
+                    </div>
+                </div>
+                <div class="relative flex-1 min-h-[290px] sm:min-h-[350px]">
+                    <canvas id="assetTrendChart"></canvas>
+                </div>
+            </div>
+        </section>
+
+        <!-- 3. 成員快速對照卡片列（多人時顯示，方便一眼比較各人資產與活錢） -->
+        <section id="memberSummarySection" class="space-y-2.5">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-sm font-bold text-slate-700 dark:text-slate-200">各成員資產快照（點擊卡片快速切換篩選）</h2>
+                <span class="text-[11px] text-slate-400" id="memberSnapshotMonth"></span>
+            </div>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-3" id="memberCardsGrid">
+                <!-- 由 JS 動態生成 -->
+            </div>
+        </section>
+
+        <!-- 4. 帳戶明細表格 -->
+        <section class="rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm overflow-hidden">
+            <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div class="flex items-center gap-2 flex-wrap">
+                    <h2 class="text-sm sm:text-base font-bold">帳戶明細</h2>
+                    <!-- 類別篩選 -->
+                    <div class="inline-flex p-0.5 rounded-lg bg-slate-100 dark:bg-slate-800 text-xs">
+                        <button onclick="setTableCatFilter('ALL')" id="btnCatAll" class="px-2.5 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition">全部</button>
+                        <button onclick="setTableCatFilter('現金')" id="btnCatCash" class="px-2.5 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 transition">現金</button>
+                        <button onclick="setTableCatFilter('投資')" id="btnCatInvest" class="px-2.5 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 transition">投資</button>
+                    </div>
+                </div>
+
+                <div class="flex items-center gap-3">
+                    <!-- 隱藏歸零帳戶開關 -->
+                    <label class="inline-flex items-center gap-2 text-xs text-slate-600 dark:text-slate-300 cursor-pointer select-none">
+                        <input type="checkbox" id="hideZeroCheckbox" checked onchange="renderTable()" class="rounded border-slate-300 dark:border-slate-600 text-emerald-600 focus:ring-emerald-500 bg-slate-100 dark:bg-slate-800" />
+                        <span>隱藏歸零帳戶</span>
+                    </label>
+                </div>
+            </div>
+
+            <div class="overflow-x-auto">
+                <table class="w-full text-left border-collapse">
+                    <thead>
+                        <tr class="border-b border-slate-200 dark:border-slate-800 bg-slate-50/70 dark:bg-slate-950/50 text-[11px] sm:text-xs font-semibold text-slate-500 dark:text-slate-400 uppercase tracking-wider">
+                            <th class="py-3 px-4">帳戶名稱</th>
+                            <th class="py-3 px-3">主人</th>
+                            <th class="py-3 px-3">類別</th>
+                            <th class="py-3 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortTable('value')">當月餘額 ↕</th>
+                            <th class="py-3 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortTable('weight')">佔比 ↕</th>
+                            <th class="py-3 px-3 text-right cursor-pointer hover:text-emerald-500" onclick="sortTable('momDiff')">較上月增減 ↕</th>
+                            <th class="py-3 px-4 text-right cursor-pointer hover:text-emerald-500" onclick="sortTable('yoyDiff')">較去年同期 ↕</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountsTableBody" class="divide-y divide-slate-100 dark:divide-slate-800/70 text-xs sm:text-sm">
+                        <!-- 由 JS 動態渲染 -->
+                    </tbody>
+                </table>
+            </div>
+        </section>
+    </main>
+
+    <!-- 同步 Google Sheet 資料 Modal -->
+    <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/70 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold">同步 Google Sheet 家庭資產資料</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">支援自動抓到最新新增月份，完整匯入 14 年歷史資產曲線</p>
+                </div>
+                <button onclick="closeSyncModal()" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                </button>
+            </div>
+
+            <div class="p-5 space-y-6">
+                <!-- 方式一：Google Apps Script 自動雲端連線（最推薦） -->
+                <div class="space-y-2.5">
+                    <label class="text-sm font-bold text-blue-600 dark:text-blue-400 block">方式一：綁定 Google Apps Script 網址（推薦，打開自動同步最新月份）</label>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">將部署好的家庭資產 GAS 網頁應用程式網址貼在這裡（之後每次開啟頁面會自動在背景同步）：</p>
+                    <div class="flex gap-2">
+                        <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/..../exec" class="flex-1 px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-blue-500" />
+                        <button onclick="saveAndFetchGas()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white whitespace-nowrap transition cursor-pointer">
+                            儲存並立即同步
+                        </button>
+                    </div>
+                    <details class="text-xs bg-slate-50 dark:bg-slate-950 rounded-xl p-3 border border-slate-200 dark:border-slate-800">
+                        <summary class="cursor-pointer font-medium text-slate-600 dark:text-slate-300">查看家庭資產專用 Google Apps Script 程式碼（點此展開與複製）</summary>
+                        <div class="mt-2">
+                            <pre id="gasCodeBlock" class="p-3 rounded-lg bg-slate-900 text-slate-200 overflow-x-auto text-[11px] leading-relaxed">function doGet() {
+  var ss = SpreadsheetApp.getActiveSpreadsheet();
+  // 若你的分頁名稱不是「家庭資產」，請將下方改成實際分頁名稱
+  var sheet = ss.getSheetByName("家庭資產") || ss.getActiveSheet();
+  var lastCol = sheet.getLastColumn();
+  var lastRow = Math.min(sheet.getLastRow(), 35);
+  var values = sheet.getRange(1, 2, lastRow, Math.max(1, lastCol - 1)).getDisplayValues();
+  return ContentService.createTextOutput(JSON.stringify(values))
+    .setMimeType(ContentService.MimeType.JSON);
+}</pre>
+                            <button onclick="copyGasCode()" class="mt-2 px-3 py-1.5 rounded-lg bg-slate-200 dark:bg-slate-800 hover:bg-slate-300 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 text-xs font-medium cursor-pointer">
+                                複製程式碼
+                            </button>
+                        </div>
+                    </details>
+                </div>
+
+                <hr class="border-slate-200 dark:border-slate-800" />
+
+                <!-- 方式二：直接貼上 Google Sheet 資料 -->
+                <div class="space-y-2.5">
+                    <label class="text-sm font-bold text-emerald-600 dark:text-emerald-400 block">方式二：從 Google Sheet 複製貼上（免設定）</label>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">選取工作表範圍（例如 <code class="px-1.5 py-0.5 rounded bg-slate-100 dark:bg-slate-800">B1:FP31</code>）複製後貼到下方，系統會自動辨識年份、月份、主人與類別。</p>
+                    <textarea id="pasteTsvArea" rows="5" placeholder="在此貼上從 Google Sheet 複製的儲存格內容..." class="w-full p-3 rounded-xl text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 focus:ring-2 focus:ring-emerald-500"></textarea>
+                    <div class="flex justify-end">
+                        <button onclick="importFromTSV()" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white transition cursor-pointer">
+                            解析貼上資料並更新
+                        </button>
+                    </div>
+                </div>
+
+                <hr class="border-slate-200 dark:border-slate-800" />
+
+                <!-- 方式三：還原與匯出 -->
+                <div class="flex flex-wrap items-center justify-between gap-2 pt-1">
+                    <button onclick="resetToDefaultData()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer">
+                        還原內建初始資料
+                    </button>
+                    <button onclick="exportJSON()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer">
+                        匯出目前資料 (JSON)
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全域提示訊息條 -->
+    <div id="toastBanner" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-sm font-medium shadow-xl border border-slate-700 flex items-center gap-2.5">
+            <span id="toastIcon" class="text-emerald-400">✔</span>
+            <span id="toastText">已更新資料</span>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 內建初始資料（近期 14 個月真實快照：114/09 ~ 115/10）
+        //    綁定 GAS 後會自動載入完整 14 年（101/12 ~ 最新月份）歷史軌跡
+        // ==========================================
+        const DEFAULT_DATASET = {
+            months: [
+                "114/09", "114/10", "114/11", "114/12",
+                "115/01", "115/02", "115/03", "115/04",
+                "115/05", "115/06", "115/07", "115/08",
+                "115/09", "115/10"
+            ],
+            accounts: [
+                { name: "中國信託", owner: "文", category: "現金", values: [10000, 10000, 10000, 77472, 149363, 143164, 215055, 314946, 278286, 430008, 504032, 510213, 600560, 589468] },
+                { name: "台新銀行(芯)", owner: "芯", category: "現金", values: [5154124, 5312518, 5327152, 5342038, 5420118, 5477670, 5267068, 5309953, 5390733, 5314898, 5247828, 5259699, 5033913, 5098782] },
+                { name: "台新銀行(文)", owner: "文", category: "現金", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: "復華基金", owner: "文", category: "投資", values: [944667, 982756, 981643, 1012193, 1048722, 1057486, 1010007, 1115517, 1259650, 710875, 706500, 731497, 737588, 758629] },
+                { name: "彰化銀行", owner: "芯", category: "現金", values: [7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260, 7260] },
+                { name: "國泰世華", owner: "文", category: "現金", values: [2601632, 2999010, 2819209, 3031472, 2845664, 3446159, 3289092, 3682240, 4255659, 4135851, 4226357, 4709008, 5232255, 5043457] },
+                { name: "郵局(文)", owner: "文", category: "現金", values: [34945, 78947, 352502, 350952, 287440, 287040, 256244, 254972, 253318, 253666, 253666, 251343, 251343, 251343] },
+                { name: "郵局(芯)", owner: "媽媽", category: "現金", values: [829061, 829061, 829061, 829831, 839135, 839135, 839135, 839135, 839135, 839888, 839888, 839888, 839888, 841586] },
+                { name: "基金現值(文)", owner: "文", category: "投資", values: [0, 0, 0, 0, 10905, 22839, 34937, 60553, 70000, 99000, 254146, 341963, 372472, 329087] },
+                { name: "永豐銀行", owner: "文", category: "投資", values: [2506668, 2239695, 2223055, 2216585, 2150313, 2392142, 2411498, 2249679, 1124669, 2360292, 1110677, 1110677, 1111638, 706510] },
+                { name: "股票現值(凱基)", owner: "芯", category: "投資", values: [3504575, 2229915, 3587618, 3332067, 2991341, 2933049, 2573511, 2407277, 1522638, 3726569, 3128130, 4243569, 4097216, 2987479] },
+                { name: "手頭上(文)", owner: "文", category: "現金", values: [5000, 3000, 2000, 500, 1000, 1600, 2600, 2300, 100, 500, 4000, 3000, 4700, 0] },
+                { name: "手頭上(芯)", owner: "芯", category: "現金", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: "新光銀行(文)", owner: "文", category: "現金", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: "新光銀行(芯)", owner: "芯", category: "投資", values: [31470, 31470, 31470, 31527, 31527, 30672, 30672, 30672, 30672, 30783, 30783, 27136, 27136, 27679] },
+                { name: "新光銀行(美金)", owner: "芯", category: "投資", values: [870878, 881372, 901443, 903320, 904124, 896951, 916527, 923634, 934328, 934328, 948768, 935305, 935305, 900000] },
+                { name: "基金現值(芯)", owner: "芯", category: "投資", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] },
+                { name: "台新銀行(晴晴)", owner: "晴", category: "投資", values: [485313, 503819, 506480, 513834, 539486, 588888, 550684, 658031, 759875, 769742, 696544, 747414, 770601, 714959] },
+                { name: "台新銀行(菲菲)", owner: "菲", category: "投資", values: [497003, 521349, 523330, 532971, 567483, 629225, 582909, 714448, 833862, 845256, 754958, 817248, 843755, 776293] },
+                { name: "股票出借(芯)", owner: "芯", category: "投資", values: [2321080, 3515010, 2442470, 2531830, 2811800, 2444350, 2559750, 2701850, 4779550, 2583900, 3922430, 2729955, 2927000, 4417940] },
+                { name: "股票出借(文)", owner: "文", category: "投資", values: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0] }
+            ]
+        };
+
+        const OWNER_COLORS = {
+            "芯": "#22B14C",
+            "文": "#1D7DFA",
+            "媽媽": "#EAB308",
+            "晴": "#F97316",
+            "菲": "#8B5CF6"
+        };
+
+        const FALLBACK_PALETTE = [
+            "#22B14C", "#F97316", "#1D7DFA", "#EAB308", "#06B6D4",
+            "#8B5CF6", "#EC4899", "#14B8A6", "#6366F1", "#84CC16"
+        ];
+
+        // 全域狀態
+        let dataset = { months: [], accounts: [] };
+        let allOwners = [];
+        let selectedOwners = new Set(); // 空集合或全選代表「全家」
+        let selectedMonthIdx = 0;
+        let pieMode = "category"; // 'category' | 'owner' | 'account'
+        let trendMode = "stacked"; // 'stacked' | 'owners' | 'total'
+        let trendRange = "ALL"; // '1Y' | '3Y' | '5Y' | 'ALL'
+        let tableCatFilter = "ALL"; // 'ALL' | '現金' | '投資'
+        let tableSortField = "value";
+        let tableSortAsc = false;
+        let pieChartInstance = null;
+        let trendChartInstance = null;
+        let toastTimer = null;
+        let isCloudSyncing = false;
+
+        // ==========================================
+        // 2. 側邊選單與介面工具
+        // ==========================================
+        function toggleSideMenu() {
+            const overlay = document.getElementById("sideMenuOverlay");
+            const drawer = document.getElementById("sideMenuDrawer");
+            const isOpen = !drawer.classList.contains("-translate-x-full");
+
+            if (isOpen) {
+                drawer.classList.add("-translate-x-full");
+                overlay.classList.add("opacity-0");
+                setTimeout(() => overlay.classList.add("hidden"), 250);
+            } else {
+                overlay.classList.remove("hidden");
+                requestAnimationFrame(() => {
+                    overlay.classList.remove("opacity-0");
+                    drawer.classList.remove("-translate-x-full");
+                });
+            }
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle("dark");
+            renderAll();
+        }
+
+        function showToast(msg, success = true) {
+            const banner = document.getElementById("toastBanner");
+            const text = document.getElementById("toastText");
+            const icon = document.getElementById("toastIcon");
+            text.textContent = msg;
+            icon.textContent = success ? "✔" : "⚠";
+            icon.className = success ? "text-emerald-400" : "text-amber-400";
+
+            banner.classList.remove("translate-y-20", "opacity-0");
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => {
+                banner.classList.add("translate-y-20", "opacity-0");
+            }, 3200);
+        }
+
+        function formatMoney(val) {
+            return `$${Math.round(val).toLocaleString("en-US")}`;
+        }
+
+        function formatDelta(diff, prevVal) {
+            if (prevVal === null || prevVal === undefined) {
+                return { text: "無前期資料", cls: "text-slate-400" };
+            }
+            const sign = diff > 0 ? "+" : diff < 0 ? "-" : "";
+            const absDiff = Math.abs(Math.round(diff)).toLocaleString("en-US");
+            let pctStr = "";
+            if (prevVal > 0) {
+                const pct = (diff / prevVal) * 100;
+                pctStr = ` (${diff > 0 ? "+" : ""}${pct.toFixed(1)}%)`;
+            }
+            const cls = diff > 0
+                ? "text-emerald-600 dark:text-emerald-400"
+                : diff < 0
+                    ? "text-rose-500 dark:text-rose-400"
+                    : "text-slate-400";
+            return { text: `${sign}$${absDiff}${pctStr}`, cls };
+        }
+
+        // ==========================================
+        // 3. 資料初始化與成員/月份選單
+        // ==========================================
+        function loadDataset(newData, keepMonth = false) {
+            dataset = newData;
+            // 取得所有出現過的成員順序
+            const ownerOrder = ["文", "芯", "媽媽", "晴", "菲"];
+            const foundOwners = [...new Set(dataset.accounts.map(a => a.owner).filter(Boolean))];
+            allOwners = [
+                ...ownerOrder.filter(o => foundOwners.includes(o)),
+                ...foundOwners.filter(o => !ownerOrder.includes(o))
+            ];
+
+            // 預設全選（全家）
+            selectedOwners = new Set(allOwners);
+
+            // 更新月份下拉選單（由最新到最舊）
+            const selector = document.getElementById("monthSelector");
+            selector.innerHTML = dataset.months
+                .map((m, idx) => `<option value="${idx}">${m}</option>`)
+                .reverse()
+                .join("");
+
+            if (!keepMonth || selectedMonthIdx >= dataset.months.length) {
+                selectedMonthIdx = Math.max(0, dataset.months.length - 1);
+            }
+            selector.value = String(selectedMonthIdx);
+
+            renderOwnerBar();
+            renderAll();
+        }
+
+        function renderOwnerBar() {
+            const bar = document.getElementById("ownerFilterBar");
+            const isAllSelected = selectedOwners.size === allOwners.length;
+
+            const allBtn = `
+                <button onclick="selectAllOwners()" class="px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                    isAllSelected
+                        ? "bg-emerald-600 text-white shadow-sm shadow-emerald-600/30"
+                        : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                }">
+                    全家總計
+                </button>
+            `;
+
+            const ownerBtns = allOwners.map(owner => {
+                const active = selectedOwners.has(owner) && !isAllSelected;
+                const dotColor = OWNER_COLORS[owner] || "#10b981";
+                return `
+                    <button onclick="toggleOwner('${owner}')" class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs sm:text-sm font-semibold transition cursor-pointer ${
+                        active
+                            ? "bg-slate-900 dark:bg-white text-white dark:text-slate-900 shadow-sm ring-2 ring-emerald-500/60"
+                            : "bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 hover:bg-slate-200 dark:hover:bg-slate-700"
+                    }">
+                        <span class="w-2 h-2 rounded-full" style="background-color: ${dotColor};"></span>
+                        <span>${owner}</span>
+                    </button>
+                `;
+            }).join("");
+
+            bar.innerHTML = allBtn + ownerBtns;
+        }
+
+        function selectAllOwners() {
+            selectedOwners = new Set(allOwners);
+            renderOwnerBar();
+            renderAll();
+        }
+
+        function toggleOwner(owner) {
+            const isCurrentlyAll = selectedOwners.size === allOwners.length;
+            if (isCurrentlyAll) {
+                // 從「全家」點某一個人時，直接切換為單選該人（最直覺）
+                selectedOwners = new Set([owner]);
+            } else if (selectedOwners.has(owner)) {
+                selectedOwners.delete(owner);
+                // 若全部取消則回到「全家」
+                if (selectedOwners.size === 0) {
+                    selectedOwners = new Set(allOwners);
+                }
+            } else {
+                selectedOwners.add(owner);
+            }
+            renderOwnerBar();
+            renderAll();
+        }
+
+        function focusSingleOwner(owner) {
+            if (selectedOwners.size === 1 && selectedOwners.has(owner)) {
+                selectedOwners = new Set(allOwners);
+            } else {
+                selectedOwners = new Set([owner]);
+            }
+            renderOwnerBar();
+            renderAll();
+        }
+
+        function onMonthChange() {
+            selectedMonthIdx = parseInt(document.getElementById("monthSelector").value, 10);
+            renderAll();
+        }
+
+        function getSelectedTitle() {
+            if (selectedOwners.size === allOwners.length) return "全家";
+            return [...selectedOwners].join("＋");
+        }
+
+        // 計算指定月份與篩選條件的彙總數字
+        function getTotalsAtMonth(mIdx, ownerSet = selectedOwners) {
+            if (mIdx < 0 || mIdx >= dataset.months.length) return null;
+            let total = 0, cash = 0, invest = 0;
+            dataset.accounts.forEach(acc => {
+                if (!ownerSet.has(acc.owner)) return;
+                const val = Number(acc.values[mIdx]) || 0;
+                total += val;
+                if (acc.category === "投資") invest += val;
+                else cash += val;
+            });
+            return { total, cash, invest };
+        }
+
+        // ==========================================
+        // 4. 畫面渲染（KPI + 圓餅圖 + 趨勢圖 + 成員卡片 + 明細表）
+        // ==========================================
+        function renderAll() {
+            if (!dataset.months.length) return;
+            renderKPIs();
+            renderPieChart();
+            renderTrendChart();
+            renderMemberCards();
+            renderTable();
+        }
+
+        function renderKPIs() {
+            const title = getSelectedTitle();
+            const cur = getTotalsAtMonth(selectedMonthIdx);
+            const prevM = getTotalsAtMonth(selectedMonthIdx - 1);
+            const prevY = getTotalsAtMonth(selectedMonthIdx - 12);
+
+            document.getElementById("kpiTotalLabel").textContent = `${title}總資產 (TWD)`;
+            document.getElementById("kpiTotalAssets").textContent = formatMoney(cur.total);
+
+            const mom = formatDelta(prevM ? cur.total - prevM.total : 0, prevM ? prevM.total : null);
+            const yoy = formatDelta(prevY ? cur.total - prevY.total : 0, prevY ? prevY.total : null);
+            const momEl = document.getElementById("kpiMoM");
+            const yoyEl = document.getElementById("kpiYoY");
+            momEl.textContent = mom.text;
+            momEl.className = `font-semibold truncate ${mom.cls}`;
+            yoyEl.textContent = yoy.text;
+            yoyEl.className = `font-semibold truncate ${yoy.cls}`;
+
+            // 現金
+            const cashRatio = cur.total > 0 ? (cur.cash / cur.total) * 100 : 0;
+            document.getElementById("kpiCashTotal").textContent = formatMoney(cur.cash);
+            document.getElementById("kpiCashRatio").textContent = `${cashRatio.toFixed(1)}%`;
+            const cashMom = formatDelta(prevM ? cur.cash - prevM.cash : 0, prevM ? prevM.cash : null);
+            const cashMomEl = document.getElementById("kpiCashMoM");
+            cashMomEl.textContent = cashMom.text;
+            cashMomEl.className = `font-semibold truncate ${cashMom.cls}`;
+
+            // 投資
+            const invRatio = cur.total > 0 ? (cur.invest / cur.total) * 100 : 0;
+            document.getElementById("kpiInvestTotal").textContent = formatMoney(cur.invest);
+            const invMom = formatDelta(prevM ? cur.invest - prevM.invest : 0, prevM ? prevM.invest : null);
+            const invYoy = formatDelta(prevY ? cur.invest - prevY.invest : 0, prevY ? prevY.invest : null);
+            const invMomEl = document.getElementById("kpiInvestMoM");
+            const invYoyEl = document.getElementById("kpiInvestYoY");
+            invMomEl.textContent = invMom.text;
+            invMomEl.className = `font-semibold truncate ${invMom.cls}`;
+            invYoyEl.textContent = invYoy.text;
+            invYoyEl.className = `font-semibold truncate ${invYoy.cls}`;
+
+            // 投資佔比
+            document.getElementById("kpiInvestRatio").textContent = `${invRatio.toFixed(1)}%`;
+            document.getElementById("kpiInvestBar").style.width = `${Math.min(100, Math.max(0, invRatio))}%`;
+        }
+
+        function setPieMode(mode) {
+            pieMode = mode;
+            const btns = {
+                category: document.getElementById("btnPieCategory"),
+                owner: document.getElementById("btnPieOwner"),
+                account: document.getElementById("btnPieAccount")
+            };
+            Object.entries(btns).forEach(([k, el]) => {
+                el.className = k === mode
+                    ? "px-2 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition"
+                    : "px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+            });
+            renderPieChart();
+        }
+
+        function renderPieChart() {
+            const isDark = document.documentElement.classList.contains("dark");
+            const textColor = isDark ? "#cbd5e1" : "#475569";
+            const isMobile = window.innerWidth < 640;
+            const title = getSelectedTitle();
+            const monthLabel = dataset.months[selectedMonthIdx] || "";
+            document.getElementById("pieSubtitle").textContent = `${title} · ${monthLabel}`;
+
+            const filteredAccounts = dataset.accounts.filter(a => selectedOwners.has(a.owner));
+            let entries = [];
+            let colors = [];
+
+            if (pieMode === "category") {
+                const cur = getTotalsAtMonth(selectedMonthIdx);
+                if (cur.invest > 0) { entries.push(["投資", cur.invest]); colors.push("#F97316"); }
+                if (cur.cash > 0) { entries.push(["現金", cur.cash]); colors.push("#06B6D4"); }
+            } else if (pieMode === "owner") {
+                const map = {};
+                filteredAccounts.forEach(a => {
+                    const v = Number(a.values[selectedMonthIdx]) || 0;
+                    if (v > 0) map[a.owner] = (map[a.owner] || 0) + v;
+                });
+                entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+                colors = entries.map(([owner], idx) => OWNER_COLORS[owner] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length]);
+            } else {
+                const map = {};
+                filteredAccounts.forEach(a => {
+                    const v = Number(a.values[selectedMonthIdx]) || 0;
+                    if (v > 0) {
+                        const key = selectedOwners.size > 1 ? `${a.name}` : a.name;
+                        map[key] = (map[key] || 0) + v;
+                    }
+                });
+                entries = Object.entries(map).sort((a, b) => b[1] - a[1]);
+                colors = entries.map((_, idx) => FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length]);
+            }
+
+            const totalVal = entries.reduce((sum, [, v]) => sum + v, 0);
+
+            const isLightColor = (hex) => {
+                const c = hex.replace("#", "");
+                const r = parseInt(c.substr(0, 2), 16);
+                const g = parseInt(c.substr(2, 2), 16);
+                const b = parseInt(c.substr(4, 2), 16);
+                return (r * 299 + g * 587 + b * 114) / 1000 > 165;
+            };
+
+            // FIRE 風格中央標誌 + 扇形內標籤外掛
+            const fireDoughnutPlugin = {
+                id: "familyFireDoughnutPlugin",
+                afterDatasetsDraw(chart) {
+                    const meta = chart.getDatasetMeta(0);
+                    if (!meta || !meta.data || meta.data.length === 0) return;
+
+                    const { ctx } = chart;
+                    const firstArc = meta.data[0];
+                    const centerX = firstArc.x;
+                    const centerY = firstArc.y;
+                    const innerRadius = firstArc.innerRadius;
+                    const outerRadius = firstArc.outerRadius;
+                    const ringThickness = outerRadius - innerRadius;
+
+                    ctx.save();
+
+                    // 中央深藍底圓與橘色發光內環
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, innerRadius, 0, Math.PI * 2);
+                    ctx.fillStyle = "#0B1930";
+                    ctx.fill();
+
+                    const ringWidth = Math.max(2, innerRadius * 0.04);
+                    ctx.beginPath();
+                    ctx.arc(centerX, centerY, Math.max(0, innerRadius - ringWidth / 2 - 1), 0, Math.PI * 2);
+                    ctx.strokeStyle = "#F59E0B";
+                    ctx.lineWidth = ringWidth;
+                    ctx.stroke();
+
+                    // 中央漸層 FIRE 與所選成員總額
+                    const fireSize = Math.max(18, Math.round(innerRadius * 0.50));
+                    const subSize = Math.max(9, Math.round(innerRadius * 0.15));
+
+                    const fireGrad = ctx.createLinearGradient(
+                        centerX, centerY - fireSize * 0.6,
+                        centerX, centerY + fireSize * 0.3
+                    );
+                    fireGrad.addColorStop(0, "#FDE047");
+                    fireGrad.addColorStop(0.5, "#FB923C");
+                    fireGrad.addColorStop(1, "#EA580C");
+
+                    ctx.textAlign = "center";
+                    ctx.textBaseline = "middle";
+                    ctx.font = `800 ${fireSize}px 'Inter', sans-serif`;
+                    ctx.fillStyle = fireGrad;
+                    ctx.fillText("FIRE", centerX, centerY - innerRadius * 0.16);
+
+                    ctx.font = `600 ${subSize}px 'Noto Sans TC', 'Inter', sans-serif`;
+                    ctx.fillStyle = "#93B4E8";
+                    const shortTitle = title.length > 8 ? title.slice(0, 8) + "…" : title;
+                    ctx.fillText(shortTitle, centerX, centerY + innerRadius * 0.22);
+
+                    ctx.font = `700 ${Math.max(10, Math.round(innerRadius * 0.17))}px 'Inter', sans-serif`;
+                    ctx.fillStyle = "#F8FAFC";
+                    ctx.fillText(`${(totalVal / 10000).toFixed(0)} 萬`, centerX, centerY + innerRadius * 0.48);
+
+                    // 各區塊內嵌類別與百分比（小於 6.5% 略過）
+                    const nameSize = Math.max(10, Math.min(13, Math.round(ringThickness * 0.20)));
+                    const pctSize = Math.max(12, Math.min(17, Math.round(ringThickness * 0.27)));
+
+                    meta.data.forEach((arc, index) => {
+                        const [labelName, val] = entries[index];
+                        const pct = totalVal > 0 ? (val / totalVal) * 100 : 0;
+                        const angleSpan = arc.endAngle - arc.startAngle;
+                        if (pct < 6.5 || angleSpan < 0.38) return;
+
+                        const midAngle = (arc.startAngle + arc.endAngle) / 2;
+                        const midRadius = innerRadius + ringThickness * 0.52;
+                        const x = centerX + Math.cos(midAngle) * midRadius;
+                        const y = centerY + Math.sin(midAngle) * midRadius;
+
+                        const bgHex = colors[index % colors.length];
+                        const labelColor = isLightColor(bgHex) ? "#1E293B" : "#FFFFFF";
+                        const displayName = labelName.length > 6 ? labelName.slice(0, 6) : labelName;
+
+                        ctx.fillStyle = labelColor;
+                        ctx.font = `700 ${nameSize}px 'Noto Sans TC', 'Inter', sans-serif`;
+                        ctx.fillText(displayName, x, y - pctSize * 0.45);
+
+                        ctx.font = `800 ${pctSize}px 'Inter', sans-serif`;
+                        ctx.fillText(`${pct.toFixed(1)}%`, x, y + nameSize * 0.62);
+                    });
+
+                    ctx.restore();
+                }
+            };
+
+            if (pieChartInstance) pieChartInstance.destroy();
+            const ctx = document.getElementById("assetPieChart").getContext("2d");
+            pieChartInstance = new Chart(ctx, {
+                type: "doughnut",
+                data: {
+                    labels: entries.map(([name, val]) => `${name} (${totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : "0.0"}%)`),
+                    datasets: [{
+                        data: entries.map(([, val]) => val),
+                        backgroundColor: colors,
+                        borderWidth: 0,
+                        hoverOffset: 6
+                    }]
+                },
+                plugins: [fireDoughnutPlugin],
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    cutout: "50%",
+                    layout: { padding: 2 },
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                color: textColor,
+                                font: { size: isMobile ? 10 : 11, family: "Inter, Noto Sans TC" },
+                                boxWidth: isMobile ? 8 : 10,
+                                padding: isMobile ? 8 : 10,
+                                usePointStyle: true,
+                                pointStyle: "circle"
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => {
+                                    const val = Number(c.raw);
+                                    const pct = totalVal > 0 ? ((val / totalVal) * 100).toFixed(1) : "0.0";
+                                    return ` $${val.toLocaleString()} (${pct}%)`;
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function setTrendMode(mode) {
+            trendMode = mode;
+            const btns = {
+                stacked: document.getElementById("btnTrendStacked"),
+                owners: document.getElementById("btnTrendOwners"),
+                total: document.getElementById("btnTrendTotal")
+            };
+            Object.entries(btns).forEach(([k, el]) => {
+                el.className = k === mode
+                    ? "px-2 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition"
+                    : "px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+            });
+            renderTrendChart();
+        }
+
+        function setTrendRange(range) {
+            trendRange = range;
+            const btns = {
+                "1Y": document.getElementById("btnRange1Y"),
+                "3Y": document.getElementById("btnRange3Y"),
+                "5Y": document.getElementById("btnRange5Y"),
+                "ALL": document.getElementById("btnRangeALL")
+            };
+            Object.entries(btns).forEach(([k, el]) => {
+                el.className = k === range
+                    ? "px-2 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition"
+                    : "px-2 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+            });
+            renderTrendChart();
+        }
+
+        function renderTrendChart() {
+            const isDark = document.documentElement.classList.contains("dark");
+            const textColor = isDark ? "#cbd5e1" : "#475569";
+            const gridColor = isDark ? "rgba(148, 163, 184, 0.1)" : "rgba(148, 163, 184, 0.2)";
+
+            const totalLen = dataset.months.length;
+            let startIdx = 0;
+            if (trendRange === "1Y") startIdx = Math.max(0, totalLen - 12);
+            else if (trendRange === "3Y") startIdx = Math.max(0, totalLen - 36);
+            else if (trendRange === "5Y") startIdx = Math.max(0, totalLen - 60);
+
+            const labels = dataset.months.slice(startIdx);
+            let datasets = [];
+            let stackedY = false;
+
+            if (trendMode === "stacked") {
+                stackedY = true;
+                const cashSeries = [];
+                const investSeries = [];
+                for (let i = startIdx; i < totalLen; i++) {
+                    const t = getTotalsAtMonth(i);
+                    cashSeries.push(t.cash);
+                    investSeries.push(t.invest);
+                }
+                datasets = [
+                    {
+                        label: "現金 (活錢)",
+                        data: cashSeries,
+                        borderColor: "#06B6D4",
+                        backgroundColor: "rgba(6, 182, 212, 0.35)",
+                        fill: true,
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: labels.length <= 18 ? 2.5 : 0,
+                        pointHoverRadius: 5
+                    },
+                    {
+                        label: "投資現值",
+                        data: investSeries,
+                        borderColor: "#F97316",
+                        backgroundColor: "rgba(249, 115, 22, 0.35)",
+                        fill: true,
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: labels.length <= 18 ? 2.5 : 0,
+                        pointHoverRadius: 5
+                    }
+                ];
+            } else if (trendMode === "owners") {
+                const activeOwners = allOwners.filter(o => selectedOwners.has(o));
+                datasets = activeOwners.map((owner, idx) => {
+                    const ownerSet = new Set([owner]);
+                    const series = [];
+                    for (let i = startIdx; i < totalLen; i++) {
+                        series.push(getTotalsAtMonth(i, ownerSet).total);
+                    }
+                    const color = OWNER_COLORS[owner] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
+                    return {
+                        label: owner,
+                        data: series,
+                        borderColor: color,
+                        backgroundColor: color + "22",
+                        fill: false,
+                        tension: 0.2,
+                        borderWidth: 2,
+                        pointRadius: labels.length <= 18 ? 2 : 0,
+                        pointHoverRadius: 5
+                    };
+                });
+            } else {
+                const totalSeries = [];
+                for (let i = startIdx; i < totalLen; i++) {
+                    totalSeries.push(getTotalsAtMonth(i).total);
+                }
+                datasets = [{
+                    label: `${getSelectedTitle()}總資產`,
+                    data: totalSeries,
+                    borderColor: "#10B981",
+                    backgroundColor: "rgba(16, 185, 129, 0.18)",
+                    fill: true,
+                    tension: 0.2,
+                    borderWidth: 2.5,
+                    pointRadius: labels.length <= 18 ? 2.5 : 0,
+                    pointHoverRadius: 5
+                }];
+            }
+
+            document.getElementById("trendSubtitle").textContent = `${getSelectedTitle()} · ${labels[0] || ""} ~ ${labels[labels.length - 1] || ""}`;
+
+            if (trendChartInstance) trendChartInstance.destroy();
+            const ctx = document.getElementById("assetTrendChart").getContext("2d");
+            trendChartInstance = new Chart(ctx, {
+                type: "line",
+                data: { labels, datasets },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: { mode: "index", intersect: false },
+                    plugins: {
+                        legend: {
+                            position: "bottom",
+                            labels: {
+                                color: textColor,
+                                font: { size: 11, family: "Inter, Noto Sans TC" },
+                                boxWidth: 10,
+                                usePointStyle: true
+                            }
+                        },
+                        tooltip: {
+                            callbacks: {
+                                label: (c) => ` ${c.dataset.label}: $${Math.round(c.raw).toLocaleString()}`
+                            }
+                        }
+                    },
+                    scales: {
+                        x: {
+                            grid: { display: false },
+                            ticks: { color: textColor, font: { size: 10 }, maxTicksLimit: 10 }
+                        },
+                        y: {
+                            stacked: stackedY,
+                            grid: { color: gridColor },
+                            ticks: {
+                                color: textColor,
+                                font: { size: 10 },
+                                callback: (v) => `${(v / 10000).toFixed(0)}萬`
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        function renderMemberCards() {
+            const grid = document.getElementById("memberCardsGrid");
+            document.getElementById("memberSnapshotMonth").textContent = dataset.months[selectedMonthIdx] || "";
+            const familyTotal = getTotalsAtMonth(selectedMonthIdx, new Set(allOwners)).total;
+
+            grid.innerHTML = allOwners.map((owner, idx) => {
+                const cur = getTotalsAtMonth(selectedMonthIdx, new Set([owner]));
+                const invPct = cur.total > 0 ? (cur.invest / cur.total) * 100 : 0;
+                const shareOfFamily = familyTotal > 0 ? (cur.total / familyTotal) * 100 : 0;
+                const isSelectedSingle = selectedOwners.size === 1 && selectedOwners.has(owner);
+                const dotColor = OWNER_COLORS[owner] || FALLBACK_PALETTE[idx % FALLBACK_PALETTE.length];
+
+                return `
+                    <button onclick="focusSingleOwner('${owner}')" class="text-left p-3 sm:p-3.5 rounded-2xl border transition cursor-pointer ${
+                        isSelectedSingle
+                            ? "bg-emerald-50/70 dark:bg-emerald-950/40 border-emerald-500 ring-1 ring-emerald-500"
+                            : "bg-white dark:bg-slate-900 border-slate-200/80 dark:border-slate-800 hover:border-emerald-500/50"
+                    }">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${dotColor};"></span>
+                                <span class="text-xs sm:text-sm font-bold">${owner}</span>
+                            </div>
+                            <span class="text-[10px] px-1.5 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 font-mono">${shareOfFamily.toFixed(1)}%</span>
+                        </div>
+                        <div class="text-base sm:text-lg font-bold tracking-tight text-slate-900 dark:text-white truncate">${formatMoney(cur.total)}</div>
+                        <div class="mt-1.5 flex items-center justify-between text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400">
+                            <span>活錢 ${(cur.cash / 10000).toFixed(1)}萬</span>
+                            <span class="text-orange-500 dark:text-orange-400 font-semibold">投資 ${invPct.toFixed(0)}%</span>
+                        </div>
+                    </button>
+                `;
+            }).join("");
+        }
+
+        function setTableCatFilter(cat) {
+            tableCatFilter = cat;
+            const btns = {
+                ALL: document.getElementById("btnCatAll"),
+                "現金": document.getElementById("btnCatCash"),
+                "投資": document.getElementById("btnCatInvest")
+            };
+            Object.entries(btns).forEach(([k, el]) => {
+                el.className = k === cat
+                    ? "px-2.5 py-1 rounded-md font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition"
+                    : "px-2.5 py-1 rounded-md font-medium text-slate-500 dark:text-slate-400 hover:text-slate-900 dark:hover:text-white transition";
+            });
+            renderTable();
+        }
+
+        function sortTable(field) {
+            if (tableSortField === field) {
+                tableSortAsc = !tableSortAsc;
+            } else {
+                tableSortField = field;
+                tableSortAsc = false;
+            }
+            renderTable();
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById("accountsTableBody");
+            const hideZero = document.getElementById("hideZeroCheckbox").checked;
+            const curTotal = getTotalsAtMonth(selectedMonthIdx).total;
+
+            let rows = dataset.accounts
+                .filter(a => selectedOwners.has(a.owner))
+                .filter(a => tableCatFilter === "ALL" || a.category === tableCatFilter)
+                .map(a => {
+                    const val = Number(a.values[selectedMonthIdx]) || 0;
+                    const prevM = selectedMonthIdx > 0 ? (Number(a.values[selectedMonthIdx - 1]) || 0) : null;
+                    const prevY = selectedMonthIdx >= 12 ? (Number(a.values[selectedMonthIdx - 12]) || 0) : null;
+                    return {
+                        name: a.name,
+                        owner: a.owner,
+                        category: a.category,
+                        value: val,
+                        weight: curTotal > 0 ? (val / curTotal) * 100 : 0,
+                        prevM,
+                        prevY,
+                        momDiff: prevM !== null ? val - prevM : -999999999,
+                        yoyDiff: prevY !== null ? val - prevY : -999999999
+                    };
+                });
+
+            if (hideZero) {
+                rows = rows.filter(r => r.value > 0);
+            }
+
+            rows.sort((a, b) => tableSortAsc ? a[tableSortField] - b[tableSortField] : b[tableSortField] - a[tableSortField]);
+
+            if (rows.length === 0) {
+                tbody.innerHTML = `<tr><td colspan="7" class="py-10 text-center text-slate-400">沒有符合條件的帳戶資料</td></tr>`;
+                return;
+            }
+
+            tbody.innerHTML = rows.map(r => {
+                const catBadge = r.category === "投資"
+                    ? `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-orange-500/15 text-orange-600 dark:text-orange-400">投資</span>`
+                    : `<span class="px-2 py-0.5 rounded-md text-[11px] font-semibold bg-cyan-500/15 text-cyan-600 dark:text-cyan-400">現金</span>`;
+
+                const dotColor = OWNER_COLORS[r.owner] || "#10b981";
+                const mom = formatDelta(r.prevM !== null ? r.value - r.prevM : 0, r.prevM);
+                const yoy = formatDelta(r.prevY !== null ? r.value - r.prevY : 0, r.prevY);
+
+                return `
+                    <tr class="hover:bg-slate-50 dark:hover:bg-slate-800/40 transition">
+                        <td class="py-3 px-4 font-bold text-slate-900 dark:text-white whitespace-nowrap">${r.name}</td>
+                        <td class="py-3 px-3 whitespace-nowrap">
+                            <span class="inline-flex items-center gap-1.5 text-xs font-medium text-slate-700 dark:text-slate-300">
+                                <span class="w-2 h-2 rounded-full" style="background-color: ${dotColor};"></span>
+                                ${r.owner}
+                            </span>
+                        </td>
+                        <td class="py-3 px-3 whitespace-nowrap">${catBadge}</td>
+                        <td class="py-3 px-3 text-right font-mono font-bold text-slate-900 dark:text-white whitespace-nowrap">${formatMoney(r.value)}</td>
+                        <td class="py-3 px-3 text-right font-mono text-emerald-600 dark:text-emerald-400 font-semibold whitespace-nowrap">${r.weight.toFixed(1)}%</td>
+                        <td class="py-3 px-3 text-right font-mono text-xs whitespace-nowrap ${mom.cls}">${mom.text}</td>
+                        <td class="py-3 px-4 text-right font-mono text-xs whitespace-nowrap ${yoy.cls}">${yoy.text}</td>
+                    </tr>
+                `;
+            }).join("");
+        }
+
+        // ==========================================
+        // 5. Google Sheet 解析引擎（支援 GAS JSON 與直接貼上 TSV）
+        // ==========================================
+        function parseNumber(val) {
+            if (val === undefined || val === null) return 0;
+            const cleaned = String(val).replace(/[$,%\s,]/g, "").trim();
+            if (!cleaned || cleaned === "-" || cleaned === "#N/A" || cleaned === "#ERROR!" || cleaned === "#DIV/0!") return 0;
+            const num = parseFloat(cleaned);
+            return isNaN(num) ? 0 : Math.round(num);
+        }
+
+        const MONTH_MAP = {
+            "一月": "01", "二月": "02", "三月": "03", "四月": "04",
+            "五月": "05", "六月": "06", "七月": "07", "八月": "08",
+            "九月": "09", "十月": "10", "十一月": "11", "十二月": "12"
+        };
+
+        function parseFamilySheetRows(rows) {
+            if (!Array.isArray(rows) || rows.length < 3) return null;
+
+            // 尋找包含「帳戶owner」或「類別」的月份標題列
+            let monthRowIdx = -1;
+            let ownerCol = -1;
+            let catCol = -1;
+
+            for (let r = 0; r < Math.min(rows.length, 6); r++) {
+                const row = (rows[r] || []).map(c => String(c || "").trim());
+                const oIdx = row.findIndex(c => c.toLowerCase().includes("owner") || c.includes("主人"));
+                const cIdx = row.findIndex(c => c === "類別");
+                if (oIdx !== -1 && cIdx !== -1) {
+                    monthRowIdx = r;
+                    ownerCol = oIdx;
+                    catCol = cIdx;
+                    break;
+                }
+            }
+
+            if (monthRowIdx === -1) return null;
+
+            const nameCol = ownerCol - 1;
+            const firstMonthCol = catCol + 1;
+            const yearRow = monthRowIdx > 0 ? (rows[monthRowIdx - 1] || []) : [];
+            const monthRow = rows[monthRowIdx] || [];
+
+            // 解析每一個月份欄位（自動追蹤民國年/西元年，避開年份列的年度增減數字）
+            const months = [];
+            const validColIndices = [];
+            let currentYear = null;
+
+            for (let c = firstMonthCol; c < monthRow.length; c++) {
+                const rawMonth = String(monthRow[c] || "").trim();
+                const rawYear = String(yearRow[c] || "").trim();
+
+                // 判斷是否為有效年份標記（例如 "101", "102 年", "115年", "2026"）
+                if (rawYear && !rawYear.includes(",")) {
+                    const yMatch = rawYear.match(/^(1\d{2}|20\d{2})\s*年?$/);
+                    if (yMatch) {
+                        currentYear = parseInt(yMatch[1], 10);
+                    }
+                }
+
+                if (!rawMonth) continue;
+
+                const mm = MONTH_MAP[rawMonth] || rawMonth.replace("月", "").padStart(2, "0");
+                // 若遇到「一月」且年份列沒重新寫年份，自動進位一年
+                if (rawMonth === "一月" && currentYear !== null && !/^(1\d{2}|20\d{2})\s*年?$/.test(rawYear)) {
+                    currentYear += 1;
+                }
+
+                const label = currentYear ? `${currentYear}/${mm}` : rawMonth;
+                months.push(label);
+                validColIndices.push(c);
+            }
+
+            if (months.length === 0) return null;
+
+            // 解析各帳戶列（直到遇到「資產現值」等下方彙總列為止）
+            const accounts = [];
+            const nameCounter = {};
+
+            for (let r = monthRowIdx + 1; r < rows.length; r++) {
+                const cols = rows[r] || [];
+                const accName = String(cols[nameCol] || "").trim();
+                const owner = String(cols[ownerCol] || "").trim();
+                let category = String(cols[catCol] || "").trim();
+
+                // 遇到下方彙總列就停止
+                if (["資產現值", "本月存入", "現金", "投資", "投資佔比(%)"].includes(accName)) {
+                    break;
+                }
+                if (!accName || !owner) continue;
+
+                // 第 3、14 列等類別空白的銀行帳戶預設歸類為「現金」
+                if (category !== "投資") {
+                    category = "現金";
+                }
+
+                // 若有同名帳戶（例如兩個「股票出借」分屬芯與文），自動加上主人區分
+                const baseKey = accName;
+                nameCounter[baseKey] = (nameCounter[baseKey] || 0) + 1;
+
+                const values = validColIndices.map(cIdx => parseNumber(cols[cIdx]));
+                accounts.push({ name: accName, owner, category, values });
+            }
+
+            // 針對同名帳戶補上 (主人) 後綴
+            accounts.forEach(acc => {
+                if (nameCounter[acc.name] > 1 && !acc.name.includes(acc.owner)) {
+                    acc.name = `${acc.name}(${acc.owner})`;
+                }
+            });
+
+            // 濾除最右側尚未填入任何數值的空白未來月份
+            let lastNonEmptyIdx = months.length - 1;
+            while (lastNonEmptyIdx > 0) {
+                const colSum = accounts.reduce((s, a) => s + (a.values[lastNonEmptyIdx] || 0), 0);
+                if (colSum > 0) break;
+                lastNonEmptyIdx--;
+            }
+
+            return {
+                months: months.slice(0, lastNonEmptyIdx + 1),
+                accounts: accounts.map(a => ({
+                    ...a,
+                    values: a.values.slice(0, lastNonEmptyIdx + 1)
+                }))
+            };
+        }
+
+        // ==========================================
+        // 6. 同步 Modal 與雲端同步控制
+        // ==========================================
+        function openSyncModal() {
+            const modal = document.getElementById("syncModal");
+            modal.classList.remove("hidden");
+            modal.classList.add("flex");
+            document.getElementById("gasUrlInput").value = localStorage.getItem("family_assets_gas_url") || "";
+        }
+
+        function closeSyncModal() {
+            const modal = document.getElementById("syncModal");
+            modal.classList.add("hidden");
+            modal.classList.remove("flex");
+        }
+
+        function importFromTSV() {
+            const rawText = document.getElementById("pasteTsvArea").value;
+            if (!rawText.trim()) {
+                showToast("請先貼上 Google Sheet 資料！", false);
+                return;
+            }
+            const rows = rawText.split(/\r?\n/).map(line => line.split("\t"));
+            const parsed = parseFamilySheetRows(rows);
+
+            if (!parsed || parsed.accounts.length === 0) {
+                showToast("無法解析資料，請確認包含「帳戶owner / 類別 / 月份」標題列", false);
+                return;
+            }
+
+            localStorage.setItem("family_assets_data", JSON.stringify(parsed));
+            const nowStr = new Date().toLocaleString("zh-TW");
+            localStorage.setItem("family_assets_last_sync", nowStr);
+            document.getElementById("lastSyncLabel").textContent = `資料狀態：手動同步於 ${nowStr}`;
+
+            loadDataset(parsed);
+            closeSyncModal();
+            showToast(`成功匯入 ${parsed.accounts.length} 個帳戶、共 ${parsed.months.length} 個月資料！`);
+        }
+
+        async function saveAndFetchGas() {
+            const url = document.getElementById("gasUrlInput").value.trim();
+            if (!url) {
+                showToast("請輸入有效的 Google Apps Script 網址", false);
+                return;
+            }
+            localStorage.setItem("family_assets_gas_url", url);
+            document.getElementById("quickSyncBtn").classList.remove("hidden");
+            await quickCloudSync(false);
+            closeSyncModal();
+        }
+
+        async function quickCloudSync(isAuto = false) {
+            const url = localStorage.getItem("family_assets_gas_url");
+            if (!url) {
+                if (!isAuto) openSyncModal();
+                return;
+            }
+            if (isCloudSyncing) return;
+            isCloudSyncing = true;
+
+            if (!isAuto) {
+                showToast("正在從 Google Sheet 雲端同步家庭資產...");
+            } else {
+                document.getElementById("lastSyncLabel").textContent = "資料狀態：背景同步 Google Sheet 中...";
+            }
+
+            try {
+                const res = await fetch(url);
+                const rows = await res.json();
+                const parsed = parseFamilySheetRows(rows);
+                if (parsed && parsed.accounts.length > 0) {
+                    localStorage.setItem("family_assets_data", JSON.stringify(parsed));
+                    const nowStr = new Date().toLocaleString("zh-TW");
+                    localStorage.setItem("family_assets_last_sync", nowStr);
+                    document.getElementById("lastSyncLabel").textContent = `資料狀態：雲端同步於 ${nowStr}`;
+                    loadDataset(parsed);
+                    showToast(isAuto
+                        ? `已自動同步最新資產（截至 ${parsed.months[parsed.months.length - 1]}）`
+                        : `雲端同步成功！載入 ${parsed.months.length} 個月資料`
+                    );
+                } else if (!isAuto) {
+                    showToast("雲端回傳資料無法解析，請確認 GAS 分頁名稱是否正確", false);
+                }
+            } catch (err) {
+                console.error(err);
+                if (!isAuto) {
+                    showToast("雲端同步失敗，請確認 Apps Script 權限是否設為「任何人」", false);
+                }
+            } finally {
+                isCloudSyncing = false;
+            }
+        }
+
+        function copyGasCode() {
+            const code = document.getElementById("gasCodeBlock").innerText;
+            const textarea = document.createElement("textarea");
+            textarea.value = code;
+            document.body.appendChild(textarea);
+            textarea.select();
+            document.execCommand("copy");
+            document.body.removeChild(textarea);
+            showToast("已複製 Apps Script 程式碼！");
+        }
+
+        function resetToDefaultData() {
+            localStorage.removeItem("family_assets_data");
+            localStorage.removeItem("family_assets_last_sync");
+            document.getElementById("lastSyncLabel").textContent = "資料狀態：已載入內建資產資料";
+            loadDataset(JSON.parse(JSON.stringify(DEFAULT_DATASET)));
+            closeSyncModal();
+            showToast("已還原為內建初始資料");
+        }
+
+        function exportJSON() {
+            const dataStr = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(dataset, null, 2));
+            const dlAnchor = document.createElement("a");
+            dlAnchor.setAttribute("href", dataStr);
+            dlAnchor.setAttribute("download", `family_assets_backup_${new Date().toISOString().slice(0, 10)}.json`);
+            document.body.appendChild(dlAnchor);
+            dlAnchor.click();
+            dlAnchor.remove();
+        }
+
+        // ==========================================
+        // 7. 啟動初始化
+        // ==========================================
+        window.onload = function () {
+            const savedData = localStorage.getItem("family_assets_data");
+            const savedSyncTime = localStorage.getItem("family_assets_last_sync");
+            const savedGasUrl = localStorage.getItem("family_assets_gas_url");
+
+            let initial = DEFAULT_DATASET;
+            if (savedData) {
+                try {
+                    const parsed = JSON.parse(savedData);
+                    if (parsed && Array.isArray(parsed.months) && Array.isArray(parsed.accounts)) {
+                        initial = parsed;
+                        if (savedSyncTime) {
+                            document.getElementById("lastSyncLabel").textContent = `資料狀態：已同步於 ${savedSyncTime}`;
+                        }
+                    }
+                } catch {
+                    initial = DEFAULT_DATASET;
+                }
+            }
+
+            loadDataset(JSON.parse(JSON.stringify(initial)));
+
+            if (savedGasUrl) {
+                document.getElementById("quickSyncBtn").classList.remove("hidden");
+                // 自動在背景同步一次最新 Google Sheet 數據
+                quickCloudSync(true);
+            }
+        };
+    </script>
+</body>
+</html>

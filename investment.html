@@ -539,8 +539,7 @@
                             <summary class="cursor-pointer font-medium text-slate-600 dark:text-slate-300">查看 Google Apps Script 部署程式碼（點此展開與複製）</summary>
                             <div class="mt-2 relative">
                                 <pre id="gasCodeBlock" class="p-3 rounded-lg bg-slate-900 text-slate-200 overflow-x-auto text-[11px] leading-relaxed">function doGet() {
-  // 建議將 "工作表1" 改為你實際的分頁名稱
-  var sheet = SpreadsheetApp.getActiveSpreadsheet().getActiveSheet();
+  var sheet = SpreadsheetApp.getActiveSpreadsheet().getSheetByName("存股標的");
   var values = sheet.getRange("A4:Z105").getDisplayValues();
   return ContentService.createTextOutput(JSON.stringify(values))
     .setMimeType(ContentService.MimeType.JSON);
@@ -583,7 +582,7 @@
         // 內建完整初始資料 (源自 Google Sheet)
         const DEFAULT_RAW_STOCKS = [
             // 27 檔目前持股 (shares > 0)
-            { code: "1229", name: "聯華", category: "食品", price: 39.85, pe: 12.45, eps: 3.2, cashDiv: 0, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 36.123, high: 41.05 },
+            { code: "1229", name: "聯華", category: "食品餐飲", price: 39.85, pe: 12.45, eps: 3.2, cashDiv: 0, stockDiv: 0, status: "貴", fair: 0, cheap: 0, shares: 36.123, high: 41.05 },
             { code: "00935", name: "野村臺灣新科技50", category: "科技", price: 43.26, pe: null, eps: null, cashDiv: 3.03, stockDiv: 0, status: "合理價", fair: 60.6, cheap: 42.42, shares: 29, high: 55.20 },
             { code: "2753", name: "八方雲集", category: "食品餐飲", price: 172, pe: 13.61, eps: 12.64, cashDiv: 5.2, stockDiv: 0, status: "貴", fair: 104, cheap: 72.8, shares: 7, high: 181.50 },
             { code: "1210", name: "大成", category: "食品餐飲", price: 51.9, pe: 12.33, eps: 4.21, cashDiv: 3, stockDiv: 0, status: "合理價", fair: 60, cheap: 42, shares: 22.7, high: 52.00 },
@@ -649,6 +648,7 @@
         let categoryChartInstance = null;
         let topHoldingsChartInstance = null;
         let toastTimer = null;
+        let isCloudSyncing = false;
 
         // 切換「每日投資紀錄」與「持股總覽」視圖
         function switchView(viewName) {
@@ -668,6 +668,11 @@
                 requestAnimationFrame(() => {
                     recalculateAll();
                 });
+
+                // 若已綁定 GAS 網址，點進持股總覽時自動在背景同步一次最新資料
+                if (localStorage.getItem("portfolio_gas_url")) {
+                    quickCloudSync(true);
+                }
             } else {
                 summaryEl.classList.add("hidden");
                 appEl.classList.remove("hidden");
@@ -678,27 +683,47 @@
                 }
             }
         }
+        async function quickCloudSync(isAuto = false) {
+            const url = localStorage.getItem("portfolio_gas_url");
+            if (!url) {
+                if (!isAuto) openSyncModal();
+                return;
+            }
+            if (isCloudSyncing) return;
+            isCloudSyncing = true;
 
-        function initSummaryData() {
-            const savedData = localStorage.getItem("portfolio_stocks_data");
-            const savedSyncTime = localStorage.getItem("portfolio_last_sync");
-            const savedGasUrl = localStorage.getItem("portfolio_gas_url");
-
-            if (savedData) {
-                try {
-                    rawStocks = JSON.parse(savedData);
-                    if (savedSyncTime) {
-                        document.getElementById("lastSyncLabel").textContent = `資料狀態：已同步於 ${savedSyncTime}`;
-                    }
-                } catch {
-                    rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
-                }
+            if (!isAuto) {
+                showToast("正在從 Google Sheet 雲端同步最新資料...");
             } else {
-                rawStocks = JSON.parse(JSON.stringify(DEFAULT_RAW_STOCKS));
+                document.getElementById("lastSyncLabel").textContent = "資料狀態：背景同步 Google Sheet 中...";
             }
 
-            if (savedGasUrl) {
-                document.getElementById("quickSyncBtn").classList.remove("hidden");
+            try {
+                const res = await fetch(url);
+                const rows = await res.json();
+                const parsed = parseSheetRows(rows);
+                if (parsed.length > 0) {
+                    rawStocks = parsed;
+                    localStorage.setItem("portfolio_stocks_data", JSON.stringify(rawStocks));
+                    const nowStr = new Date().toLocaleString("zh-TW");
+                    localStorage.setItem("portfolio_last_sync", nowStr);
+                    document.getElementById("lastSyncLabel").textContent = `資料狀態：雲端同步於 ${nowStr}`;
+                    recalculateAll();
+                    const holdingCount = parsed.filter(s => s.shares > 0).length;
+                    showToast(isAuto
+                        ? `已自動同步最新資料（目前持股 ${holdingCount} 檔）`
+                        : `雲端同步成功！更新 ${parsed.length} 筆（目前持股 ${holdingCount} 檔）`
+                    );
+                } else {
+                    if (!isAuto) showToast("雲端回傳資料為空，請檢查工作表範圍", false);
+                }
+            } catch (err) {
+                console.error(err);
+                if (!isAuto) {
+                    showToast("雲端同步失敗，請確認 Apps Script 權限是否設為「任何人」", false);
+                }
+            } finally {
+                isCloudSyncing = false;
             }
         }
 

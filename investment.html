@@ -153,26 +153,26 @@
             </header>
 
             <!-- Summary Metrics -->
-            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-4 sm:gap-6 mb-8">
-                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">區間損益</h3>
-                    <p :class="summary.totalProfitLossClass" class="text-2xl font-semibold mt-1">{{ summary.totalProfitLoss }}</p>
+            <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-2.5 sm:gap-5 mb-6 sm:mb-8">
+                <div class="bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-400">區間損益</h3>
+                    <p :class="summary.totalProfitLossClass" class="text-lg sm:text-2xl font-semibold mt-1 truncate">{{ summary.totalProfitLoss }}</p>
                 </div>
-                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">區間報酬率</h3>
-                    <p :class="summary.returnRateClass" class="text-2xl font-semibold mt-1">{{ summary.returnRate }}</p>
+                <div class="bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-400">區間報酬率</h3>
+                    <p :class="summary.returnRateClass" class="text-lg sm:text-2xl font-semibold mt-1 truncate">{{ summary.returnRate }}</p>
                 </div>
-                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">區間買賣額 (萬)</h3>
-                    <p :class="summary.totalBuySellClass" class="text-2xl font-semibold mt-1">{{ summary.totalBuySell }}</p>
+                <div class="bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-400">區間買賣額 (萬)</h3>
+                    <p :class="summary.totalBuySellClass" class="text-lg sm:text-2xl font-semibold mt-1 truncate">{{ summary.totalBuySell }}</p>
                 </div>
-                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">最新市值</h3>
-                    <p class="text-2xl font-semibold mt-1 text-white">{{ summary.latestMarketValue }}</p>
+                <div class="bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg text-center">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-400">最新市值</h3>
+                    <p class="text-lg sm:text-2xl font-semibold mt-1 text-white truncate">{{ summary.latestMarketValue }}</p>
                 </div>
-                <div class="bg-gray-800 p-4 rounded-2xl shadow-lg text-center">
-                    <h3 class="text-sm font-medium text-gray-400">區間最高市值</h3>
-                    <p class="text-2xl font-semibold mt-1 text-white">{{ summary.highestMarketValue }}</p>
+                <div class="bg-gray-800 p-3 sm:p-4 rounded-2xl shadow-lg text-center col-span-2 sm:col-span-1">
+                    <h3 class="text-xs sm:text-sm font-medium text-gray-400">區間最高市值</h3>
+                    <p class="text-lg sm:text-2xl font-semibold mt-1 text-white truncate">{{ summary.highestMarketValue }}</p>
                 </div>
             </div>
 
@@ -331,95 +331,95 @@
         </header>
 
         <!-- 主內容區塊 -->
-        <main class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-6 space-y-6">
+        <main class="max-w-7xl mx-auto px-3 sm:px-6 lg:px-8 py-4 sm:py-6 space-y-4 sm:space-y-6">
 
-            <!-- 1. 核心 KPI 總覽卡片 -->
-            <section class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            <!-- 1. 核心 KPI 總覽卡片 (手機 2x2 緊湊排列 / 電腦 4 欄) -->
+            <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
                 <!-- 目前總市值 -->
-                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">目前總市值 (TWD)</span>
-                        <span class="p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-1 mb-1 sm:mb-2">
+                        <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">目前總市值 (TWD)</span>
+                        <span class="p-1 sm:p-1.5 rounded-lg bg-emerald-500/10 text-emerald-500 shrink-0">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8c-1.657 0-3 .895-3 2s1.343 2 3 2 3 .895 3 2-1.343 2-3 2m0-8c1.11 0 2.08.402 2.599 1M12 8V7m0 1v8m0 0v1m0-1c-1.11 0-2.08-.402-2.599-1M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
                             </svg>
                         </span>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-bold tracking-tight text-slate-900 dark:text-white" id="kpiTotalMV">$12,944,199</div>
-                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">加總所有庫存部位現值</div>
+                    <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-slate-900 dark:text-white truncate" id="kpiTotalMV">$12,944,199</div>
+                    <div class="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">加總所有庫存部位現值</div>
                 </div>
 
                 <!-- 持有檔數 -->
-                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">目前持有個股/ETF</span>
-                        <span class="p-1.5 rounded-lg bg-blue-500/10 text-blue-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-1 mb-1 sm:mb-2">
+                        <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">目前持有個股/ETF</span>
+                        <span class="p-1 sm:p-1.5 rounded-lg bg-blue-500/10 text-blue-500 shrink-0">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
                             </svg>
                         </span>
                     </div>
-                    <div class="flex items-baseline gap-2">
-                        <span class="text-2xl sm:text-3xl font-bold tracking-tight" id="kpiHoldingsCount">27 檔</span>
-                        <span class="text-xs text-slate-400" id="kpiWatchlistCount">/ 觀察名單共 51 檔</span>
+                    <div class="flex flex-wrap items-baseline gap-x-1.5 gap-y-0.5">
+                        <span class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight" id="kpiHoldingsCount">27 檔</span>
+                        <span class="text-[10px] sm:text-xs text-slate-400 truncate" id="kpiWatchlistCount">/ 觀察名單共 51 檔</span>
                     </div>
-                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">依「庫存 > 0」自動統計</div>
+                    <div class="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">依「庫存 > 0」自動統計</div>
                 </div>
 
                 <!-- 除權息共領 -->
-                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">預估年領除權息合計</span>
-                        <span class="p-1.5 rounded-lg bg-amber-500/10 text-amber-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-1 mb-1 sm:mb-2">
+                        <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">預估年領除權息</span>
+                        <span class="p-1 sm:p-1.5 rounded-lg bg-amber-500/10 text-amber-500 shrink-0">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v13m0-13V6a2 2 0 112 2h-2zm0 0V5.5A2.5 2.5 0 109.5 8H12zm-7 4h14M5 12a2 2 0 110-4h14a2 2 0 110 4M5 12v7a2 2 0 002 2h10a2 2 0 002-2v-7" />
                             </svg>
                         </span>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-bold tracking-tight text-amber-500 dark:text-amber-400" id="kpiTotalDiv">$497,141</div>
-                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400" id="kpiDivBreakdown">除息 $481,961 ＋ 除權 $15,180</div>
+                    <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-amber-500 dark:text-amber-400 truncate" id="kpiTotalDiv">$497,141</div>
+                    <div class="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate" id="kpiDivBreakdown">除息 $481,961 ＋ 除權 $15,180</div>
                 </div>
 
                 <!-- 總體殖利率 -->
-                <div class="p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
-                    <div class="flex items-center justify-between mb-2">
-                        <span class="text-xs font-medium text-slate-500 dark:text-slate-400">投資組合總體殖利率</span>
-                        <span class="p-1.5 rounded-lg bg-purple-500/10 text-purple-500">
-                            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <div class="p-3 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                    <div class="flex items-center justify-between gap-1 mb-1 sm:mb-2">
+                        <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400 truncate">總體殖利率</span>
+                        <span class="p-1 sm:p-1.5 rounded-lg bg-purple-500/10 text-purple-500 shrink-0">
+                            <svg class="w-3.5 h-3.5 sm:w-4 sm:h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                             </svg>
                         </span>
                     </div>
-                    <div class="text-2xl sm:text-3xl font-bold tracking-tight text-purple-600 dark:text-purple-400" id="kpiYield">3.84%</div>
-                    <div class="mt-1.5 text-xs text-slate-500 dark:text-slate-400">公式：除權息合計 ÷ 目前總市值</div>
+                    <div class="text-lg sm:text-2xl lg:text-3xl font-bold tracking-tight text-purple-600 dark:text-purple-400 truncate" id="kpiYield">3.84%</div>
+                    <div class="mt-1 sm:mt-1.5 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate">除權息合計 ÷ 目前總市值</div>
                 </div>
             </section>
 
             <!-- 2. 圖表分析區 -->
-            <section class="grid grid-cols-1 lg:grid-cols-12 gap-4">
+            <section class="grid grid-cols-1 lg:grid-cols-12 gap-3 sm:gap-4">
                 <!-- 類別佔比圓餅圖 (FIRE 風格) -->
-                <div class="lg:col-span-5 p-5 rounded-2xl bg-white dark:bg-[#0B1930] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
-                    <div class="flex items-center justify-between mb-3">
+                <div class="lg:col-span-5 p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-[#0B1930] border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-2 sm:mb-3">
                         <div>
                             <h2 class="text-sm font-bold">資產類別配置佔比</h2>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">依持股「類別」動態加總市值比例</p>
+                            <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">依持股「類別」動態加總市值比例</p>
                         </div>
                     </div>
-                    <div class="relative flex-1 min-h-[320px] sm:min-h-[360px] flex items-center justify-center">
+                    <div class="relative flex-1 min-h-[380px] sm:min-h-[420px] flex items-center justify-center">
                         <canvas id="categoryChart"></canvas>
                     </div>
                 </div>
 
                 <!-- 前十大持股橫條圖 -->
-                <div class="lg:col-span-7 p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
-                    <div class="flex items-center justify-between mb-4">
+                <div class="lg:col-span-7 p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col">
+                    <div class="flex items-center justify-between mb-3 sm:mb-4">
                         <div>
                             <h2 class="text-sm font-bold">前 10 大核心持股排行</h2>
-                            <p class="text-xs text-slate-500 dark:text-slate-400">單一標的最大市值與投資組合佔比</p>
+                            <p class="text-[11px] sm:text-xs text-slate-500 dark:text-slate-400">單一標的最大市值與投資組合佔比</p>
                         </div>
-                        <span class="text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium" id="top10WeightBadge">前十大佔比 --%</span>
+                        <span class="text-[11px] sm:text-xs px-2.5 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-medium" id="top10WeightBadge">前十大佔比 --%</span>
                     </div>
-                    <div class="relative flex-1 min-h-[250px]">
+                    <div class="relative flex-1 min-h-[270px] sm:min-h-[320px]">
                         <canvas id="topHoldingsChart"></canvas>
                     </div>
                 </div>
@@ -976,6 +976,7 @@
             };
 
             if (categoryChartInstance) categoryChartInstance.destroy();
+            const isMobile = window.innerWidth < 640;
             const ctxCat = document.getElementById("categoryChart").getContext("2d");
             categoryChartInstance = new Chart(ctxCat, {
                 type: "doughnut",
@@ -992,18 +993,23 @@
                 options: {
                     responsive: true,
                     maintainAspectRatio: false,
-                    cutout: "53%",
+                    cutout: "50%",
                     layout: {
-                        padding: 6
+                        padding: {
+                            top: 2,
+                            right: 2,
+                            bottom: 2,
+                            left: 2
+                        }
                     },
                     plugins: {
                         legend: {
                             position: "bottom",
                             labels: {
                                 color: textColor,
-                                font: { size: 11, family: "Inter, Noto Sans TC" },
-                                boxWidth: 10,
-                                padding: 10,
+                                font: { size: isMobile ? 10 : 11, family: "Inter, Noto Sans TC" },
+                                boxWidth: isMobile ? 8 : 10,
+                                padding: isMobile ? 8 : 10,
                                 usePointStyle: true,
                                 pointStyle: "circle"
                             }

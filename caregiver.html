@@ -1,0 +1,1398 @@
+<!DOCTYPE html>
+<html lang="zh-Hant" class="dark">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <!-- PWA Manifest 與主畫面圖示設定 -->
+    <link rel="manifest" href="manifest.json" />
+    <meta name="theme-color" content="#0f172a" />
+    <title>外籍看護薪資與收支帳本 | Caregiver Ledger</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Noto Sans TC -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=Noto+Sans+TC:wght@400;500;700&display=swap" rel="stylesheet" />
+    <!-- Ionicons -->
+    <script type="module" src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.esm.js"></script>
+    <script nomodule src="https://unpkg.com/ionicons@5.5.2/dist/ionicons/ionicons.js"></script>
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'Noto Sans TC', 'sans-serif'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Sans TC', sans-serif;
+        }
+        #sideMenuOverlay {
+            transition: opacity 0.25s ease;
+        }
+        #sideMenuDrawer {
+            transition: transform 0.25s ease;
+        }
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(148, 163, 184, 0.3);
+            border-radius: 9999px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: rgba(148, 163, 184, 0.5);
+        }
+    </style>
+</head>
+<body class="bg-slate-50 text-slate-900 dark:bg-slate-950 dark:text-slate-100 transition-colors duration-200 min-h-screen">
+
+    <!-- 側邊選單遮罩 -->
+    <div id="sideMenuOverlay" onclick="toggleSideMenu()" class="fixed inset-0 bg-black/60 z-40 hidden opacity-0"></div>
+
+    <!-- 側邊選單（與其他 PWA 頁面一致） -->
+    <aside id="sideMenuDrawer" class="fixed top-0 left-0 h-full w-64 bg-gray-800 text-gray-200 shadow-2xl z-50 p-6 -translate-x-full">
+        <div class="flex items-center justify-between mb-6">
+            <h2 class="text-2xl font-bold text-white">功能選單</h2>
+            <button onclick="toggleSideMenu()" class="p-1.5 rounded-lg hover:bg-gray-700 text-gray-400 hover:text-white transition">
+                <ion-icon name="close-outline" class="text-2xl align-middle"></ion-icon>
+            </button>
+        </div>
+        <nav>
+            <ul class="space-y-2">
+                <li>
+                    <a href="index.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="star-outline" class="text-2xl"></ion-icon>
+                        親子集點
+                    </a>
+                </li>
+                <li>
+                    <a href="investment.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="analytics-outline" class="text-2xl"></ion-icon>
+                        投資紀錄
+                    </a>
+                </li>
+                <li>
+                    <a href="family_assets.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="wallet-outline" class="text-2xl"></ion-icon>
+                        家庭資產
+                    </a>
+                </li>
+                <li>
+                    <a href="caregiver.html" class="flex items-center gap-3 text-lg text-emerald-400 font-semibold py-2">
+                        <ion-icon name="heart-outline" class="text-2xl"></ion-icon>
+                        看護薪資
+                    </a>
+                </li>
+                <li>
+                    <a href="study_plan.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="school-outline" class="text-2xl"></ion-icon>
+                        段考複習
+                    </a>
+                </li>
+                <li>
+                    <a href="weight.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="body-outline" class="text-2xl"></ion-icon>
+                        體重管理
+                    </a>
+                </li>
+                <li>
+                    <a href="fitness.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="barbell-outline" class="text-2xl"></ion-icon>
+                        健身紀錄
+                    </a>
+                </li>
+                <li>
+                    <a href="currency.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="cash-outline" class="text-2xl"></ion-icon>
+                        匯率換算
+                    </a>
+                </li>
+                <li>
+                    <a href="book_list.html" class="flex items-center gap-3 text-lg text-gray-300 hover:text-white py-2">
+                        <ion-icon name="book-outline" class="text-2xl"></ion-icon>
+                        閱讀書單
+                    </a>
+                </li>
+            </ul>
+        </nav>
+    </aside>
+
+    <!-- 頂部導覽列 -->
+    <header class="sticky top-0 z-30 backdrop-blur-md bg-white/85 dark:bg-slate-900/85 border-b border-slate-200 dark:border-slate-800">
+        <div class="max-w-6xl mx-auto px-3 sm:px-6 h-16 flex items-center justify-between gap-2">
+            <div class="flex items-center gap-2 sm:gap-3 min-w-0">
+                <button onclick="toggleSideMenu()" class="p-2 rounded-xl hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition shrink-0 cursor-pointer" title="開啟功能選單">
+                    <ion-icon name="menu-outline" class="text-2xl align-middle"></ion-icon>
+                </button>
+                <div class="w-8 h-8 sm:w-9 sm:h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-teal-600 hidden sm:flex items-center justify-center text-white shadow-lg shadow-emerald-500/20 shrink-0">
+                    <ion-icon name="heart-outline" class="text-xl"></ion-icon>
+                </div>
+                <div class="min-w-0">
+                    <h1 class="text-sm sm:text-lg font-bold tracking-tight truncate">看護薪資與共同帳本</h1>
+                    <p class="text-[11px] text-slate-500 dark:text-slate-400 truncate" id="syncStatusLabel">本機模式（尚未綁定 Sheet）</p>
+                </div>
+            </div>
+
+            <div class="flex items-center gap-1.5 sm:gap-2 shrink-0">
+                <!-- LINE 報帳 -->
+                <button onclick="openLineReportModal()" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold bg-green-600 hover:bg-green-500 text-white shadow-sm transition cursor-pointer" title="產生 LINE 群組報帳文字">
+                    <ion-icon name="chatbubble-ellipses-outline" class="text-base"></ion-icon>
+                    <span class="hidden sm:inline">LINE 報帳</span>
+                </button>
+
+                <!-- 預設參數設定 -->
+                <button onclick="openDefaultsModal()" class="p-2 sm:px-3 sm:py-2 rounded-xl text-xs font-medium bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 inline-flex items-center gap-1 transition cursor-pointer" title="預設薪資與扣款參數">
+                    <ion-icon name="settings-outline" class="text-base"></ion-icon>
+                    <span class="hidden md:inline">預設參數</span>
+                </button>
+
+                <!-- 雲端雙向同步 -->
+                <button onclick="openSyncModal()" id="syncBtn" class="inline-flex items-center gap-1 px-2.5 sm:px-3 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white shadow-sm transition cursor-pointer" title="Google Sheet 雙向同步設定">
+                    <ion-icon name="sync-outline" id="syncBtnIcon" class="text-base"></ion-icon>
+                    <span class="hidden sm:inline">Sheet 同步</span>
+                </button>
+
+                <!-- 主題切換 -->
+                <button onclick="toggleTheme()" class="p-2 rounded-xl bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-600 dark:text-slate-300 transition cursor-pointer" title="切換深淺主題">
+                    <svg class="w-4 h-4 hidden dark:block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 3v1m0 16v1m9-9h-1M4 12H3m15.364 6.364l-.707-.707M6.343 6.343l-.707-.707m12.728 0l-.707.707M6.343 17.657l-.707.707M16 12a4 4 0 11-8 0 4 4 0 018 0z" />
+                    </svg>
+                    <svg class="w-4 h-4 block dark:hidden" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M20.354 15.354A9 9 0 018.646 3.646 9.003 9.003 0 0012 21a9.003 9.003 0 008.354-5.646z" />
+                    </svg>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- 主內容區 -->
+    <main class="max-w-6xl mx-auto px-3 sm:px-6 py-4 sm:py-6 space-y-4 sm:space-y-6">
+
+        <!-- 1. 發薪與結算雷達 KPI（手機 2×2 緊湊排列 / 電腦 4 欄） -->
+        <section class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+            <!-- 最新理論餘額 -->
+            <div class="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">最新理論餘額</span>
+                    <span class="p-1 rounded-lg bg-emerald-500/10 text-emerald-500">
+                        <ion-icon name="wallet-outline" class="text-base block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl font-bold tracking-tight text-slate-900 dark:text-white truncate" id="kpiBalance">-</div>
+                <div class="mt-1 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate" id="kpiRunway">預估可撐 - 個月</div>
+            </div>
+
+            <!-- 薪水發放雷達 -->
+            <div class="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">薪水已付至</span>
+                    <span class="p-1 rounded-lg bg-blue-500/10 text-blue-500">
+                        <ion-icon name="checkmark-done-outline" class="text-base block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl font-bold tracking-tight text-blue-600 dark:text-blue-400 truncate" id="kpiPaidThrough">-</div>
+                <div class="mt-1 text-[10px] sm:text-xs truncate" id="kpiUnpaidSalaryHint">-</div>
+            </div>
+
+            <!-- 帳目結清進度 -->
+            <div class="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">帳目結清至</span>
+                    <span class="p-1 rounded-lg bg-purple-500/10 text-purple-500">
+                        <ion-icon name="receipt-outline" class="text-base block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl font-bold tracking-tight text-purple-600 dark:text-purple-400 truncate" id="kpiSettledThrough">-</div>
+                <div class="mt-1 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate" id="kpiUnsettledHint">-</div>
+            </div>
+
+            <!-- 共同繳費待補 -->
+            <div class="p-3 sm:p-4 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm flex flex-col justify-between">
+                <div class="flex items-center justify-between gap-1 mb-1">
+                    <span class="text-[11px] sm:text-xs font-medium text-slate-500 dark:text-slate-400">共同繳費待補</span>
+                    <span class="p-1 rounded-lg bg-amber-500/10 text-amber-500">
+                        <ion-icon name="people-outline" class="text-base block"></ion-icon>
+                    </span>
+                </div>
+                <div class="text-lg sm:text-2xl font-bold tracking-tight text-amber-500 dark:text-amber-400 truncate" id="kpiUnpaidContribTotal">-</div>
+                <div class="mt-1 text-[10px] sm:text-xs text-slate-500 dark:text-slate-400 truncate" id="kpiUnpaidContribCount">-</div>
+            </div>
+        </section>
+
+        <!-- 2. 四兄弟姊妹繳費狀態總覽 -->
+        <section class="space-y-2">
+            <div class="flex items-center justify-between px-1">
+                <h2 class="text-xs sm:text-sm font-bold text-slate-700 dark:text-slate-200">共同繳費追蹤（每位每月預設 <span id="defaultContribLabel">$5,000</span>）</h2>
+                <span class="text-[11px] text-slate-400">點下方月份卡片即可快速登記日期</span>
+            </div>
+            <div class="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3" id="siblingsSummaryGrid">
+                <!-- 由 JS 動態生成 4 位兄弟姊妹卡片 -->
+            </div>
+        </section>
+
+        <!-- 3. 操作列：一鍵新增下個月 + 狀態篩選 -->
+        <section class="flex flex-wrap items-center justify-between gap-2.5 bg-white dark:bg-slate-900 p-3 sm:p-4 rounded-2xl border border-slate-200/80 dark:border-slate-800 shadow-sm">
+            <div class="inline-flex p-1 rounded-xl bg-slate-100 dark:bg-slate-800 text-xs">
+                <button onclick="setListFilter('ALL')" id="filterAll" class="px-3 py-1.5 rounded-lg font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition cursor-pointer">全部月份</button>
+                <button onclick="setListFilter('UNPAID_SALARY')" id="filterUnpaidSalary" class="px-3 py-1.5 rounded-lg font-medium text-slate-500 dark:text-slate-400 transition cursor-pointer">薪水未付</button>
+                <button onclick="setListFilter('UNSETTLED')" id="filterUnsettled" class="px-3 py-1.5 rounded-lg font-medium text-slate-500 dark:text-slate-400 transition cursor-pointer">帳目未結清</button>
+            </div>
+
+            <button onclick="openAddNextMonthModal()" class="inline-flex items-center gap-1.5 px-3.5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-md shadow-emerald-600/20 transition cursor-pointer">
+                <ion-icon name="add-circle-outline" class="text-lg"></ion-icon>
+                <span>新增下個月</span>
+            </button>
+        </section>
+
+        <!-- 4. 每月收支與繳費卡片清單（最新月份在最上方） -->
+        <section id="monthsListContainer" class="space-y-3">
+            <!-- 由 JS 動態渲染 -->
+        </section>
+
+    </main>
+
+    <!-- ========================================================= -->
+    <!-- Modal 1：新增 / 編輯月份明細                               -->
+    <!-- ========================================================= -->
+    <div id="monthEditModal" class="fixed inset-0 z-50 hidden items-center justify-center p-3 sm:p-4 bg-slate-950/75 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full max-h-[92vh] overflow-y-auto shadow-2xl">
+            <div class="p-4 sm:p-5 border-b border-slate-200 dark:border-slate-800 flex items-center justify-between sticky top-0 bg-white dark:bg-slate-900 z-10">
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold" id="monthModalTitle">新增月份紀錄</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">可針對單月微調薪資、加班日與各項費用，不影響其他月份</p>
+                </div>
+                <button onclick="closeModal('monthEditModal')" class="p-1.5 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+                    <ion-icon name="close-outline" class="text-xl block"></ion-icon>
+                </button>
+            </div>
+
+            <form id="monthEditForm" onsubmit="saveMonthForm(event)" class="p-4 sm:p-5 space-y-4">
+                <input type="hidden" id="editOriginalMonth" />
+
+                <!-- 月份與加班日數 -->
+                <div class="grid grid-cols-2 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">年/月 (YYYY/MM)</label>
+                        <input type="text" id="editMonth" required placeholder="2026/12" onchange="onEditMonthChange()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-500 focus:outline-none font-mono" />
+                    </div>
+                    <div>
+                        <div class="flex items-center justify-between mb-1">
+                            <label class="block text-xs font-medium text-slate-500 dark:text-slate-400">加班日數 (星期日)</label>
+                            <button type="button" onclick="autoFillSundays()" class="text-[11px] text-emerald-600 dark:text-emerald-400 hover:underline cursor-pointer">自動算週日</button>
+                        </div>
+                        <input type="number" step="0.5" id="editOtDays" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 border border-transparent focus:border-emerald-500 focus:outline-none font-mono" />
+                    </div>
+                </div>
+
+                <!-- 薪資與固定支出 -->
+                <div class="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">基本薪資</label>
+                        <input type="number" id="editBaseSalary" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">加班日薪</label>
+                        <input type="number" id="editOtRate" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">健保費(雇主+自付)</label>
+                        <input type="number" id="editHealthIns" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">健保自付扣款</label>
+                        <input type="number" id="editHealthDeduct" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">安定基金</label>
+                        <input type="number" id="editStabilityFund" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">醫療費</label>
+                        <input type="number" id="editMedical" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">仲介 / 雜支</label>
+                        <input type="number" id="editMisc" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">其他存入(轉帳等)</label>
+                        <input type="number" id="editOtherIncome" oninput="updateEditPreview()" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">實際存摺餘額(選填)</label>
+                        <input type="number" id="editActualBalance" placeholder="對帳用" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                    </div>
+                </div>
+
+                <!-- 即時試算條 -->
+                <div class="p-3 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex flex-wrap items-center justify-between gap-2 text-xs">
+                    <span>加班費：<strong id="previewOtPay" class="font-mono">$0</strong></span>
+                    <span>看護實領：<strong id="previewNetPay" class="font-mono text-emerald-600 dark:text-emerald-400 text-sm">$0</strong></span>
+                    <span>當月總支出：<strong id="previewTotalExp" class="font-mono text-rose-500 dark:text-rose-400 text-sm">$0</strong></span>
+                </div>
+
+                <!-- 狀態勾選與備註 -->
+                <div class="flex flex-wrap items-center gap-4 pt-1">
+                    <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="editSalaryPaid" class="w-4 h-4 rounded text-emerald-600" />
+                        <span>看護薪水已付</span>
+                    </label>
+                    <label class="inline-flex items-center gap-2 text-sm cursor-pointer">
+                        <input type="checkbox" id="editSettled" class="w-4 h-4 rounded text-purple-600" />
+                        <span>本月帳目已結清</span>
+                    </label>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">備註（醫療/雜支/未繳說明）</label>
+                    <input type="text" id="editNote" placeholder="例如：含體檢費、二哥未入帳..." class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800" />
+                </div>
+
+                <div class="flex items-center justify-end gap-2 pt-2 border-t border-slate-200 dark:border-slate-800">
+                    <button type="button" onclick="closeModal('monthEditModal')" class="px-4 py-2 rounded-xl text-xs sm:text-sm font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer">取消</button>
+                    <button type="submit" class="px-5 py-2 rounded-xl text-xs sm:text-sm font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm cursor-pointer">儲存並同步</button>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- Modal 2：快速登記兄弟姊妹繳費（含幾月幾號）                 -->
+    <!-- ========================================================= -->
+    <div id="paymentModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-sm w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold" id="payModalTitle">登記共同繳費</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400" id="payModalSub">-</p>
+                </div>
+                <button onclick="closeModal('paymentModal')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+                    <ion-icon name="close-outline" class="text-xl block"></ion-icon>
+                </button>
+            </div>
+
+            <div class="space-y-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">繳交金額 (TWD)</label>
+                    <input type="number" id="payAmountInput" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">繳費日期（幾月幾號繳的）</label>
+                    <input type="date" id="payDateInput" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+            </div>
+
+            <div class="flex items-center justify-between gap-2 pt-2">
+                <button type="button" onclick="submitPayment(false)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-rose-500/15 hover:bg-rose-500/25 text-rose-500 dark:text-rose-400 transition cursor-pointer">改為未繳</button>
+                <div class="flex items-center gap-2">
+                    <button type="button" onclick="closeModal('paymentModal')" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer">取消</button>
+                    <button type="button" onclick="submitPayment(true)" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white shadow-sm cursor-pointer">確認已繳</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- Modal 3：預設參數設定（不影響歷史月份）                     -->
+    <!-- ========================================================= -->
+    <div id="defaultsModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-md w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold">⚙️ 預設薪資與收支參數</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">修改後僅套用於「未來新增的月份」，不影響歷史紀錄</p>
+                </div>
+                <button onclick="closeModal('defaultsModal')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+                    <ion-icon name="close-outline" class="text-xl block"></ion-icon>
+                </button>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">預設基本薪資</label>
+                    <input type="number" id="defBaseSalary" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">預設加班日薪</label>
+                    <input type="number" id="defOtRate" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">預設健保費</label>
+                    <input type="number" id="defHealthIns" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+                <div>
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">預設健保自付扣款</label>
+                    <input type="number" id="defHealthDeduct" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+                <div class="col-span-2">
+                    <label class="block text-xs font-medium text-slate-500 dark:text-slate-400 mb-1">每人每月預設共同繳費金額</label>
+                    <input type="number" id="defContribAmount" class="w-full px-3 py-2 rounded-xl text-sm bg-slate-100 dark:bg-slate-800 font-mono" />
+                </div>
+            </div>
+
+            <div class="flex justify-end gap-2 pt-2">
+                <button onclick="closeModal('defaultsModal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer">取消</button>
+                <button onclick="saveDefaults()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">儲存預設值</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- Modal 4：LINE 群組報帳文字產生器                           -->
+    <!-- ========================================================= -->
+    <div id="lineReportModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-lg w-full p-5 shadow-2xl space-y-4">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base font-bold">📋 一鍵複製 LINE 報帳文字</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">自動整理發薪明細、欠繳統計與專戶餘額</p>
+                </div>
+                <button onclick="closeModal('lineReportModal')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+                    <ion-icon name="close-outline" class="text-xl block"></ion-icon>
+                </button>
+            </div>
+
+            <div class="flex items-center gap-2">
+                <label class="text-xs text-slate-500 dark:text-slate-400">報帳模式：</label>
+                <select id="lineReportMode" onchange="generateLineReportText()" class="px-3 py-1.5 rounded-xl text-xs font-semibold bg-slate-100 dark:bg-slate-800">
+                    <option value="latest">最新月份發薪與餘額摘要</option>
+                    <option value="unsettled">全部未結清月份總整理</option>
+                </select>
+            </div>
+
+            <textarea id="lineReportTextarea" rows="12" readonly class="w-full p-3 rounded-xl text-xs font-mono bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800 leading-relaxed"></textarea>
+
+            <div class="flex justify-end gap-2">
+                <button onclick="closeModal('lineReportModal')" class="px-4 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer">關閉</button>
+                <button onclick="copyLineReport()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-green-600 hover:bg-green-500 text-white cursor-pointer">一鍵複製文字</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- Modal 5：Google Sheet 雙向同步設定                         -->
+    <!-- ========================================================= -->
+    <div id="syncModal" class="fixed inset-0 z-50 hidden items-center justify-center p-4 bg-slate-950/75 backdrop-blur-sm">
+        <div class="bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 rounded-2xl max-w-xl w-full max-h-[90vh] overflow-y-auto p-5 shadow-2xl space-y-5">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h3 class="text-base sm:text-lg font-bold">Google Sheet 雙向同步設定</h3>
+                    <p class="text-xs text-slate-500 dark:text-slate-400">手機編輯直接寫回試算表；打開頁面自動抓取最新資料</p>
+                </div>
+                <button onclick="closeModal('syncModal')" class="p-1 rounded-lg hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 cursor-pointer">
+                    <ion-icon name="close-outline" class="text-xl block"></ion-icon>
+                </button>
+            </div>
+
+            <div class="space-y-2.5">
+                <label class="block text-xs font-bold text-blue-600 dark:text-blue-400">Google Apps Script 網頁應用程式網址（doGet + doPost）</label>
+                <div class="flex gap-2">
+                    <input type="url" id="gasUrlInput" placeholder="https://script.google.com/macros/s/..../exec" class="flex-1 px-3 py-2 rounded-xl text-xs bg-slate-50 dark:bg-slate-950 border border-slate-200 dark:border-slate-800" />
+                    <button onclick="saveGasUrlAndSync()" class="px-4 py-2 rounded-xl text-xs font-semibold bg-blue-600 hover:bg-blue-500 text-white whitespace-nowrap cursor-pointer">儲存並同步</button>
+                </div>
+                <p class="text-[11px] text-slate-500 dark:text-slate-400">
+                    請將 <code>caregiver_gas.js</code> 貼到你的看護收支 Google Sheet「擴充功能 ＞ Apps Script」，點選「部署 ＞ 新增部署 ＞ 網頁應用程式（誰可以存取：任何人）」，將網址貼到上方即可啟用雙向同步。
+                </p>
+            </div>
+
+            <hr class="border-slate-200 dark:border-slate-800" />
+
+            <div class="flex flex-wrap items-center justify-between gap-2">
+                <button onclick="fetchFromSheet(false)" class="px-3.5 py-2 rounded-xl text-xs font-semibold bg-emerald-600 hover:bg-emerald-500 text-white cursor-pointer">立即從 Sheet 重新拉取</button>
+                <div class="flex items-center gap-2">
+                    <button onclick="exportCSV()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer">匯出 CSV 備份</button>
+                    <button onclick="resetToInitialData()" class="px-3.5 py-2 rounded-xl text-xs font-medium bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 cursor-pointer">還原初始資料</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- 全域提示訊息條 -->
+    <div id="toastBanner" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none">
+        <div class="px-4 py-3 rounded-xl bg-slate-900 dark:bg-slate-800 text-white text-sm font-medium shadow-xl border border-slate-700 flex items-center gap-2.5">
+            <span id="toastIcon" class="text-emerald-400">✔</span>
+            <span id="toastText">已更新</span>
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // 1. 內建初始資料（完全對應你目前 Google Sheet A1~Z12）
+        // ==========================================
+        const DEFAULT_SETTINGS = {
+            baseSalary: 24490,
+            otRate: 830,
+            healthIns: 1384,
+            healthDeduct: 458,
+            contribAmount: 5000
+        };
+
+        const SIBLINGS = [
+            { key: "bro1", label: "大哥", color: "#1D7DFA" },
+            { key: "bro2", label: "二哥", color: "#F97316" },
+            { key: "bro3", label: "三哥", color: "#8B5CF6" },
+            { key: "sis", label: "芳芯", color: "#10B981" }
+        ];
+
+        const INITIAL_LEDGER = {
+            carryOverMonth: "2026/05 結轉",
+            carryOverBalance: 610055,
+            carryOverNote: "結算至2026/05之郵局專戶起始餘額",
+            records: [
+                {
+                    month: "2026/06", baseSalary: 24490, otDays: 4, otRate: 830, healthIns: 1384,
+                    stabilityFund: 168, medical: 0, misc: 0, healthDeduct: 458, salaryPaid: true,
+                    contrib: { bro1: 5000, bro2: 0, bro3: 5000, sis: 5000 },
+                    payDates: { bro1: "", bro2: "", bro3: "", sis: "" },
+                    otherIncome: 0, actualBalance: null, settled: false, note: "二哥未入帳"
+                },
+                {
+                    month: "2026/07", baseSalary: 24490, otDays: 4, otRate: 830, healthIns: 1384,
+                    stabilityFund: 0, medical: 0, misc: 0, healthDeduct: 458, salaryPaid: true,
+                    contrib: { bro1: 5000, bro2: 0, bro3: 5000, sis: 5000 },
+                    payDates: { bro1: "", bro2: "", bro3: "", sis: "" },
+                    otherIncome: 0, actualBalance: null, settled: false, note: "二哥未入帳"
+                },
+                {
+                    month: "2026/08", baseSalary: 24490, otDays: 5, otRate: 830, healthIns: 1384,
+                    stabilityFund: 0, medical: 0, misc: 0, healthDeduct: 458, salaryPaid: true,
+                    contrib: { bro1: 5000, bro2: 0, bro3: 5000, sis: 5000 },
+                    payDates: { bro1: "", bro2: "", bro3: "", sis: "" },
+                    otherIncome: 0, actualBalance: null, settled: false, note: "二哥未入帳"
+                },
+                {
+                    month: "2026/09", baseSalary: 24490, otDays: 4, otRate: 830, healthIns: 1384,
+                    stabilityFund: 0, medical: 0, misc: 0, healthDeduct: 458, salaryPaid: true,
+                    contrib: { bro1: 5000, bro2: 0, bro3: 5000, sis: 5000 },
+                    payDates: { bro1: "", bro2: "", bro3: "", sis: "" },
+                    otherIncome: 0, actualBalance: null, settled: false, note: "二哥未入帳"
+                },
+                {
+                    month: "2026/10", baseSalary: 24490, otDays: 4, otRate: 830, healthIns: 1384,
+                    stabilityFund: 0, medical: 0, misc: 0, healthDeduct: 458, salaryPaid: true,
+                    contrib: { bro1: 5000, bro2: 0, bro3: 5000, sis: 5000 },
+                    payDates: { bro1: "", bro2: "", bro3: "", sis: "" },
+                    otherIncome: 0, actualBalance: null, settled: false, note: "二哥未入帳"
+                },
+                {
+                    month: "2026/11", baseSalary: 24490, otDays: 5, otRate: 830, healthIns: 1384,
+                    stabilityFund: 0, medical: 0, misc: 0, healthDeduct: 458, salaryPaid: true,
+                    contrib: { bro1: 0, bro2: 0, bro3: 0, sis: 0 },
+                    payDates: { bro1: "", bro2: "", bro3: "", sis: "" },
+                    otherIncome: 0, actualBalance: null, settled: false, note: "共同繳錢待補"
+                }
+            ]
+        };
+
+        // 全域狀態
+        let settings = { ...DEFAULT_SETTINGS };
+        let ledger = JSON.parse(JSON.stringify(INITIAL_LEDGER));
+        let computedRows = [];
+        let listFilter = "ALL";
+        let activePaymentContext = null; // { month, siblingKey }
+        let toastTimer = null;
+        let isSyncing = false;
+
+        // ==========================================
+        // 2. 輔助函式（日期、星期日計算、數字格式）
+        // ==========================================
+        function fmt(n) {
+            return `$${Math.round(Number(n) || 0).toLocaleString("en-US")}`;
+        }
+
+        function countSundaysInMonth(ymStr) {
+            const match = String(ymStr || "").match(/^(\d{4})\/(\d{1,2})$/);
+            if (!match) return 4;
+            const year = parseInt(match[1], 10);
+            const month = parseInt(match[2], 10) - 1;
+            let count = 0;
+            const d = new Date(year, month, 1);
+            while (d.getMonth() === month) {
+                if (d.getDay() === 0) count++;
+                d.setDate(d.getDate() + 1);
+            }
+            return count;
+        }
+
+        function getNextMonthStr(ymStr) {
+            const match = String(ymStr || "").match(/^(\d{4})\/(\d{1,2})$/);
+            if (!match) {
+                const now = new Date();
+                return `${now.getFullYear()}/${String(now.getMonth() + 1).padStart(2, "0")}`;
+            }
+            let y = parseInt(match[1], 10);
+            let m = parseInt(match[2], 10) + 1;
+            if (m > 12) { m = 1; y += 1; }
+            return `${y}/${String(m).padStart(2, "0")}`;
+        }
+
+        function getTodayIso() {
+            const now = new Date();
+            return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}-${String(now.getDate()).padStart(2, "0")}`;
+        }
+
+        function formatShortDate(iso) {
+            if (!iso) return "";
+            const parts = String(iso).replace(/-/g, "/").split("/");
+            if (parts.length === 3) return `${parseInt(parts[1], 10)}/${parseInt(parts[2], 10)}`;
+            return iso;
+        }
+
+        function toggleSideMenu() {
+            const overlay = document.getElementById("sideMenuOverlay");
+            const drawer = document.getElementById("sideMenuDrawer");
+            const isOpen = !drawer.classList.contains("-translate-x-full");
+            if (isOpen) {
+                drawer.classList.add("-translate-x-full");
+                overlay.classList.add("opacity-0");
+                setTimeout(() => overlay.classList.add("hidden"), 250);
+            } else {
+                overlay.classList.remove("hidden");
+                requestAnimationFrame(() => {
+                    overlay.classList.remove("opacity-0");
+                    drawer.classList.remove("-translate-x-full");
+                });
+            }
+        }
+
+        function toggleTheme() {
+            document.documentElement.classList.toggle("dark");
+        }
+
+        function openModal(id) {
+            const el = document.getElementById(id);
+            el.classList.remove("hidden");
+            el.classList.add("flex");
+        }
+
+        function closeModal(id) {
+            const el = document.getElementById(id);
+            el.classList.add("hidden");
+            el.classList.remove("flex");
+        }
+
+        function showToast(msg, success = true) {
+            const banner = document.getElementById("toastBanner");
+            const text = document.getElementById("toastText");
+            const icon = document.getElementById("toastIcon");
+            text.textContent = msg;
+            icon.textContent = success ? "✔" : "⚠";
+            icon.className = success ? "text-emerald-400" : "text-amber-400";
+            banner.classList.remove("translate-y-20", "opacity-0");
+            if (toastTimer) clearTimeout(toastTimer);
+            toastTimer = setTimeout(() => banner.classList.add("translate-y-20", "opacity-0"), 3200);
+        }
+
+        // ==========================================
+        // 3. 核心試算引擎（完全對應 Google Sheet 公式）
+        // ==========================================
+        function recalculateAndRender() {
+            ledger.records.sort((a, b) => a.month.localeCompare(b.month));
+            let runningBalance = Number(ledger.carryOverBalance) || 0;
+
+            computedRows = ledger.records.map(r => {
+                const otPay = Math.round((Number(r.otDays) || 0) * (Number(r.otRate) || settings.otRate));
+                const base = Number(r.baseSalary) || 0;
+                const healthIns = Number(r.healthIns) || 0;
+                const stability = Number(r.stabilityFund) || 0;
+                const medical = Number(r.medical) || 0;
+                const misc = Number(r.misc) || 0;
+                const deduct = Number(r.healthDeduct) || 0;
+
+                // 看護實領 = 基本薪資 + 加班費 - 健保自付扣款
+                const netPay = base > 0 ? base + otPay - deduct : 0;
+                // 當月總支出 = 基本薪資 + 加班費 + 健保費 + 安定基金 + 醫療費 + 仲介雜支
+                const totalExpense = base + otPay + healthIns + stability + medical + misc;
+
+                const c = r.contrib || {};
+                const totalIncome = (Number(c.bro1) || 0) + (Number(c.bro2) || 0) + (Number(c.bro3) || 0) + (Number(c.sis) || 0) + (Number(r.otherIncome) || 0);
+                const netChange = totalIncome - totalExpense;
+                runningBalance += netChange;
+
+                const diff = (r.actualBalance !== null && r.actualBalance !== "" && !isNaN(Number(r.actualBalance)))
+                    ? Number(r.actualBalance) - runningBalance
+                    : null;
+
+                return {
+                    ...r,
+                    otPay,
+                    netPay,
+                    totalExpense,
+                    totalIncome,
+                    netChange,
+                    theoreticalBalance: runningBalance,
+                    diff
+                };
+            });
+
+            saveLocalCache();
+            renderKPIs();
+            renderSiblingsSummary();
+            renderMonthsList();
+        }
+
+        function saveLocalCache() {
+            localStorage.setItem("caregiver_ledger_data", JSON.stringify(ledger));
+            localStorage.setItem("caregiver_settings", JSON.stringify(settings));
+        }
+
+        // ==========================================
+        // 4. 畫面渲染
+        // ==========================================
+        function renderKPIs() {
+            const latestBal = computedRows.length > 0
+                ? computedRows[computedRows.length - 1].theoreticalBalance
+                : ledger.carryOverBalance;
+
+            document.getElementById("kpiBalance").textContent = fmt(latestBal);
+
+            // 預估可撐月數（取淨流出月份平均）
+            const negMonths = computedRows.filter(r => r.netChange < 0);
+            if (negMonths.length > 0) {
+                const avgBurn = negMonths.reduce((s, r) => s + Math.abs(r.netChange), 0) / negMonths.length;
+                const runway = avgBurn > 0 ? (latestBal / avgBurn).toFixed(1) : "-";
+                document.getElementById("kpiRunway").textContent = `預估可撐約 ${runway} 個月`;
+            } else {
+                document.getElementById("kpiRunway").textContent = "目前淨流入無消耗";
+            }
+
+            // 薪水已付至 / 未付提醒
+            const paidRows = computedRows.filter(r => r.salaryPaid && r.netPay > 0);
+            const unpaidRows = computedRows.filter(r => !r.salaryPaid && r.netPay > 0);
+            const paidThrough = paidRows.length > 0 ? paidRows[paidRows.length - 1].month : "2026/05";
+            document.getElementById("kpiPaidThrough").textContent = paidThrough;
+
+            const unpaidHintEl = document.getElementById("kpiUnpaidSalaryHint");
+            if (unpaidRows.length === 0) {
+                unpaidHintEl.textContent = "目前無待付薪水 ✔";
+                unpaidHintEl.className = "mt-1 text-[10px] sm:text-xs text-emerald-600 dark:text-emerald-400 font-semibold truncate";
+            } else {
+                const unpaidSum = unpaidRows.reduce((s, r) => s + r.netPay, 0);
+                const mList = unpaidRows.map(r => r.month.slice(5)).join("、") + "月";
+                unpaidHintEl.textContent = `待付 ${mList}：${fmt(unpaidSum)}`;
+                unpaidHintEl.className = "mt-1 text-[10px] sm:text-xs text-rose-500 dark:text-rose-400 font-bold truncate";
+            }
+
+            // 帳目結清進度
+            const settledRows = computedRows.filter(r => r.settled);
+            const unsettledRows = computedRows.filter(r => !r.settled);
+            const settledThrough = settledRows.length > 0 ? settledRows[settledRows.length - 1].month : "2026/05";
+            document.getElementById("kpiSettledThrough").textContent = settledThrough;
+            document.getElementById("kpiUnsettledHint").textContent = unsettledRows.length > 0
+                ? `尚有 ${unsettledRows.length} 個月未結清`
+                : "全部月份皆已結清 ✔";
+
+            // 共同繳費待補
+            let unpaidContribCount = 0;
+            computedRows.forEach(r => {
+                SIBLINGS.forEach(sib => {
+                    if ((Number(r.contrib?.[sib.key]) || 0) <= 0) {
+                        unpaidContribCount++;
+                    }
+                });
+            });
+            const unpaidContribTotal = unpaidContribCount * settings.contribAmount;
+            document.getElementById("kpiUnpaidContribTotal").textContent = fmt(unpaidContribTotal);
+            document.getElementById("kpiUnpaidContribCount").textContent = unpaidContribCount > 0
+                ? `共 ${unpaidContribCount} 筆待補入帳`
+                : "全員均已入帳 ✔";
+            document.getElementById("defaultContribLabel").textContent = fmt(settings.contribAmount);
+        }
+
+        function renderSiblingsSummary() {
+            const grid = document.getElementById("siblingsSummaryGrid");
+            grid.innerHTML = SIBLINGS.map(sib => {
+                let paidTotal = 0;
+                let paidCount = 0;
+                const unpaidMonths = [];
+
+                computedRows.forEach(r => {
+                    const amt = Number(r.contrib?.[sib.key]) || 0;
+                    if (amt > 0) {
+                        paidTotal += amt;
+                        paidCount++;
+                    } else {
+                        unpaidMonths.push(r.month);
+                    }
+                });
+
+                const unpaidAmt = unpaidMonths.length * settings.contribAmount;
+                const statusBadge = unpaidMonths.length === 0
+                    ? `<span class="text-[11px] font-semibold text-emerald-600 dark:text-emerald-400">全數已繳 ✔</span>`
+                    : `<span class="text-[11px] font-semibold text-amber-600 dark:text-amber-400">欠 ${unpaidMonths.length} 期 (${fmt(unpaidAmt)})</span>`;
+
+                const unpaidListText = unpaidMonths.length === 0
+                    ? "無待補月份"
+                    : `未繳：${unpaidMonths.map(m => parseInt(m.split("/")[1], 10) + "月").join("、")}`;
+
+                return `
+                    <div class="p-3 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm">
+                        <div class="flex items-center justify-between mb-1">
+                            <div class="flex items-center gap-1.5">
+                                <span class="w-2.5 h-2.5 rounded-full" style="background-color: ${sib.color};"></span>
+                                <span class="text-xs sm:text-sm font-bold">${sib.label}</span>
+                            </div>
+                            ${statusBadge}
+                        </div>
+                        <div class="text-sm sm:text-base font-bold font-mono text-slate-900 dark:text-white">已繳 ${fmt(paidTotal)} <span class="text-[11px] font-normal text-slate-400">(${paidCount}期)</span></div>
+                        <div class="mt-1 text-[10px] sm:text-[11px] text-slate-500 dark:text-slate-400 truncate" title="${unpaidListText}">${unpaidListText}</div>
+                    </div>
+                `;
+            }).join("");
+        }
+
+        function setListFilter(mode) {
+            listFilter = mode;
+            const map = {
+                ALL: "filterAll",
+                UNPAID_SALARY: "filterUnpaidSalary",
+                UNSETTLED: "filterUnsettled"
+            };
+            Object.entries(map).forEach(([k, id]) => {
+                document.getElementById(id).className = k === mode
+                    ? "px-3 py-1.5 rounded-lg font-semibold bg-white dark:bg-slate-700 text-slate-900 dark:text-white shadow-sm transition cursor-pointer"
+                    : "px-3 py-1.5 rounded-lg font-medium text-slate-500 dark:text-slate-400 transition cursor-pointer";
+            });
+            renderMonthsList();
+        }
+
+        function renderMonthsList() {
+            const container = document.getElementById("monthsListContainer");
+            let list = [...computedRows].reverse();
+
+            if (listFilter === "UNPAID_SALARY") {
+                list = list.filter(r => !r.salaryPaid);
+            } else if (listFilter === "UNSETTLED") {
+                list = list.filter(r => !r.settled);
+            }
+
+            if (list.length === 0) {
+                container.innerHTML = `
+                    <div class="p-8 text-center rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-400 text-sm">
+                        沒有符合條件的月份紀錄
+                    </div>
+                `;
+                return;
+            }
+
+            const cardsHtml = list.map(r => {
+                const salaryBtnClass = r.salaryPaid
+                    ? "bg-emerald-500/15 text-emerald-600 dark:text-emerald-400 border-emerald-500/30"
+                    : "bg-rose-500/15 text-rose-600 dark:text-rose-400 border-rose-500/30";
+                const settledBtnClass = r.settled
+                    ? "bg-purple-500/15 text-purple-600 dark:text-purple-400 border-purple-500/30"
+                    : "bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400 border-slate-200 dark:border-slate-700";
+
+                const siblingPills = SIBLINGS.map(sib => {
+                    const amt = Number(r.contrib?.[sib.key]) || 0;
+                    const pDate = r.payDates?.[sib.key] || "";
+                    const shortD = formatShortDate(pDate);
+                    if (amt > 0) {
+                        return `
+                            <button onclick="openPaymentModal('${r.month}', '${sib.key}')" class="px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-medium bg-emerald-500/10 hover:bg-emerald-500/20 text-emerald-700 dark:text-emerald-300 border border-emerald-500/25 inline-flex items-center gap-1 transition cursor-pointer">
+                                <span>✔ ${sib.label}</span>
+                                <span class="font-mono font-bold">${fmt(amt)}</span>
+                                ${shortD ? `<span class="text-[10px] opacity-75">(${shortD})</span>` : ""}
+                            </button>
+                        `;
+                    } else {
+                        return `
+                            <button onclick="openPaymentModal('${r.month}', '${sib.key}')" class="px-2.5 py-1.5 rounded-xl text-[11px] sm:text-xs font-medium bg-slate-100/80 hover:bg-amber-500/15 dark:bg-slate-800/80 dark:hover:bg-amber-500/20 text-slate-500 dark:text-slate-400 hover:text-amber-600 dark:hover:text-amber-300 border border-dashed border-slate-300 dark:border-slate-700 inline-flex items-center gap-1 transition cursor-pointer">
+                                <span>＋ ${sib.label} 未繳</span>
+                            </button>
+                        `;
+                    }
+                }).join("");
+
+                const extraDetails = [];
+                if (r.stabilityFund > 0) extraDetails.push(`安定基金 ${fmt(r.stabilityFund)}`);
+                if (r.medical > 0) extraDetails.push(`醫療 ${fmt(r.medical)}`);
+                if (r.misc > 0) extraDetails.push(`雜支 ${fmt(r.misc)}`);
+                if (r.otherIncome > 0) extraDetails.push(`其他存入 ${fmt(r.otherIncome)}`);
+
+                return `
+                    <div class="p-3.5 sm:p-5 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200/80 dark:border-slate-800 shadow-sm space-y-3">
+                        <!-- 頂部：月份 + 快速狀態切換 + 編輯 -->
+                        <div class="flex flex-wrap items-center justify-between gap-2">
+                            <div class="flex items-center gap-2">
+                                <span class="text-base sm:text-lg font-extrabold font-mono text-slate-900 dark:text-white">${r.month}</span>
+                                <span class="text-[11px] px-2 py-0.5 rounded-md bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400">加班 ${r.otDays} 天</span>
+                            </div>
+
+                            <div class="flex items-center gap-1.5 flex-wrap">
+                                <button onclick="quickToggleFlag('${r.month}', 'salaryPaid')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer ${salaryBtnClass}">
+                                    ${r.salaryPaid ? "✔ 薪水已付" : "⚠ 薪水未付"}
+                                </button>
+                                <button onclick="quickToggleFlag('${r.month}', 'settled')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold border transition cursor-pointer ${settledBtnClass}">
+                                    ${r.settled ? "✔ 已結清" : "未結清"}
+                                </button>
+                                <button onclick="openEditMonthModal('${r.month}')" class="px-2.5 py-1 rounded-lg text-[11px] font-semibold bg-slate-100 hover:bg-slate-200 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 transition cursor-pointer">
+                                    編輯明細
+                                </button>
+                            </div>
+                        </div>
+
+                        <!-- 金額摘要網格 -->
+                        <div class="grid grid-cols-2 sm:grid-cols-4 gap-2 p-2.5 sm:p-3 rounded-xl bg-slate-50 dark:bg-slate-950/60 text-xs">
+                            <div>
+                                <div class="text-[10px] text-slate-400">看護實領</div>
+                                <div class="font-mono font-bold text-sm text-blue-600 dark:text-blue-400">${fmt(r.netPay)}</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">當月總支出</div>
+                                <div class="font-mono font-bold text-sm text-rose-500 dark:text-rose-400">-${fmt(r.totalExpense)}</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">當月存入合計</div>
+                                <div class="font-mono font-bold text-sm text-emerald-600 dark:text-emerald-400">+${fmt(r.totalIncome)}</div>
+                            </div>
+                            <div>
+                                <div class="text-[10px] text-slate-400">理論應有餘額</div>
+                                <div class="font-mono font-bold text-sm text-slate-900 dark:text-white">${fmt(r.theoreticalBalance)}</div>
+                            </div>
+                        </div>
+
+                        <!-- 四兄弟姊妹快速繳費登記列 -->
+                        <div class="flex flex-wrap items-center gap-1.5">
+                            ${siblingPills}
+                        </div>
+
+                        <!-- 備註與額外項目 -->
+                        ${(extraDetails.length > 0 || r.note || r.diff !== null) ? `
+                            <div class="pt-2 border-t border-slate-100 dark:border-slate-800/80 flex flex-wrap items-center justify-between gap-2 text-[11px] text-slate-500 dark:text-slate-400">
+                                <div class="flex flex-wrap items-center gap-2">
+                                    ${extraDetails.map(t => `<span class="px-2 py-0.5 rounded bg-slate-100 dark:bg-slate-800">${t}</span>`).join("")}
+                                    ${r.note ? `<span>📝 ${r.note}</span>` : ""}
+                                </div>
+                                ${r.diff !== null ? `<span class="font-mono ${r.diff === 0 ? "text-emerald-500" : "text-amber-500"}">存摺實際 ${fmt(r.actualBalance)} (差額 ${r.diff >= 0 ? "+" : ""}${fmt(r.diff)})</span>` : ""}
+                            </div>
+                        ` : ""}
+                    </div>
+                `;
+            }).join("");
+
+            // 底部加上起始結轉參考卡片
+            const carryOverCard = `
+                <div class="p-3.5 rounded-2xl bg-slate-100/70 dark:bg-slate-900/50 border border-dashed border-slate-300 dark:border-slate-800 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-500 dark:text-slate-400">
+                    <div>
+                        <span class="font-bold font-mono text-slate-700 dark:text-slate-300">${ledger.carryOverMonth}</span>
+                        <span class="ml-2">${ledger.carryOverNote}</span>
+                    </div>
+                    <div class="font-mono font-bold text-slate-700 dark:text-slate-200">起始餘額 ${fmt(ledger.carryOverBalance)}</div>
+                </div>
+            `;
+
+            container.innerHTML = cardsHtml + carryOverCard;
+        }
+
+        // ==========================================
+        // 5. 互動操作（新增/編輯月份、快速切換狀態、登記繳費）
+        // ==========================================
+        function openAddNextMonthModal() {
+            const lastMonth = ledger.records.length > 0 ? ledger.records[ledger.records.length - 1].month : "2026/05";
+            const nextMonth = getNextMonthStr(lastMonth);
+            const sundays = countSundaysInMonth(nextMonth);
+
+            document.getElementById("monthModalTitle").textContent = `新增 ${nextMonth} 紀錄`;
+            document.getElementById("editOriginalMonth").value = "";
+            document.getElementById("editMonth").value = nextMonth;
+            document.getElementById("editMonth").readOnly = false;
+            document.getElementById("editOtDays").value = sundays;
+            document.getElementById("editBaseSalary").value = settings.baseSalary;
+            document.getElementById("editOtRate").value = settings.otRate;
+            document.getElementById("editHealthIns").value = settings.healthIns;
+            document.getElementById("editHealthDeduct").value = settings.healthDeduct;
+            document.getElementById("editStabilityFund").value = 0;
+            document.getElementById("editMedical").value = 0;
+            document.getElementById("editMisc").value = 0;
+            document.getElementById("editOtherIncome").value = 0;
+            document.getElementById("editActualBalance").value = "";
+            document.getElementById("editSalaryPaid").checked = false;
+            document.getElementById("editSettled").checked = false;
+            document.getElementById("editNote").value = "";
+
+            updateEditPreview();
+            openModal("monthEditModal");
+        }
+
+        function openEditMonthModal(monthStr) {
+            const rec = ledger.records.find(r => r.month === monthStr);
+            if (!rec) return;
+
+            document.getElementById("monthModalTitle").textContent = `編輯 ${rec.month} 明細`;
+            document.getElementById("editOriginalMonth").value = rec.month;
+            document.getElementById("editMonth").value = rec.month;
+            document.getElementById("editMonth").readOnly = true;
+            document.getElementById("editOtDays").value = rec.otDays ?? 4;
+            document.getElementById("editBaseSalary").value = rec.baseSalary ?? settings.baseSalary;
+            document.getElementById("editOtRate").value = rec.otRate ?? settings.otRate;
+            document.getElementById("editHealthIns").value = rec.healthIns ?? settings.healthIns;
+            document.getElementById("editHealthDeduct").value = rec.healthDeduct ?? settings.healthDeduct;
+            document.getElementById("editStabilityFund").value = rec.stabilityFund ?? 0;
+            document.getElementById("editMedical").value = rec.medical ?? 0;
+            document.getElementById("editMisc").value = rec.misc ?? 0;
+            document.getElementById("editOtherIncome").value = rec.otherIncome ?? 0;
+            document.getElementById("editActualBalance").value = rec.actualBalance !== null && rec.actualBalance !== undefined ? rec.actualBalance : "";
+            document.getElementById("editSalaryPaid").checked = Boolean(rec.salaryPaid);
+            document.getElementById("editSettled").checked = Boolean(rec.settled);
+            document.getElementById("editNote").value = rec.note || "";
+
+            updateEditPreview();
+            openModal("monthEditModal");
+        }
+
+        function onEditMonthChange() {
+            if (!document.getElementById("editOriginalMonth").value) {
+                autoFillSundays();
+            }
+        }
+
+        function autoFillSundays() {
+            const ym = document.getElementById("editMonth").value.trim();
+            document.getElementById("editOtDays").value = countSundaysInMonth(ym);
+            updateEditPreview();
+        }
+
+        function updateEditPreview() {
+            const base = Number(document.getElementById("editBaseSalary").value) || 0;
+            const otDays = Number(document.getElementById("editOtDays").value) || 0;
+            const otRate = Number(document.getElementById("editOtRate").value) || 0;
+            const healthIns = Number(document.getElementById("editHealthIns").value) || 0;
+            const healthDeduct = Number(document.getElementById("editHealthDeduct").value) || 0;
+            const stability = Number(document.getElementById("editStabilityFund").value) || 0;
+            const medical = Number(document.getElementById("editMedical").value) || 0;
+            const misc = Number(document.getElementById("editMisc").value) || 0;
+
+            const otPay = Math.round(otDays * otRate);
+            const netPay = base + otPay - healthDeduct;
+            const totalExp = base + otPay + healthIns + stability + medical + misc;
+
+            document.getElementById("previewOtPay").textContent = fmt(otPay);
+            document.getElementById("previewNetPay").textContent = fmt(netPay);
+            document.getElementById("previewTotalExp").textContent = fmt(totalExp);
+        }
+
+        async function saveMonthForm(event) {
+            event.preventDefault();
+            const monthStr = document.getElementById("editMonth").value.trim();
+            if (!/^\d{4}\/\d{2}$/.test(monthStr)) {
+                showToast("月份格式請輸入 YYYY/MM（例如 2026/12）", false);
+                return;
+            }
+
+            const existingIdx = ledger.records.findIndex(r => r.month === monthStr);
+            const existing = existingIdx !== -1 ? ledger.records[existingIdx] : null;
+            const rawActual = document.getElementById("editActualBalance").value.trim();
+
+            const record = {
+                month: monthStr,
+                baseSalary: Number(document.getElementById("editBaseSalary").value) || 0,
+                otDays: Number(document.getElementById("editOtDays").value) || 0,
+                otRate: Number(document.getElementById("editOtRate").value) || settings.otRate,
+                healthIns: Number(document.getElementById("editHealthIns").value) || 0,
+                stabilityFund: Number(document.getElementById("editStabilityFund").value) || 0,
+                medical: Number(document.getElementById("editMedical").value) || 0,
+                misc: Number(document.getElementById("editMisc").value) || 0,
+                healthDeduct: Number(document.getElementById("editHealthDeduct").value) || 0,
+                salaryPaid: document.getElementById("editSalaryPaid").checked,
+                contrib: existing ? { ...existing.contrib } : { bro1: 0, bro2: 0, bro3: 0, sis: 0 },
+                payDates: existing ? { ...existing.payDates } : { bro1: "", bro2: "", bro3: "", sis: "" },
+                otherIncome: Number(document.getElementById("editOtherIncome").value) || 0,
+                actualBalance: rawActual === "" ? null : Number(rawActual),
+                settled: document.getElementById("editSettled").checked,
+                note: document.getElementById("editNote").value.trim()
+            };
+
+            if (existingIdx !== -1) {
+                ledger.records[existingIdx] = record;
+            } else {
+                ledger.records.push(record);
+            }
+
+            recalculateAndRender();
+            closeModal("monthEditModal");
+            await pushRecordToSheet(record);
+        }
+
+        async function quickToggleFlag(monthStr, field) {
+            const rec = ledger.records.find(r => r.month === monthStr);
+            if (!rec) return;
+            rec[field] = !rec[field];
+            recalculateAndRender();
+            await pushRecordToSheet(rec);
+        }
+
+        function openPaymentModal(monthStr, siblingKey) {
+            const rec = ledger.records.find(r => r.month === monthStr);
+            const sib = SIBLINGS.find(s => s.key === siblingKey);
+            if (!rec || !sib) return;
+
+            activePaymentContext = { month: monthStr, siblingKey };
+            const curAmt = Number(rec.contrib?.[siblingKey]) || 0;
+            const curDate = rec.payDates?.[siblingKey] || "";
+
+            document.getElementById("payModalTitle").textContent = `${sib.label} · ${monthStr} 共同繳費`;
+            document.getElementById("payModalSub").textContent = curAmt > 0 ? "修改繳費金額或入帳日期" : "確認入帳後將自動同步至 Google Sheet";
+            document.getElementById("payAmountInput").value = curAmt > 0 ? curAmt : settings.contribAmount;
+            document.getElementById("payDateInput").value = curDate ? curDate.replace(/\//g, "-") : getTodayIso();
+
+            openModal("paymentModal");
+        }
+
+        async function submitPayment(isPaid) {
+            if (!activePaymentContext) return;
+            const { month, siblingKey } = activePaymentContext;
+            const rec = ledger.records.find(r => r.month === month);
+            if (!rec) return;
+
+            if (!rec.contrib) rec.contrib = { bro1: 0, bro2: 0, bro3: 0, sis: 0 };
+            if (!rec.payDates) rec.payDates = { bro1: "", bro2: "", bro3: "", sis: "" };
+
+            if (isPaid) {
+                rec.contrib[siblingKey] = Number(document.getElementById("payAmountInput").value) || settings.contribAmount;
+                rec.payDates[siblingKey] = (document.getElementById("payDateInput").value || getTodayIso()).replace(/-/g, "/");
+            } else {
+                rec.contrib[siblingKey] = 0;
+                rec.payDates[siblingKey] = "";
+            }
+
+            recalculateAndRender();
+            closeModal("paymentModal");
+            await pushRecordToSheet(rec);
+        }
+
+        // ==========================================
+        // 6. 預設參數設定 & LINE 報帳文字
+        // ==========================================
+        function openDefaultsModal() {
+            document.getElementById("defBaseSalary").value = settings.baseSalary;
+            document.getElementById("defOtRate").value = settings.otRate;
+            document.getElementById("defHealthIns").value = settings.healthIns;
+            document.getElementById("defHealthDeduct").value = settings.healthDeduct;
+            document.getElementById("defContribAmount").value = settings.contribAmount;
+            openModal("defaultsModal");
+        }
+
+        function saveDefaults() {
+            settings = {
+                baseSalary: Number(document.getElementById("defBaseSalary").value) || DEFAULT_SETTINGS.baseSalary,
+                otRate: Number(document.getElementById("defOtRate").value) || DEFAULT_SETTINGS.otRate,
+                healthIns: Number(document.getElementById("defHealthIns").value) || DEFAULT_SETTINGS.healthIns,
+                healthDeduct: Number(document.getElementById("defHealthDeduct").value) || DEFAULT_SETTINGS.healthDeduct,
+                contribAmount: Number(document.getElementById("defContribAmount").value) || DEFAULT_SETTINGS.contribAmount
+            };
+            recalculateAndRender();
+            closeModal("defaultsModal");
+            showToast("已更新預設參數（套用於未來新增月份）");
+        }
+
+        function openLineReportModal() {
+            generateLineReportText();
+            openModal("lineReportModal");
+        }
+
+        function generateLineReportText() {
+            const mode = document.getElementById("lineReportMode").value;
+            const latest = computedRows[computedRows.length - 1];
+            if (!latest) return;
+
+            const lines = [];
+            if (mode === "latest") {
+                lines.push(`【看護收支月報 ${latest.month}】`);
+                lines.push(`・看護實領：${fmt(latest.netPay)}（薪資 ${fmt(latest.baseSalary)} + 加班${latest.otDays}天 ${fmt(latest.otPay)} - 健保自付 ${fmt(latest.healthDeduct)}）`);
+                lines.push(`・當月總支出：${fmt(latest.totalExpense)}（含健保 ${fmt(latest.healthIns)}${latest.stabilityFund ? `、安定基金 ${fmt(latest.stabilityFund)}` : ""}${latest.medical ? `、醫療 ${fmt(latest.medical)}` : ""}${latest.misc ? `、雜支 ${fmt(latest.misc)}` : ""}）`);
+                lines.push(`・發薪狀態：${latest.salaryPaid ? "已發放 ✔" : "尚未發放 ⚠"}`);
+                lines.push("");
+                lines.push("【本月共同繳費】");
+                SIBLINGS.forEach(sib => {
+                    const amt = Number(latest.contrib?.[sib.key]) || 0;
+                    const dt = formatShortDate(latest.payDates?.[sib.key]);
+                    lines.push(`・${sib.label}：${amt > 0 ? `已繳 ${fmt(amt)}${dt ? ` (${dt})` : ""}` : "未入帳"}`);
+                });
+            } else {
+                const unsettled = computedRows.filter(r => !r.settled);
+                lines.push(`【看護專戶未結清總整理】`);
+                lines.push(`・起始餘額（${ledger.carryOverMonth}）：${fmt(ledger.carryOverBalance)}`);
+                unsettled.forEach(r => {
+                    lines.push(`・${r.month}：支出 ${fmt(r.totalExpense)} / 存入 ${fmt(r.totalIncome)} → 餘額 ${fmt(r.theoreticalBalance)}`);
+                });
+            }
+
+            lines.push("");
+            lines.push("【截至目前尚未入帳統計】");
+            let hasAnyUnpaid = false;
+            SIBLINGS.forEach(sib => {
+                const unpaid = computedRows.filter(r => (Number(r.contrib?.[sib.key]) || 0) <= 0);
+                if (unpaid.length > 0) {
+                    hasAnyUnpaid = true;
+                    const mStr = unpaid.map(u => parseInt(u.month.split("/")[1], 10) + "月").join("、");
+                    lines.push(`・${sib.label}：${mStr}（共 ${unpaid.length} 期 ${fmt(unpaid.length * settings.contribAmount)}）`);
+                }
+            });
+            if (!hasAnyUnpaid) lines.push("・全員均已入帳完畢 ✔");
+
+            lines.push("");
+            lines.push(`💰 目前專戶理論餘額：${fmt(latest.theoreticalBalance)}`);
+            document.getElementById("lineReportTextarea").value = lines.join("\n");
+        }
+
+        function copyLineReport() {
+            const ta = document.getElementById("lineReportTextarea");
+            ta.select();
+            document.execCommand("copy");
+            showToast("已複製 LINE 報帳文字！");
+        }
+
+        // ==========================================
+        // 7. Google Sheet 雙向同步引擎（doGet + doPost）
+        // ==========================================
+        function openSyncModal() {
+            document.getElementById("gasUrlInput").value = localStorage.getItem("caregiver_gas_url") || "";
+            openModal("syncModal");
+        }
+
+        async function saveGasUrlAndSync() {
+            const url = document.getElementById("gasUrlInput").value.trim();
+            if (!url) {
+                showToast("請輸入有效的 GAS 網址", false);
+                return;
+            }
+            localStorage.setItem("caregiver_gas_url", url);
+            closeModal("syncModal");
+            await fetchFromSheet(false);
+        }
+
+        function setSyncIndicator(text, spinning = false) {
+            document.getElementById("syncStatusLabel").textContent = text;
+            const icon = document.getElementById("syncBtnIcon");
+            if (spinning) icon.classList.add("animate-spin");
+            else icon.classList.remove("animate-spin");
+        }
+
+        async function fetchFromSheet(isAuto = false) {
+            const url = localStorage.getItem("caregiver_gas_url");
+            if (!url) {
+                if (!isAuto) showToast("尚未設定 GAS 網址", false);
+                return;
+            }
+            if (isSyncing) return;
+            isSyncing = true;
+            setSyncIndicator("正在從 Google Sheet 同步...", true);
+
+            try {
+                const res = await fetch(url);
+                const data = await res.json();
+                if (data && data.status === "ok" && Array.isArray(data.records)) {
+                    if (data.carryOverBalance) ledger.carryOverBalance = Number(data.carryOverBalance);
+                    if (data.carryOverMonth) ledger.carryOverMonth = data.carryOverMonth;
+                    if (data.carryOverNote) ledger.carryOverNote = data.carryOverNote;
+                    ledger.records = data.records;
+                    recalculateAndRender();
+                    const nowStr = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+                    setSyncIndicator(`已與 Sheet 同步（${nowStr}）`, false);
+                    if (!isAuto) showToast(`同步成功！已載入 ${data.records.length} 個月資料`);
+                } else {
+                    setSyncIndicator("同步失敗（格式不符）", false);
+                    if (!isAuto) showToast("GAS 回傳格式不符，請確認已部署最新版 caregiver_gas.js", false);
+                }
+            } catch (err) {
+                console.error(err);
+                setSyncIndicator("雲端連線失敗（使用本機快取）", false);
+                if (!isAuto) showToast("無法連線至 GAS，請檢查網址與權限設定", false);
+            } finally {
+                isSyncing = false;
+            }
+        }
+
+        async function pushRecordToSheet(record) {
+            const url = localStorage.getItem("caregiver_gas_url");
+            if (!url) {
+                showToast("已儲存在本機（綁定 Sheet 網址後即可自動寫回雲端）");
+                return;
+            }
+
+            setSyncIndicator("正在寫回 Google Sheet...", true);
+            try {
+                // 使用預設 text/plain 避免瀏覽器觸發 GAS 不支援的 CORS preflight
+                const res = await fetch(url, {
+                    method: "POST",
+                    body: JSON.stringify({
+                        action: "upsertMonth",
+                        record: record
+                    })
+                });
+                const result = await res.json();
+                if (result && result.status === "ok") {
+                    const nowStr = new Date().toLocaleTimeString("zh-TW", { hour: "2-digit", minute: "2-digit" });
+                    setSyncIndicator(`已寫回 Sheet（${nowStr}）`, false);
+                    showToast(`已同步至 Google Sheet（${record.month}）`);
+                } else {
+                    setSyncIndicator("寫回 Sheet 發生錯誤", false);
+                    showToast(result?.message || "寫回 Sheet 失敗", false);
+                }
+            } catch (err) {
+                console.error(err);
+                setSyncIndicator("寫回失敗（已先存本機）", false);
+                showToast("已存本機，但寫回 Google Sheet 失敗，請稍後重試", false);
+            }
+        }
+
+        function exportCSV() {
+            const header = ["年/月", "基本薪資", "加班日數", "加班費", "健保費", "安定基金", "醫療費", "仲介/雜支", "健保自付扣款", "看護實領", "薪水已付", "當月總支出", "大哥", "二哥", "三哥", "芳芯", "其他存入", "當月收入合計", "當月淨增減", "理論應有餘額", "實際存摺餘額", "已結清", "備註", "大哥繳日", "二哥繳日", "三哥繳日", "芳芯繳日"];
+            const lines = [header.join(",")];
+            computedRows.forEach(r => {
+                lines.push([
+                    r.month, r.baseSalary, r.otDays, r.otPay, r.healthIns, r.stabilityFund, r.medical, r.misc,
+                    r.healthDeduct, r.netPay, r.salaryPaid, r.totalExpense,
+                    r.contrib.bro1, r.contrib.bro2, r.contrib.bro3, r.contrib.sis, r.otherIncome,
+                    r.totalIncome, r.netChange, r.theoreticalBalance, r.actualBalance ?? "",
+                    r.settled, `"${(r.note || "").replace(/"/g, '""')}"`,
+                    r.payDates?.bro1 || "", r.payDates?.bro2 || "", r.payDates?.bro3 || "", r.payDates?.sis || ""
+                ].join(","));
+            });
+            const blob = new Blob(["\uFEFF" + lines.join("\n")], { type: "text/csv;charset=utf-8;" });
+            const link = document.createElement("a");
+            link.href = URL.createObjectURL(blob);
+            link.download = `caregiver_ledger_${getTodayIso()}.csv`;
+            link.click();
+            showToast("已匯出 CSV 備份檔");
+        }
+
+        function resetToInitialData() {
+            localStorage.removeItem("caregiver_ledger_data");
+            ledger = JSON.parse(JSON.stringify(INITIAL_LEDGER));
+            recalculateAndRender();
+            closeModal("syncModal");
+            showToast("已還原為初始資料");
+        }
+
+        // ==========================================
+        // 8. 啟動初始化
+        // ==========================================
+        window.onload = function () {
+            try {
+                const savedSettings = localStorage.getItem("caregiver_settings");
+                if (savedSettings) settings = { ...DEFAULT_SETTINGS, ...JSON.parse(savedSettings) };
+                const savedLedger = localStorage.getItem("caregiver_ledger_data");
+                if (savedLedger) ledger = JSON.parse(savedLedger);
+            } catch {
+                ledger = JSON.parse(JSON.stringify(INITIAL_LEDGER));
+            }
+
+            recalculateAndRender();
+
+            if (localStorage.getItem("caregiver_gas_url")) {
+                fetchFromSheet(true);
+            }
+        };
+    </script>
+</body>
+</html>
